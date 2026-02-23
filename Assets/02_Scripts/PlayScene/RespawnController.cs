@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 부활 요청 시 마을 포탈 위치로 이동·체력 회복·Idle 전환. PlayerController는 포탈을 모름.
+/// 부활 요청 시 마을 포탈 위치로 이동·체력 회복·Idle 전환.
 /// </summary>
 public class RespawnController : MonoBehaviour
 {

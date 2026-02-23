@@ -2,20 +2,20 @@ using UnityEngine;
 using Unity.Cinemachine;
 
 /// <summary>
-/// 플레이 씬 조율. InputHandler·PlayerController 참조 보유, 입력 이벤트/값을 플레이어·GameEvents로 연결.
-/// 플레이어는 PlayerController가 정함. 이동, Interact, 인벤토리 키만 연결.
+/// 플레이 씬 조율. InputHandler·SquadController 참조, 입력을 PlayerCharacter에 연결.
 /// </summary>
 public class PlayScene : MonoBehaviour
 {
     [SerializeField] private InputHandler _inputHandler;
-    [SerializeField] private PlayerController _playerController;
     [SerializeField] [Tooltip("입력→월드 방향 변환에 사용. 비면 Camera.main")]
     private Transform _cameraTransform;
-    [SerializeField] [Tooltip("비면 주입 안 함. 있으면 현재 조종 캐릭터를 chase target으로 주입")]
+    [SerializeField] [Tooltip("비면 주입 안 함. 적 팀 스폰 (CombatController 주입)")]
     private EnemySpawner _enemySpawner;
     [SerializeField] [Tooltip("비면 주입 안 함. 있으면 분대 스폰·따라가기 설정")]
     private SquadController _squadController;
-    [SerializeField] [Tooltip("비면 주입 안 함. 있으면 PlayerController·조종 캐릭터 변경 시 ItemUser 갱신")]
+    [SerializeField] [Tooltip("전투 상태 On/Off 관리. 조건은 외부에서 SetCombatOn/Off 호출")]
+    private CombatController _combatController;
+    [SerializeField] [Tooltip("비면 주입 안 함. 있으면 플레이어 변경 시 ItemUser 갱신")]
     private InventoryPresenter _inventoryPresenter;
     [SerializeField] [Tooltip("비면 주입 안 함. 플레이 화면 UI(체력바 등). 조종 캐릭터 Model.OnHpChanged 구독")]
     private PlaySceneView _playSceneView;
@@ -33,9 +33,9 @@ public class PlayScene : MonoBehaviour
             Debug.LogWarning("[PlayScene] InputHandler가 할당되지 않았습니다. 인스펙터에서 할당해 주세요.");
             return;
         }
-        if (_playerController == null)
+        if (_squadController == null)
         {
-            Debug.LogWarning("[PlayScene] PlayerController가 할당되지 않았습니다.");
+            Debug.LogWarning("[PlayScene] SquadController가 할당되지 않았습니다.");
             return;
         }
 
@@ -51,35 +51,32 @@ public class PlayScene : MonoBehaviour
         var saveData = GameManager.Instance?.SaveManager?.Load();
         var spawnPos = saveData?.squad != null ? (Vector3?)saveData.squad.playerPosition : null;
 
-        if (_squadController != null)
-            _squadController.Initialize(spawnPos);
+        _squadController.Initialize(spawnPos);
 
-        _playerController.Initialize();
-
-        // Apply는 Coordinator에 직접 호출 (Awake 시점에 DataManager 등록 전일 수 있음)
         if (saveData != null && _saveCoordinator != null)
             _saveCoordinator.Apply(saveData);
 
-        var chaseTarget = _playerController.CurrentControlled != null ? _playerController.CurrentControlled.transform : transform;
-        _enemySpawner?.Initialize(chaseTarget);
-        if (_squadController != null)
-            _squadController.SetFollowTarget(chaseTarget);
+        var player = _squadController.PlayerCharacter;
+        var chaseTarget = player != null ? player.transform : transform;
+        _enemySpawner?.Initialize(_combatController);
+        _squadController.SetFollowTarget(chaseTarget);
 
         if (_inventoryPresenter != null)
-            _inventoryPresenter.SetPlayerController(_playerController);
+            _inventoryPresenter.SetPlayerCharacter(player);
     }
 
     private void OnEnable()
     {
-        if (_inputHandler == null || _playerController == null) return;
+        if (_inputHandler == null || _squadController == null) return;
 
-        _playerController.OnCurrentControlledChanged += HandleCurrentControlledChanged;
-        HandleCurrentControlledChanged(_playerController.CurrentControlled);
+        _squadController.OnPlayerChanged += HandlePlayerChanged;
+        HandlePlayerChanged(_squadController.PlayerCharacter);
 
         _inputHandler.OnInteractPerformed += HandleInteract;
         _inputHandler.OnInventoryPerformed += HandleInventoryKey;
         _inputHandler.OnAttackPerformed += HandleAttack;
         _inputHandler.OnSquadSwapPerformed += HandleSquadSwap;
+        _inputHandler.OnSavePerformed += HandleSave;
     }
 
     private void OnDisable()
@@ -89,26 +86,26 @@ public class PlayScene : MonoBehaviour
             _hpModelSubscribed.OnHpChanged -= OnHpChanged;
             _hpModelSubscribed = null;
         }
-        if (_playerController != null)
-            _playerController.OnCurrentControlledChanged -= HandleCurrentControlledChanged;
+        if (_squadController != null)
+            _squadController.OnPlayerChanged -= HandlePlayerChanged;
         if (_inputHandler == null) return;
 
         _inputHandler.OnInteractPerformed -= HandleInteract;
         _inputHandler.OnInventoryPerformed -= HandleInventoryKey;
         _inputHandler.OnAttackPerformed -= HandleAttack;
         _inputHandler.OnSquadSwapPerformed -= HandleSquadSwap;
+        _inputHandler.OnSavePerformed -= HandleSave;
     }
 
     private void Update()
     {
-        if (_inputHandler == null || _playerController == null || _playerController.Mover == null) return;
-
-        if (!_playerController.CanMove)
-            return;
+        var player = _squadController?.PlayerCharacter;
+        if (_inputHandler == null || player == null || player.Mover == null) return;
+        if (!_squadController.CanMove) return;
 
         Vector2 input = _inputHandler.MoveInput;
         Vector3 worldDir = InputToWorldDirection(input);
-        _playerController.Mover.Move(worldDir);
+        player.Mover.Move(worldDir);
     }
 
     /// <summary>입력 + 카메라 → 월드 기준 이동 방향.</summary>
@@ -131,7 +128,7 @@ public class PlayScene : MonoBehaviour
 
     private void HandleInteract()
     {
-        _playerController?.Interactor?.TryInteract();
+        _squadController?.PlayerCharacter?.Interactor?.TryInteract();
     }
 
     private void HandleInventoryKey()
@@ -141,33 +138,35 @@ public class PlayScene : MonoBehaviour
 
     private void HandleAttack()
     {
-        _playerController?.RequestAttack();
+        _squadController?.PlayerCharacter?.RequestAttack();
     }
 
     private void HandleSquadSwap()
     {
-        if (_playerController == null) return;
-        _playerController.SwapSquad();
-        // OnCurrentControlledChanged가 SetCurrentControlled에서 발행되어 HandleCurrentControlledChanged 호출
+        _squadController?.SwapSquad();
     }
 
-    /// <summary>조종 캐릭터 변경 시 chase/follow/인벤토리/체력바/카메라 등 갱신. 새로 추가할 시스템은 여기에 한 줄 추가.</summary>
-    private void HandleCurrentControlledChanged(Character newControlled)
+    private void HandleSave()
     {
-        var chaseTarget = newControlled != null ? newControlled.transform : _playerController?.transform;
+        GameManager.Instance?.SaveManager?.Save();
+    }
+
+    /// <summary>플레이어 변경 시 chase/follow/인벤토리/체력바/카메라 등 갱신.</summary>
+    private void HandlePlayerChanged(Character newPlayer)
+    {
+        var chaseTarget = newPlayer != null ? newPlayer.transform : _squadController?.transform;
         if (chaseTarget != null)
         {
-            _enemySpawner?.SetChaseTarget(chaseTarget);
             _squadController?.SetFollowTarget(chaseTarget);
             if (_cinemachineCamera != null)
                 _cinemachineCamera.Follow = chaseTarget;
         }
-        _inventoryPresenter?.RefreshItemUser();
+        _inventoryPresenter?.SetPlayerCharacter(newPlayer);
 
         if (_hpModelSubscribed != null)
             _hpModelSubscribed.OnHpChanged -= OnHpChanged;
 
-        _hpModelSubscribed = newControlled?.Model;
+        _hpModelSubscribed = newPlayer?.Model;
         if (_hpModelSubscribed != null)
         {
             _hpModelSubscribed.OnHpChanged += OnHpChanged;

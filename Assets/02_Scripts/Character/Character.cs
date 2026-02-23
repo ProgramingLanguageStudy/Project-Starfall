@@ -3,7 +3,7 @@ using UnityEngine.AI;
 
 /// <summary>
 /// 캐릭터(스쿼드 멤버) = Model·Mover·Animator·Interactor·Attacker·StateMachine 조합.
-/// PlayerController는 이 컴포넌트를 currentControlled로 참조하여 입력·카메라 연결.
+/// SquadController가 이 컴포넌트를 PlayerCharacter로 참조하여 입력·카메라 연결.
 /// </summary>
 [RequireComponent(typeof(CharacterModel)), RequireComponent(typeof(CharacterAnimator)), RequireComponent(typeof(CharacterStateMachine)),
  RequireComponent(typeof(CharacterMover)), RequireComponent(typeof(CharacterFollowMover)), RequireComponent(typeof(CharacterAttacker)), RequireComponent(typeof(CharacterInteractor))]
@@ -23,6 +23,8 @@ public class Character : MonoBehaviour, IInteractReceiver
     [SerializeField] private CharacterController _characterController;
     [SerializeField] private NavMeshAgent _navMeshAgent;
     [SerializeField] private Animator _animator;
+    [SerializeField] [Tooltip("동료 전용. 인스펙터에서 CompanionAI 할당")]
+    private CompanionAI _companionAI;
 
     public CharacterModel Model => _model;
     public CharacterMover Mover => _mover;
@@ -79,6 +81,18 @@ public class Character : MonoBehaviour, IInteractReceiver
         _followMover?.SetFollowTarget(target);
     }
 
+    /// <summary>전투 모드: 적 등 타겟으로 이동. stopDistance 안이면 정지. 동료 AI용.</summary>
+    public void SetCombatTarget(Transform target, float stopDistance)
+    {
+        _followMover?.SetCombatTarget(target, stopDistance);
+    }
+
+    /// <summary>전투 타겟 해제. 다시 follow 대상 따라감.</summary>
+    public void ClearCombatTarget()
+    {
+        _followMover?.ClearCombatTarget();
+    }
+
     /// <summary>플레이어 조종 모드로 전환 (CharacterController+CharacterMover, NavMeshAgent 비활성화, Interactor 활성화).</summary>
     public void SetAsPlayer()
     {
@@ -86,6 +100,8 @@ public class Character : MonoBehaviour, IInteractReceiver
         if (_navMeshAgent != null) _navMeshAgent.enabled = false;
         if (_interactor != null) _interactor.enabled = true;
         SetFollowTarget(null);
+        ClearCombatTarget();
+        if (_companionAI != null) _companionAI.enabled = false;
     }
 
     /// <summary>동료 모드로 전환 (NavMeshAgent+FollowMover로 대상 따라감, Interactor 비활성화).</summary>
@@ -95,6 +111,8 @@ public class Character : MonoBehaviour, IInteractReceiver
         if (_navMeshAgent != null) _navMeshAgent.enabled = true;
         if (_interactor != null) _interactor.enabled = false;
         SetFollowTarget(followTarget);
+        ClearCombatTarget();
+        if (_companionAI != null) _companionAI.enabled = true;
     }
 
     /// <summary>현재 위치·회전·체력을 저장용 데이터로 반환.</summary>
@@ -140,7 +158,7 @@ public class Character : MonoBehaviour, IInteractReceiver
         _characterAnimator?.Initialize(_animator);
         _interactor?.Initialize(this);
         _stateMachine?.Initialize(this);
-        _attacker?.Initialize(_stateMachine, _model);
+        _attacker?.Initialize(this, _stateMachine, _model);
 
         _animatorEventBridge = GetComponentInChildren<AnimatorEventBridge>();
         if (_animatorEventBridge != null && _attacker != null)

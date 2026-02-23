@@ -35,21 +35,21 @@ public class PlayerDebuggerEditor : Editor
     {
         var debugger = (PlayerDebugger)target;
         var so = new SerializedObject(debugger);
-        var playerProp = so.FindProperty("_playerController");
+        var squadProp = so.FindProperty("_squadController");
 
-        EditorGUILayout.PropertyField(playerProp);
+        EditorGUILayout.PropertyField(squadProp);
 
-        if (playerProp.objectReferenceValue == null && GUILayout.Button("씬에서 PlayerController 찾기"))
+        if (squadProp.objectReferenceValue == null && GUILayout.Button("씬에서 SquadController 찾기"))
         {
-            var found = FindAnyObjectByType<PlayerController>();
+            var found = FindAnyObjectByType<SquadController>();
             if (found != null)
             {
-                playerProp.objectReferenceValue = found;
+                squadProp.objectReferenceValue = found;
                 so.ApplyModifiedProperties();
             }
             else
             {
-                EditorGUILayout.HelpBox("씬에 PlayerController가 없습니다.", MessageType.Warning);
+                EditorGUILayout.HelpBox("씬에 SquadController가 없습니다.", MessageType.Warning);
             }
         }
 
@@ -77,7 +77,7 @@ public class PlayerDebuggerEditor : Editor
         DrawDefaultInspector();
         EditorGUILayout.Space(4);
 
-        var pc = debugger.PlayerRef;
+        var pc = debugger.PlayerCharacter;
 
         if (Application.isPlaying && pc != null && pc.Model != null)
         {
@@ -95,11 +95,15 @@ public class PlayerDebuggerEditor : Editor
         }
 
         EditorGUI.BeginDisabledGroup(!Application.isPlaying);
+        if (GUILayout.Button("텔레포트: 지정 위치로 이동"))
+        {
+            debugger.TeleportToTarget();
+        }
         if (GUILayout.Button("체력 풀회복"))
         {
             if (pc == null)
             {
-                Debug.LogWarning("[PlayerDebugger] PlayerController 참조가 없습니다. 인스펙터에서 할당하세요.");
+                Debug.LogWarning("[PlayerDebugger] SquadController 또는 PlayerCharacter가 없습니다. 인스펙터에서 할당하고 플레이 모드로 실행하세요.");
                 return;
             }
             if (pc.Model != null)
@@ -112,6 +116,6 @@ public class PlayerDebuggerEditor : Editor
         EditorGUI.EndDisabledGroup();
 
         if (!Application.isPlaying)
-            EditorGUILayout.HelpBox("플레이 모드에서만 스탯 표시·체력 회복이 동작합니다.", MessageType.Info);
+            EditorGUILayout.HelpBox("플레이 모드에서만 스탯 표시·체력 회복·텔레포트가 동작합니다.", MessageType.Info);
     }
 }

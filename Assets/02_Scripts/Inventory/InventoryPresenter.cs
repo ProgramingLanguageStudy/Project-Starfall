@@ -2,26 +2,27 @@ using UnityEngine;
 
 /// <summary>
 /// Inventory(Model)와 InventoryView(View)를 연결. Model·View는 인스펙터에서 할당.
-/// PlayScene이 SetPlayerController로 주입하고, 조종 캐릭터 변경 시 RefreshItemUser 호출.
+/// PlayScene이 SetPlayerCharacter로 주입하고, 플레이어 변경 시 SetItemUser 갱신.
 /// </summary>
 public class InventoryPresenter : MonoBehaviour
 {
     [SerializeField] private Inventory _model;
     [SerializeField] private InventoryView _view;
 
-    private PlayerController _playerController;
+    private Character _playerCharacter;
 
-    /// <summary>PlayScene에서 주입. 조종 캐릭터 변경 시 RefreshItemUser 호출 필요.</summary>
-    public void SetPlayerController(PlayerController controller)
+    /// <summary>PlayScene에서 주입. 플레이어 변경 시 호출.</summary>
+    public void SetPlayerCharacter(Character character)
     {
-        _playerController = controller;
+        _playerCharacter = character;
+        RefreshItemUser();
     }
 
-    /// <summary>소모품 효과 적용 대상을 현재 조종 캐릭터로 갱신. 스쿼드 교체 후 호출.</summary>
-    public void RefreshItemUser()
+    /// <summary>소모품 효과 적용 대상을 현재 플레이어로 갱신.</summary>
+    private void RefreshItemUser()
     {
-        if (_model != null && _playerController != null)
-            _model.SetItemUser(_playerController.Model);
+        if (_model != null)
+            _model.SetItemUser(_playerCharacter?.Model);
     }
 
     private void Awake()

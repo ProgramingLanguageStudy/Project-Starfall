@@ -2,31 +2,28 @@ using UnityEngine;
 
 /// <summary>
 /// 분대 세이브/로드 기여.
-/// FindObjectOfType으로 SquadController·PlayerController 참조. SerializeField 없음.
+/// FindObjectOfType으로 SquadController 참조. SerializeField 없음.
 /// </summary>
 public class SquadSaveContributor : SaveContributorBehaviour
 {
     public override int SaveOrder => 0;
 
     private SquadController _squadController;
-    private PlayerController _playerController;
 
-    private SquadController SquadController => _squadController != null ? _squadController : _squadController = Object.FindFirstObjectByType<SquadController>();
-    private PlayerController PlayerController => _playerController != null ? _playerController : _playerController = Object.FindFirstObjectByType<PlayerController>();
+    private SquadController Squad => _squadController != null ? _squadController : _squadController = Object.FindFirstObjectByType<SquadController>();
 
     public override void Gather(SaveData data)
     {
         if (data?.squad == null) return;
-        var squad = SquadController;
-        var player = PlayerController;
-        if (squad == null || player == null) return;
+        var squad = Squad;
+        if (squad == null) return;
 
         data.squad.members.Clear();
         data.squad.currentPlayerId = "";
         data.squad.playerPosition = default;
         data.squad.playerRotationY = 0f;
 
-        var current = player.CurrentControlled;
+        var current = squad.PlayerCharacter;
         if (current != null)
         {
             data.squad.playerPosition = current.transform.position;
@@ -52,9 +49,8 @@ public class SquadSaveContributor : SaveContributorBehaviour
     public override void Apply(SaveData data)
     {
         if (data?.squad == null) return;
-        var squad = SquadController;
-        var player = PlayerController;
-        if (squad == null || player == null) return;
+        var squad = Squad;
+        if (squad == null) return;
 
         // 1. 조종 대상 전환
         Character targetPlayer = null;
@@ -71,14 +67,10 @@ public class SquadSaveContributor : SaveContributorBehaviour
                     break;
                 }
             }
-            if (targetPlayer != null && targetPlayer != player.CurrentControlled)
-            {
-                player.CurrentControlled?.SetAsCompanion(targetPlayer.transform);
-                targetPlayer.SetAsPlayer();
-                player.SetCurrentControlled(targetPlayer);
-            }
+            if (targetPlayer != null && targetPlayer != squad.PlayerCharacter)
+                squad.SetPlayerCharacter(targetPlayer);
         }
-        var playerChar = player.CurrentControlled ?? squad.DefaultPlayer;
+        var playerChar = squad.PlayerCharacter ?? squad.DefaultPlayer;
 
         // 2. 플레이어 위치 적용
         if (playerChar != null)

@@ -1,4 +1,4 @@
-/// <summary>상호작용 시 필요한 API. PlayerController·Character 모두 구현.</summary>
+/// <summary>상호작용 시 필요한 API. Character가 구현.</summary>
 using UnityEngine;
 
 public interface IInteractReceiver

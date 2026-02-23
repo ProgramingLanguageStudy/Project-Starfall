@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// 분대 제어. CharacterData 기반으로 플레이어+동료 전체 스폰, 따라가기 설정.
-/// _initialSquad[0]이 기본 플레이어, 나머지가 동료. 씬에 플레이어 캐릭터 배치 불필요.
+/// 분대 제어. Character 관리·플레이어/동료 역할·스폰·따라가기.
+/// PlayerCharacter 변경 시 OnPlayerChanged 발행.
 /// </summary>
 public class SquadController : MonoBehaviour
 {
@@ -23,8 +24,14 @@ public class SquadController : MonoBehaviour
     private float _spawnRadius = 2f;
 
     private readonly List<Character> _characters = new List<Character>();
+    private Character _playerCharacter;
 
     public IReadOnlyList<Character> Characters => _characters;
+    public Character PlayerCharacter => _playerCharacter;
+    public bool CanMove { get; set; } = true;
+
+    /// <summary>플레이어 캐릭터 변경 시 발행. chase target, UI 등 갱신에 사용.</summary>
+    public event Action<Character> OnPlayerChanged;
 
     /// <summary>기본 플레이어(스폰 리스트 첫 번째). 세이브 없을 때 조종 대상.</summary>
     public Character DefaultPlayer => _characters.Count > 0 ? _characters[0] : null;
@@ -79,7 +86,41 @@ public class SquadController : MonoBehaviour
             }
             index++;
         }
+
+        _playerCharacter = firstCharacter;
+        OnPlayerChanged?.Invoke(_playerCharacter);
     }
+
+    /// <summary>플레이어 캐릭터 설정. 외부(세이브 로드, 스왑 등)에서 호출.</summary>
+    public void SetPlayerCharacter(Character character)
+    {
+        if (character == null || character == _playerCharacter) return;
+        if (!_characters.Contains(character)) return;
+
+        _playerCharacter?.SetAsCompanion(character.transform);
+        character.SetAsPlayer();
+        _playerCharacter = character;
+        OnPlayerChanged?.Invoke(_playerCharacter);
+    }
+
+    /// <summary>분대원 순환 교체. 다음 캐릭터를 플레이어로. 교체되면 true.</summary>
+    public bool SwapSquad()
+    {
+        if (_playerCharacter == null || _characters.Count == 0) return false;
+
+        int idx = _characters.IndexOf(_playerCharacter);
+        if (idx < 0) idx = 0;
+        int nextIdx = (idx + 1) % _characters.Count;
+        var next = _characters[nextIdx];
+        if (next == _playerCharacter) return false;
+
+        SetPlayerCharacter(next);
+        return true;
+    }
+
+    /// <summary>플레이어를 목표 위치로 텔레포트. 디버거·포탈 등에서 사용.</summary>
+    public void TeleportPlayer(Vector3 worldPosition) => _playerCharacter?.Teleport(worldPosition);
+    public void TeleportPlayer(Transform destination) => _playerCharacter?.Teleport(destination);
 
     private Vector3 GetSpawnOffset(int index)
     {
