@@ -6,8 +6,9 @@ using UnityEngine.AI;
 /// <summary>
 /// 분대 제어. Character 관리·플레이어/동료 역할·스폰·따라가기.
 /// PlayerCharacter 변경 시 OnPlayerChanged 발행.
+/// IPlayerProvider 구현. GameServices에 등록해 Player 참조 제공.
 /// </summary>
-public class SquadController : MonoBehaviour
+public class SquadController : MonoBehaviour, IPlayerProvider
 {
     [Header("참조")]
     [SerializeField] [Tooltip("스폰된 분대 부모(비어 있으면 this)")]
@@ -25,6 +26,7 @@ public class SquadController : MonoBehaviour
 
     private readonly List<Character> _characters = new List<Character>();
     private Character _playerCharacter;
+    private CombatController _combatController;
 
     public IReadOnlyList<Character> Characters => _characters;
     public Character PlayerCharacter => _playerCharacter;
@@ -35,6 +37,9 @@ public class SquadController : MonoBehaviour
 
     /// <summary>기본 플레이어(스폰 리스트 첫 번째). 세이브 없을 때 조종 대상.</summary>
     public Character DefaultPlayer => _characters.Count > 0 ? _characters[0] : null;
+
+    Character IPlayerProvider.GetPlayer() => PlayerCharacter;
+    Transform IPlayerProvider.GetPlayerTransform() => PlayerCharacter?.transform;
 
     /// <summary>따라갈 대상 설정. PlayScene 등에서 현재 조종 캐릭터.transform 전달.</summary>
     public void SetFollowTarget(Transform target)
@@ -47,9 +52,10 @@ public class SquadController : MonoBehaviour
         }
     }
 
-    /// <summary>분대 스폰. spawnPositionOverride가 있으면 그 위치(세이브 기준), 없으면 _spawnPoint(방어코드).</summary>
-    public void Initialize(Vector3? spawnPositionOverride = null)
+    /// <summary>분대 스폰. spawnPositionOverride가 있으면 그 위치(세이브 기준), 없으면 _spawnPoint(방어코드). combatController는 동료 AI에 주입.</summary>
+    public void Initialize(Vector3? spawnPositionOverride = null, CombatController combatController = null)
     {
+        _combatController = combatController;
         SpawnInitialSquad(spawnPositionOverride);
     }
 
@@ -74,6 +80,9 @@ public class SquadController : MonoBehaviour
             if (character == null) continue;
 
             _characters.Add(character);
+
+            var companionStateMachine = character.GetComponent<CompanionStateMachine>();
+            companionStateMachine?.Initialize(_combatController);
 
             if (index == 0)
             {
@@ -164,6 +173,7 @@ public class SquadController : MonoBehaviour
         var c = SpawnCharacterInternal(data, nearPosition, root);
         if (c != null)
         {
+            c.GetComponent<CompanionStateMachine>()?.Initialize(_combatController);
             c.SetAsCompanion(followTarget);
             _characters.Add(c);
         }

@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// 전투 상태 On/Off 및 전투중인 적 리스트 관리.
 /// Enemy가 Chase/Attack 진입 시 Register, Patrol/Idle/Dead 시 Unregister.
-/// CompanionAI는 IsInCombat·EnemiesInCombat로 타겟 선택.
+/// 전투 상태의 진실의 원천. CompanionStateMachine 등에 주입되어 IsInCombat·EnemiesInCombat 제공.
 /// </summary>
 public class CombatController : MonoBehaviour
 {

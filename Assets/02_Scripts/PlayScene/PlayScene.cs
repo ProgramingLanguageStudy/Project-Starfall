@@ -21,7 +21,7 @@ public class PlayScene : MonoBehaviour
     private PlaySceneView _playSceneView;
     [SerializeField] [Tooltip("비면 갱신 안 함. 있으면 SquadSwap 시 Follow 타겟을 현재 조종 캐릭터로 변경")]
     private CinemachineCamera _cinemachineCamera;
-    [SerializeField] [Tooltip("세이브/로드 조율. Contributor 수집 후 초기화·Apply")]
+    [SerializeField] [Tooltip("세이브/로드 조율. 인스펙터에서 Contributor 할당")]
     private PlaySaveCoordinator _saveCoordinator;
 
     private CharacterModel _hpModelSubscribed;
@@ -42,16 +42,14 @@ public class PlayScene : MonoBehaviour
         if (_cameraTransform == null && Camera.main != null)
             _cameraTransform = Camera.main.transform;
 
-        // Contributor 수집 → Coordinator 주입 (FindObjectsByType, includeInactive: false)
-        var contributors = Object.FindObjectsByType<SaveContributorBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        if (_saveCoordinator != null)
-            _saveCoordinator.Initialize(contributors);
+        _saveCoordinator?.Initialize();
 
         // 세이브 선로드 → 스폰 위치 결정 → 스폰 → Apply
         var saveData = GameManager.Instance?.SaveManager?.Load();
         var spawnPos = saveData?.squad != null ? (Vector3?)saveData.squad.playerPosition : null;
 
-        _squadController.Initialize(spawnPos);
+        _squadController.Initialize(spawnPos, _combatController);
+        GameServices.Register(_squadController);
 
         if (saveData != null && _saveCoordinator != null)
             _saveCoordinator.Apply(saveData);
@@ -81,6 +79,8 @@ public class PlayScene : MonoBehaviour
 
     private void OnDisable()
     {
+        GameServices.Clear();
+
         if (_hpModelSubscribed != null)
         {
             _hpModelSubscribed.OnHpChanged -= OnHpChanged;
