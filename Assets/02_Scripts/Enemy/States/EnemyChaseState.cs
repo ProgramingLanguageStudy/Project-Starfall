@@ -34,11 +34,7 @@ public class EnemyChaseState : EnemyStateBase
             Machine.ChangeState(EnemyStateMachine.EnemyState.Attack);
             return;
         }
-        if (dist > Machine.Enemy.Aggro.LoseDistance)
-        {
-            Machine.ChangeState(EnemyStateMachine.EnemyState.Patrol);
-            return;
-        }
+        // 전투 종료(플레이어 10m 이탈)는 StateMachine에서 처리
 
         Machine.Enemy?.Mover?.SetDestination(target.position);
     }
