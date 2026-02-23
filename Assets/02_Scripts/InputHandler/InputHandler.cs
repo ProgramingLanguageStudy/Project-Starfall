@@ -23,6 +23,7 @@ public class InputHandler : MonoBehaviour
     private Action<InputAction.CallbackContext> _attackCallback;
     private Action<InputAction.CallbackContext> _inventoryCallback;
     private Action<InputAction.CallbackContext> _squadSwapCallback;
+    private Action<InputAction.CallbackContext> _saveCallback;
 
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
@@ -34,6 +35,7 @@ public class InputHandler : MonoBehaviour
     public event Action OnAttackPerformed;
     public event Action OnInventoryPerformed;
     public event Action OnSquadSwapPerformed;
+    public event Action OnSavePerformed;
 
     private void OnEnable()
     {
@@ -64,15 +66,18 @@ public class InputHandler : MonoBehaviour
         _attackCallback = _ => OnAttackPerformed?.Invoke();
         _inventoryCallback = _ => OnInventoryPerformed?.Invoke();
         _squadSwapCallback = _ => OnSquadSwapPerformed?.Invoke();
+        _saveCallback = _ => OnSavePerformed?.Invoke();
 
         var interact = _playerMap.FindAction("Interact");
         var attack = _playerMap.FindAction("Attack");
         var inventory = _playerMap.FindAction("Inventory");
         var squadSwap = _playerMap.FindAction("SquadSwap");
+        var save = _playerMap.FindAction("Save");
         if (interact != null) interact.performed += _interactCallback;
         if (attack != null) attack.performed += _attackCallback;
         if (inventory != null) inventory.performed += _inventoryCallback;
         if (squadSwap != null) squadSwap.performed += _squadSwapCallback;
+        if (save != null) save.performed += _saveCallback;
 
         _playerMap.Enable();
 
@@ -103,10 +108,12 @@ public class InputHandler : MonoBehaviour
             var attack = _playerMap.FindAction("Attack");
             var inventory = _playerMap.FindAction("Inventory");
             var squadSwap = _playerMap.FindAction("SquadSwap");
+            var save = _playerMap.FindAction("Save");
             if (interact != null && _interactCallback != null) interact.performed -= _interactCallback;
             if (attack != null && _attackCallback != null) attack.performed -= _attackCallback;
             if (inventory != null && _inventoryCallback != null) inventory.performed -= _inventoryCallback;
             if (squadSwap != null && _squadSwapCallback != null) squadSwap.performed -= _squadSwapCallback;
+            if (save != null && _saveCallback != null) save.performed -= _saveCallback;
         }
 
         _uiMap?.Disable();

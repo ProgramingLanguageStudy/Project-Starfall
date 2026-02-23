@@ -1,12 +1,25 @@
 {
     "squad": {
-        "currentPlayerId": "",
+        "currentPlayerId": "celeste",
         "playerPosition": {
-            "x": 0.0,
-            "y": 0.0,
-            "z": 0.0
+            "x": 48.80731201171875,
+            "y": 3.083112955093384,
+            "z": 50.261505126953128
         },
-        "playerRotationY": 0.0,
-        "members": []
+        "playerRotationY": 6.822021484375,
+        "members": [
+            {
+                "characterId": "celeste",
+                "currentHp": 80
+            },
+            {
+                "characterId": "pico",
+                "currentHp": 35
+            },
+            {
+                "characterId": "sapphi",
+                "currentHp": 80
+            }
+        ]
     }
 }

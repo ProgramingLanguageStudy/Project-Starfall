@@ -397,6 +397,8 @@ GameObject:
   - component: {fileID: 7770558361623916627}
   - component: {fileID: 4464429077615204699}
   - component: {fileID: 2628674096226485754}
+  - component: {fileID: 8077997873504499615}
+  - component: {fileID: 946283564678098797}
   m_Layer: 0
   m_Name: Wolf
   m_TagString: Untagged
@@ -523,8 +525,11 @@ MonoBehaviour:
   _attacker: {fileID: -1125100618434499727}
   _stateMachine: {fileID: 4079789302513656771}
   _healthBarView: {fileID: 6236372863425756507}
+  _detector: {fileID: 946283564678098797}
+  _team: {fileID: 0}
   _agent: {fileID: 1024757035387484573}
   _animator: {fileID: 7689840444072217521}
+  _aggro: {fileID: 8077997873504499615}
 --- !u!114 &4079789302513656771
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -586,6 +591,30 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d6e068f0a7cce38489c6ba893c409352, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &8077997873504499615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1991895847249239406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee97f206a81462845bfb9fd9a2cb0fde, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &946283564678098797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1991895847249239406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 395d1a8fe3d28674cadaa29e3a646ce9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &2065426178608487253

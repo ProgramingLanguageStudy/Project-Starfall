@@ -21,6 +21,12 @@ MonoBehaviour:
   patrolWalkDurationMin: 5
   patrolWalkDurationMax: 6
   patrolIdleDuration: 3
+  aggroThreshold: 100
+  aggroLoseDistance: 10
+  aggroAt1m: 50
+  aggroAt3m: 30
+  detectInterval: 2
+  targetReevalInterval: 1.5
   chaseSpeed: 4
   detectionRadius: 5
   attackRadius: 2
