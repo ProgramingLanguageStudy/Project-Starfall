@@ -2,25 +2,30 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 적(Enemy)의 어그로 관리. 100 기준, 거리별 누적, 10m 이탈 시 리셋.
+/// 적(Enemy)의 어그로 관리. Data 기반 수치. 거리별 누적, 이탈 시 리셋.
 /// </summary>
 public class EnemyAggro : MonoBehaviour
 {
-    private const float AggroThreshold = 100f;
-    private const float AggroLoseDistance = 10f;
-
-    /// <summary>거리 1m→50, 3m→30 (가까울수록 높음). 그 사이 선형 보간.</summary>
-    private static float AggroFromDistance(float distance)
-    {
-        if (distance <= 1f) return 50f;
-        if (distance >= 3f) return 30f;
-        return Mathf.Lerp(50f, 30f, (distance - 1f) / 2f);
-    }
-
+    private EnemyModel _model;
     private readonly Dictionary<Character, float> _aggroTable = new Dictionary<Character, float>();
 
-    public float Threshold => AggroThreshold;
-    public float LoseDistance => AggroLoseDistance;
+    public void Initialize(EnemyModel model)
+    {
+        _model = model;
+    }
+
+    public float Threshold => _model != null ? _model.AggroThreshold : 100f;
+    public float LoseDistance => _model != null ? _model.AggroLoseDistance : 10f;
+
+    /// <summary>거리별 어그로 (1m→aggroAt1m, 3m→aggroAt3m, 그 사이 선형 보간).</summary>
+    private float AggroFromDistance(float distance)
+    {
+        float at1 = _model != null ? _model.AggroAt1m : 50f;
+        float at3 = _model != null ? _model.AggroAt3m : 30f;
+        if (distance <= 1f) return at1;
+        if (distance >= 3f) return at3;
+        return Mathf.Lerp(at1, at3, (distance - 1f) / 2f);
+    }
 
     public void AddAggro(Character target, float amount)
     {
@@ -59,20 +64,22 @@ public class EnemyAggro : MonoBehaviour
 
     public bool HasAnyAboveThreshold()
     {
+        float th = Threshold;
         foreach (var kv in _aggroTable)
         {
-            if (kv.Key != null && !kv.Key.Model.IsDead && kv.Value >= AggroThreshold)
+            if (kv.Key != null && !kv.Key.Model.IsDead && kv.Value >= th)
                 return true;
         }
         return false;
     }
 
-    /// <summary>리셋 후 비전투. true면 리셋됨.</summary>
-    public bool TryResetIfOutOfRange(Vector3 myPos, Transform currentTarget)
+    /// <summary>플레이어가 lose 거리 밖이면 리셋. true면 리셋됨.</summary>
+    public bool TryResetIfPlayerOutOfRange(Vector3 myPos, Transform playerTransform)
     {
-        if (currentTarget == null) return true;
-        float dist = Vector3.Distance(myPos, currentTarget.position);
-        if (dist > AggroLoseDistance)
+        if (playerTransform == null) return false;
+        float dist = Vector3.Distance(myPos, playerTransform.position);
+        float loseDist = _model != null ? _model.AggroLoseDistance : 10f;
+        if (dist > loseDist)
         {
             ClearAll();
             return true;

@@ -32,10 +32,24 @@ public class EnemyData : ScriptableObject
     [Tooltip("쉬기(Idle) 구간 시간(초)")]
     public float patrolIdleDuration = 1f;
 
+    [Header("AI - Aggro")]
+    [Tooltip("이 수치 도달 시 전투 진입")]
+    public float aggroThreshold = 100f;
+    [Tooltip("이 거리 이탈 시 어그로 리셋")]
+    public float aggroLoseDistance = 10f;
+    [Tooltip("거리 1m일 때 어그로 누적")]
+    public float aggroAt1m = 50f;
+    [Tooltip("거리 3m일 때 어그로 누적")]
+    public float aggroAt3m = 30f;
+    [Tooltip("탐지 주기(초)")]
+    public float detectInterval = 0.5f;
+    [Tooltip("타겟 재평가 주기(초)")]
+    public float targetReevalInterval = 1.5f;
+
     [Header("AI - Chase / Attack")]
     [Tooltip("추적 시 이동 속도")]
     public float chaseSpeed = 4f;
-    [Tooltip("이 거리 안에 목표 들어오면 Patrol → Chase")]
+    [Tooltip("탐지 반경. 이 거리 안의 Character에 어그로 누적")]
     public float detectionRadius = 10f;
     [Tooltip("Chase 중 이 거리 안이면 Attack")]
     public float attackRadius = 2f;
