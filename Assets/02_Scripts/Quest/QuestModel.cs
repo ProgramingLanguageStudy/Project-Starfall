@@ -11,7 +11,6 @@ public class QuestModel
     public QuestType QuestType => _data.QuestType;
     public string TargetId => _data.TargetId;
     public int TargetAmount => _data.TargetAmount;
-    public bool RequiresItemDeduction => _data.RequiresItemDeduction;
 
     public int CurrentAmount { get; set; }
 

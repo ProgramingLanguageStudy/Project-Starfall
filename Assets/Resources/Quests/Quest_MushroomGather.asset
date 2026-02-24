@@ -19,4 +19,5 @@ MonoBehaviour:
   QuestType: 0
   TargetId: Item_Mushroom
   TargetAmount: 1
-  RequiresItemDeduction: 1
+  RewardGold: 0
+  RewardItems: []

@@ -8,6 +8,36 @@ public class QuestPresenter : MonoBehaviour
     [SerializeField] private QuestSystem _system;
     [SerializeField] private QuestView _view;
 
+    /// <summary>QuestController 등에서 퀘스트 로직 접근용.</summary>
+    public QuestSystem System => _system;
+
+    /// <summary>Controller에서 호출. 퀘스트 완료 요청. 목표 달성된 퀘스트만 CompleteQuest 호출.</summary>
+    public void RequestCompleteQuest(string questId)
+    {
+        if (string.IsNullOrEmpty(questId) || _system == null) return;
+
+        var quest = _system.GetQuestById(questId);
+        if (quest == null || !quest.IsCompleted) return;
+
+        _system.CompleteQuest(questId);
+    }
+
+    /// <summary>Controller에서 호출. 퀘스트 수락 요청.</summary>
+    public void RequestAcceptQuest(string questId)
+    {
+        if (string.IsNullOrEmpty(questId) || _system == null) return;
+
+        var questData = Resources.Load<QuestData>($"Quests/{questId}");
+        if (questData == null)
+        {
+            Debug.LogWarning($"[QuestPresenter] QuestData not found: {questId}");
+            return;
+        }
+
+        _system.AcceptQuest(questData);
+        GameManager.Instance?.FlagManager?.SetFlag(GameStateKeys.QuestAccepted(questId), 1);
+    }
+
     private void Awake()
     {
         if (_system == null)

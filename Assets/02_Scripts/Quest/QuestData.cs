@@ -1,4 +1,12 @@
+using System;
 using UnityEngine;
+
+[Serializable]
+public struct QuestRewardItem
+{
+    public string itemId;
+    public int amount;
+}
 
 [CreateAssetMenu(fileName = "NewQuest", menuName = "Quest/QuestData")]
 public class QuestData : ScriptableObject
@@ -16,6 +24,7 @@ public class QuestData : ScriptableObject
     /// <summary>목표 수치. 방문/도착은 1.</summary>
     public int TargetAmount = 1;
 
-    /// <summary>완료 시 인벤토리에서 차감할지 (채집 퀘스트만 true).</summary>
-    public bool RequiresItemDeduction;
+    [Header("완료 보상")]
+    public int RewardGold;
+    public QuestRewardItem[] RewardItems;
 }

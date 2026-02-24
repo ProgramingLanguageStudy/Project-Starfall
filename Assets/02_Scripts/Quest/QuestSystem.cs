@@ -11,6 +11,8 @@ public class QuestSystem : MonoBehaviour
     private readonly List<QuestModel> _activeQuests = new List<QuestModel>();
 
     public event Action<QuestModel> OnQuestUpdated;
+    /// <summary>퀘스트 완료 시 발행. QuestController가 구독 후 QuestCompleted.InvokeAll.</summary>
+    public event Action<QuestData> OnQuestCompleted;
 
     /// <summary>targetId에 해당하는 진행이 일어났을 때 호출. 해당 퀘스트 current를 1 올림 (방문/채집/처치 공통).</summary>
     public void NotifyProgress(string targetId)
@@ -41,15 +43,26 @@ public class QuestSystem : MonoBehaviour
         OnQuestUpdated?.Invoke(quest);
     }
 
-    /// <summary>퀘스트 완료: 목록에서만 제거. 아이템 차감·플래그는 조율에서 처리 후 호출.</summary>
+    /// <summary>퀘스트 완료: OnQuestCompleted 발행 후 목록에서 제거. 아이템 차감·플래그는 조율에서 처리 후 호출.</summary>
     public bool CompleteQuest(string questId)
     {
         var quest = _activeQuests.FirstOrDefault(q => q.QuestId == questId);
         if (quest == null) return false;
+        var data = quest.Data;
         _activeQuests.Remove(quest);
+        OnQuestCompleted?.Invoke(data);
         OnQuestUpdated?.Invoke(quest);
         return true;
     }
 
     public IReadOnlyList<QuestModel> GetActiveQuests() => _activeQuests;
+
+    /// <summary>진행 중인 퀘스트 중 questId와 일치하는 것 반환. 없으면 null.</summary>
+    public QuestModel GetQuestById(string questId)
+    {
+        return _activeQuests.FirstOrDefault(q => q.QuestId == questId);
+    }
+
+    /// <summary>해당 퀘스트가 현재 수락되어 진행 중인지.</summary>
+    public bool HasQuest(string questId) => GetQuestById(questId) != null;
 }
