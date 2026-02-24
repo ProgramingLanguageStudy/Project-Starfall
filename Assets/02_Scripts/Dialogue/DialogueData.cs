@@ -1,43 +1,99 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 대화 한 편: NPC·타입(FirstTalk/Quest/Common 등)·선택 필드(questId, conditionValue)로 한 SO에 정의.
-/// 상속 없이 dialogueType + optional 필드로 구분.
+/// 대화 종료 시 플래그 변경 방식. Set=값 지정, Add=현재값+value.
+/// </summary>
+public enum FlagOp
+{
+    Set,
+    Add
+}
+
+/// <summary>
+/// 대화 종료 시 적용할 플래그 변경 하나.
+/// </summary>
+[Serializable]
+public struct FlagModification
+{
+    public string key;
+    public FlagOp op;
+    public int value;
+}
+
+/// <summary>
+/// 퀘스트 대화 유형. None이면 퀘스트 처리 없음.
+/// </summary>
+public enum QuestDialogueType
+{
+    None,
+    Accept,
+    InProgress,
+    Complete
+}
+
+/// <summary>
+/// 대화 한 편. 플래그 기반 조건으로 선택, 종료 시 플래그 변경·퀘스트 연동.
 /// </summary>
 [CreateAssetMenu(fileName = "NewDialogue", menuName = "Dialogue/Data")]
 public class DialogueData : ScriptableObject
 {
-    [Tooltip("대화 블록 구분용 ID. GetById 등에서 사용")]
-    public string id;
-
-    [Header("선택 조건")]
+    [Header("선택 조건 (플래그 기반)")]
     [Tooltip("이 대화를 쓰는 NPC ID")]
     public string npcId;
-    [Tooltip("대화 종류: FirstTalk(첫 대화), Quest(수락), QuestComplete(완료), Common(일상), Affection(호감도)")]
-    public DialogueType dialogueType;
-    [Tooltip("Quest/QuestComplete일 때 퀘스트 ID. 그 외는 비워둠")]
+    [Tooltip("화자 표시명. 비어 있으면 npcId 사용")]
+    public string speakerDisplayName;
+    [Tooltip("선택 우선순위. 낮을수록 먼저 검사. 0=첫대화, 10=퀘스트제시, 15=진행중, 20=퀘스트완료, 30=일반")]
+    public int priority = 30;
+    [Tooltip("이 대화가 선택되려면 켜져 있어야 하는 플래그 (1)")]
+    public string[] requiredFlagsOn;
+    [Tooltip("이 대화가 선택되려면 꺼져 있어야 하는 플래그 (0)")]
+    public string[] requiredFlagsOff;
+
+    [Header("종료 시 효과")]
+    [Tooltip("대화 종료 시 적용할 플래그 변경. Set=값 지정, Add=현재값+value")]
+    public FlagModification[] flagsToModify;
+
+    [Header("퀘스트 연동")]
+    [Tooltip("비어 있지 않으면 퀘스트 대화. questDialogueType에 따라 처리")]
     public string questId;
-    [Tooltip("Affection일 때 최소 호감도. 그 외는 0")]
-    public int conditionValue;
+    [Tooltip("퀘스트 대화 유형")]
+    public QuestDialogueType questDialogueType = QuestDialogueType.None;
 
     [Header("내용")]
     [Tooltip("한 문장씩 순서대로 재생 (독백)")]
     [TextArea(1, 3)]
     public string[] lines;
 
+    /// <summary>현재 플래그 상태가 이 대화 선택 조건을 만족하는지.</summary>
+    public bool MatchesFlags(Func<string, int> getFlag)
+    {
+        if (requiredFlagsOn != null)
+            foreach (var key in requiredFlagsOn)
+                if (!string.IsNullOrEmpty(key) && getFlag(key) == 0) return false;
+        if (requiredFlagsOff != null)
+            foreach (var key in requiredFlagsOff)
+                if (!string.IsNullOrEmpty(key) && getFlag(key) != 0) return false;
+        return true;
+    }
+
+    /// <summary>화자 표시명. 비어 있으면 npcId 반환.</summary>
+    public string SpeakerDisplayName => !string.IsNullOrEmpty(speakerDisplayName) ? speakerDisplayName : npcId ?? "";
+
     /// <summary>빈 문장 제거·null 방지한 복사. 없으면 길이 0 배열.</summary>
     public string[] Lines
     {
         get
         {
-            if (lines == null || lines.Length == 0) return System.Array.Empty<string>();
-            var list = new System.Collections.Generic.List<string>();
+            if (lines == null || lines.Length == 0) return Array.Empty<string>();
+            var list = new List<string>();
             for (int i = 0; i < lines.Length; i++)
             {
                 var s = lines[i] != null ? lines[i].Trim() : "";
                 if (s.Length > 0) list.Add(s);
             }
-            return list.Count > 0 ? list.ToArray() : System.Array.Empty<string>();
+            return list.Count > 0 ? list.ToArray() : Array.Empty<string>();
         }
     }
 }

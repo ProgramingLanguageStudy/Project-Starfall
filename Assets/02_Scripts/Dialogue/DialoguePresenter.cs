@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -7,6 +8,9 @@ public class DialoguePresenter : MonoBehaviour
 {
     [SerializeField] private DialogueSystem _system;
     [SerializeField] private DialogueView _view;
+
+    /// <summary>대화 종료 시 발행. Controller가 구독.</summary>
+    public event Action<DialogueData> OnDialogueEnded;
 
     private DialogueModel Model => _system != null ? _system.Model : null;
 
@@ -22,6 +26,8 @@ public class DialoguePresenter : MonoBehaviour
     {
         if (Model != null)
             Model.OnDialogueStateChanged += RefreshView;
+        if (_system != null)
+            _system.OnDialogueEnd += HandleDialogueEnd;
         if (_view != null)
         {
             _view.OnNextClicked += HandleNext;
@@ -33,11 +39,25 @@ public class DialoguePresenter : MonoBehaviour
     {
         if (Model != null)
             Model.OnDialogueStateChanged -= RefreshView;
+        if (_system != null)
+            _system.OnDialogueEnd -= HandleDialogueEnd;
         if (_view != null)
         {
             _view.OnNextClicked -= HandleNext;
             _view.OnEndClicked -= HandleEnd;
         }
+    }
+
+    /// <summary>Controller에서 호출. 대화 시작 요청.</summary>
+    public void RequestStartDialogue(DialogueData data)
+    {
+        if (data == null || _system == null || _system.IsTalking) return;
+        _system.StartDialogue(data);
+    }
+
+    private void HandleDialogueEnd(DialogueData data)
+    {
+        OnDialogueEnded?.Invoke(data);
     }
 
     private void RefreshView()

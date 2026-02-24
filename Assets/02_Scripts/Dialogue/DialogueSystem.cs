@@ -13,30 +13,14 @@ public class DialogueSystem : MonoBehaviour
     public bool IsTalking => _model.IsTalking;
     public string CurrentSpeakerName => _model.CurrentSpeakerName;
 
-    public event Action OnDialogueEnd
+    /// <summary>대화 종료 시. 종료된 DialogueData 전달 (조율층에서 플래그·퀘스트 처리용).</summary>
+    public event Action<DialogueData> OnDialogueEnd
     {
         add => _model.OnDialogueEnd += value;
         remove => _model.OnDialogueEnd -= value;
     }
 
-    private void OnEnable()
-    {
-        GameEvents.OnPlayDialogueRequested += HandlePlayDialogueRequested;
-    }
-
-    private void OnDisable()
-    {
-        GameEvents.OnPlayDialogueRequested -= HandlePlayDialogueRequested;
-    }
-
-    /// <summary>연결 포트. 외부가 DialogueData를 넘기면 재생만 함.</summary>
-    private void HandlePlayDialogueRequested(DialogueData data)
-    {
-        if (data != null && !IsTalking)
-            StartDialogue(data);
-    }
-
-    /// <summary>대화 시작. 받은 내용만 재생. 누가/어디서 왔는지는 모름.</summary>
+    /// <summary>대화 시작. Coordinator가 호출. 받은 내용만 재생.</summary>
     public void StartDialogue(DialogueData data, Action onComplete = null)
     {
         if (data == null) return;

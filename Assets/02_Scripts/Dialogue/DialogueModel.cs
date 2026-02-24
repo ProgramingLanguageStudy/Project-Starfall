@@ -13,13 +13,13 @@ public class DialogueModel
     public int LineCount => _data?.Lines?.Length ?? 0;
 
     public string CurrentNpcId => _data?.npcId ?? "";
-    public string CurrentSpeakerName => _data?.npcId ?? "";
-    public DialogueType CurrentDialogueType => _data != null ? _data.dialogueType : DialogueType.Common;
-    /// <summary>Quest/QuestComplete일 때 퀘스트 ID. 버튼(수락/완료) 연동용.</summary>
+    public string CurrentSpeakerName => _data?.SpeakerDisplayName ?? "";
+    /// <summary>퀘스트 관련 대화일 때 퀘스트 ID.</summary>
     public string CurrentQuestId => _data != null ? _data.questId : null;
 
     public event Action OnDialogueStateChanged;
-    public event Action OnDialogueEnd;
+    /// <summary>대화 종료 시. 종료된 DialogueData를 전달 (플래그·퀘스트 처리용).</summary>
+    public event Action<DialogueData> OnDialogueEnd;
 
     /// <summary>System이 대화 시작 시 호출. 데이터만 넣고 인덱스 0.</summary>
     public void SetDialogue(DialogueData data)
@@ -40,9 +40,10 @@ public class DialogueModel
     public void Clear()
     {
         if (_data == null) return;
+        var ended = _data;
         _data = null;
         _currentIndex = 0;
-        OnDialogueEnd?.Invoke();
+        OnDialogueEnd?.Invoke(ended);
         OnDialogueStateChanged?.Invoke();
     }
 
