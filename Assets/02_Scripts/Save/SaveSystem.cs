@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using UnityEngine;
 
@@ -37,7 +38,7 @@ public class SaveSystem
             File.WriteAllText(path, json);
             return true;
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             Debug.LogError("[SaveSystem] Save failed: " + e.Message);
             return false;
@@ -54,7 +55,7 @@ public class SaveSystem
             string json = File.ReadAllText(path);
             return JsonUtility.FromJson<SaveData>(json);
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             Debug.LogError("[SaveSystem] Load failed: " + e.Message);
             return null;
@@ -65,5 +66,22 @@ public class SaveSystem
     public bool HasSave(int slot)
     {
         return File.Exists(GetSavePath(slot));
+    }
+
+    /// <summary>해당 슬롯의 세이브 파일 삭제. 디버그/테스트용.</summary>
+    public bool Delete(int slot)
+    {
+        string path = GetSavePath(slot);
+        if (!File.Exists(path)) return false;
+        try
+        {
+            File.Delete(path);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError("[SaveSystem] Delete failed: " + e.Message);
+            return false;
+        }
     }
 }

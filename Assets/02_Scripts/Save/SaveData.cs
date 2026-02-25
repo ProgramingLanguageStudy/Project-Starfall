@@ -7,4 +7,7 @@ using UnityEngine;
 public class SaveData
 {
     public SquadSaveData squad = new SquadSaveData();
+    public FlagSaveData flags = new FlagSaveData();
+    public QuestSaveData quests = new QuestSaveData();
+    public InventorySaveData inventory = new InventorySaveData();
 }

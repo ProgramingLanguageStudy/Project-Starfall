@@ -4,14 +4,25 @@ using UnityEngine;
 
 /// <summary>
 /// Play 씬 세이브/로드 조율. ISaveHandler 구현, SaveManager에 등록.
-/// 인스펙터에서 Contributor 할당. Gather/Apply 시 분배.
+/// PlayScene에서 Initialize 호출 시 의존성 주입. 인스펙터에서 Contributor 할당.
 /// </summary>
 public class PlaySaveCoordinator : MonoBehaviour, ISaveHandler
 {
     [SerializeField] [Tooltip("세이브/로드에 참여할 Contributor. SaveOrder 순으로 처리")]
     private List<SaveContributorBehaviour> _contributors = new List<SaveContributorBehaviour>();
 
-    public void Initialize() { }
+    public void Initialize(SquadController squadController, FlagSystem flagSystem, QuestPresenter questPresenter, Inventory inventory)
+    {
+        if (_contributors == null) return;
+        foreach (var c in _contributors)
+        {
+            if (c == null) continue;
+            if (c is SquadSaveContributor squad) squad.Initialize(squadController);
+            else if (c is FlagSaveContributor flag) flag.Initialize(flagSystem);
+            else if (c is QuestSaveContributor quest) quest.Initialize(questPresenter, flagSystem, inventory);
+            else if (c is InventorySaveContributor inv) inv.Initialize(inventory);
+        }
+    }
 
     private void OnEnable()
     {

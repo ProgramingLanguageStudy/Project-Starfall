@@ -91,6 +91,12 @@ public class SaveManager : MonoBehaviour
         return SaveSystem.Load(_defaultSlot);
     }
 
+    /// <summary>세이브 파일 삭제. 디버그/테스트용. 삭제 성공 시 true.</summary>
+    public bool TryDeleteSave()
+    {
+        return SaveSystem.Delete(_defaultSlot);
+    }
+
     /// <summary>슬롯에서 로드 후 핸들러들에게 적용. 외부 API. PlayScene.Awake에서 호출.</summary>
     public void LoadAndApply()
     {

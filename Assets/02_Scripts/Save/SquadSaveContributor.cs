@@ -1,8 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 분대 세이브/로드 기여.
-/// FindObjectOfType으로 SquadController 참조. SerializeField 없음.
+/// 분대 세이브/로드 기여. PlaySaveCoordinator.Initialize에서 주입.
 /// </summary>
 public class SquadSaveContributor : SaveContributorBehaviour
 {
@@ -10,20 +9,22 @@ public class SquadSaveContributor : SaveContributorBehaviour
 
     private SquadController _squadController;
 
-    private SquadController Squad => _squadController != null ? _squadController : _squadController = Object.FindFirstObjectByType<SquadController>();
+    public void Initialize(SquadController squadController)
+    {
+        _squadController = squadController;
+    }
 
     public override void Gather(SaveData data)
     {
         if (data?.squad == null) return;
-        var squad = Squad;
-        if (squad == null) return;
+        if (_squadController == null) return;
 
         data.squad.members.Clear();
         data.squad.currentPlayerId = "";
         data.squad.playerPosition = default;
         data.squad.playerRotationY = 0f;
 
-        var current = squad.PlayerCharacter;
+        var current = _squadController.PlayerCharacter;
         if (current != null)
         {
             data.squad.playerPosition = current.transform.position;
@@ -35,7 +36,7 @@ public class SquadSaveContributor : SaveContributorBehaviour
             }
         }
 
-        foreach (var c in squad.Characters)
+        foreach (var c in _squadController.Characters)
         {
             if (c == null || c.Model?.Data == null) continue;
             var m = new CharacterMemberData();
@@ -49,14 +50,13 @@ public class SquadSaveContributor : SaveContributorBehaviour
     public override void Apply(SaveData data)
     {
         if (data?.squad == null) return;
-        var squad = Squad;
-        if (squad == null) return;
+        if (_squadController == null) return;
 
         // 1. 조종 대상 전환
         Character targetPlayer = null;
         if (!string.IsNullOrEmpty(data.squad.currentPlayerId))
         {
-            foreach (var c in squad.Characters)
+            foreach (var c in _squadController.Characters)
             {
                 if (c?.Model?.Data == null) continue;
                 var id = c.Model.Data.characterId;
@@ -67,10 +67,10 @@ public class SquadSaveContributor : SaveContributorBehaviour
                     break;
                 }
             }
-            if (targetPlayer != null && targetPlayer != squad.PlayerCharacter)
-                squad.SetPlayerCharacter(targetPlayer);
+            if (targetPlayer != null && targetPlayer != _squadController.PlayerCharacter)
+                _squadController.SetPlayerCharacter(targetPlayer);
         }
-        var playerChar = squad.PlayerCharacter ?? squad.DefaultPlayer;
+        var playerChar = _squadController.PlayerCharacter ?? _squadController.DefaultPlayer;
 
         // 2. 플레이어 위치 적용
         if (playerChar != null)
@@ -80,13 +80,13 @@ public class SquadSaveContributor : SaveContributorBehaviour
         }
 
         // 3. 동료들을 플레이어 주위로 재배치
-        squad.RepositionCompanionsAround(playerChar != null ? playerChar.transform : null);
+        _squadController.RepositionCompanionsAround(playerChar != null ? playerChar.transform : null);
 
         // 4. 멤버별 체력 적용
         foreach (var m in data.squad.members)
         {
             if (string.IsNullOrEmpty(m.characterId)) continue;
-            foreach (var c in squad.Characters)
+            foreach (var c in _squadController.Characters)
             {
                 if (c?.Model?.Data == null) continue;
                 var id = c.Model.Data.characterId;
