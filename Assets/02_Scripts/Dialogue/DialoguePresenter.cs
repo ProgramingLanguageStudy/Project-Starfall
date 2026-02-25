@@ -1,62 +1,64 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// DialogueModel과 DialogueView 연결. 다음/끝내기만 System에 전달.
+/// Model↔View 연결. 다음/끝내기/퀘스트 버튼 처리.
 /// </summary>
 public class DialoguePresenter : MonoBehaviour
 {
     [SerializeField] private DialogueSystem _system;
     [SerializeField] private DialogueView _view;
 
-    /// <summary>대화 종료 시 발행. Controller가 구독.</summary>
     public event Action<DialogueData> OnDialogueEnded;
 
-    private DialogueModel Model => _system != null ? _system.Model : null;
+    private DialogueModel Model => _system?.Model;
+    private DialogueData _main;
+    private IReadOnlyList<DialogueData> _questList;
 
     private void Awake()
     {
         if (_system == null) _system = FindFirstObjectByType<DialogueSystem>();
         if (_view == null) _view = FindFirstObjectByType<DialogueView>();
-        if (_system == null) Debug.LogWarning("[DialoguePresenter] DialogueSystem이 없습니다.");
-        if (_view == null) Debug.LogWarning("[DialoguePresenter] DialogueView가 없습니다.");
     }
 
     private void OnEnable()
     {
-        if (Model != null)
-            Model.OnDialogueStateChanged += RefreshView;
-        if (_system != null)
-            _system.OnDialogueEnd += HandleDialogueEnd;
+        if (Model != null) Model.OnDialogueStateChanged += RefreshView;
+        if (_system != null) _system.OnDialogueEnd += HandleDialogueEnd;
         if (_view != null)
         {
             _view.OnNextClicked += HandleNext;
             _view.OnEndClicked += HandleEnd;
+            _view.OnQuestDialogueSelected += HandleQuestSelected;
         }
     }
 
     private void OnDisable()
     {
-        if (Model != null)
-            Model.OnDialogueStateChanged -= RefreshView;
-        if (_system != null)
-            _system.OnDialogueEnd -= HandleDialogueEnd;
+        if (Model != null) Model.OnDialogueStateChanged -= RefreshView;
+        if (_system != null) _system.OnDialogueEnd -= HandleDialogueEnd;
         if (_view != null)
         {
             _view.OnNextClicked -= HandleNext;
             _view.OnEndClicked -= HandleEnd;
+            _view.OnQuestDialogueSelected -= HandleQuestSelected;
         }
     }
 
-    /// <summary>Controller에서 호출. 대화 시작 요청.</summary>
-    public void RequestStartDialogue(DialogueData data)
+    public void RequestStartDialogue(DialogueData main, IReadOnlyList<DialogueData> questList)
     {
-        if (data == null || _system == null || _system.IsTalking) return;
-        _system.StartDialogue(data);
+        if (main == null || _system == null || _system.IsTalking) return;
+        _main = main;
+        _questList = questList;
+        _system.StartDialogue(main);
+        RefreshView();
     }
 
     private void HandleDialogueEnd(DialogueData data)
     {
+        _main = null;
+        _questList = null;
         OnDialogueEnded?.Invoke(data);
     }
 
@@ -64,7 +66,10 @@ public class DialoguePresenter : MonoBehaviour
     {
         if (_view == null) return;
         if (Model != null && Model.IsTalking)
-            _view.Display(Model.GetSpeakerName(), Model.GetCurrentSentence());
+        {
+            _view.Display(Model.CurrentSpeakerName, Model.GetCurrentSentence());
+            _view.SetButtonMode(Model.Category, _questList, Model.IsLastLine);
+        }
         else
             _view.Close();
     }
@@ -72,13 +77,19 @@ public class DialoguePresenter : MonoBehaviour
     private void HandleNext()
     {
         if (_system == null) return;
-        if (_view != null && _view.TrySkipTyping())
-            return;
+        if (_view != null && _view.TrySkipTyping()) return;
         _system.Next();
     }
 
-    private void HandleEnd()
+    private void HandleEnd() => _system?.EndDialogue();
+
+    private void HandleQuestSelected(DialogueData quest)
     {
-        _system?.EndDialogue();
+        if (quest == null || _system == null) return;
+        _main = quest;
+        _questList = null;
+        _system.StartDialogue(quest);
+        _view.SetButtonMode(DialogueCategory.Quest, null, false);
+        RefreshView();
     }
 }

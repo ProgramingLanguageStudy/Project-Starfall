@@ -34,12 +34,24 @@ public enum QuestDialogueType
 }
 
 /// <summary>
+/// 대화 분류. 선택 시 FirstTalk → Casual → Quest 순으로 우선.
+/// </summary>
+public enum DialogueCategory
+{
+    FirstTalk,
+    Casual,
+    Quest
+}
+
+/// <summary>
 /// 대화 한 편. 플래그 기반 조건으로 선택, 종료 시 플래그 변경·퀘스트 연동.
 /// </summary>
 [CreateAssetMenu(fileName = "NewDialogue", menuName = "Dialogue/Data")]
 public class DialogueData : ScriptableObject
 {
-    [Header("선택 조건 (플래그 기반)")]
+    [Header("선택 조건")]
+    [Tooltip("대화 분류. FirstTalk=첫대화, Casual=일상, Quest=퀘스트")]
+    public DialogueCategory category = DialogueCategory.Casual;
     [Tooltip("이 대화를 쓰는 NPC ID")]
     public string npcId;
     [Tooltip("화자 표시명. 비어 있으면 npcId 사용")]

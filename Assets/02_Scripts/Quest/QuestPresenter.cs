@@ -22,6 +22,13 @@ public class QuestPresenter : MonoBehaviour
         _system.CompleteQuest(questId);
     }
 
+    private FlagSystem _flagSystem;
+
+    public void Initialize(FlagSystem flagSystem)
+    {
+        _flagSystem = flagSystem;
+    }
+
     /// <summary>Controller에서 호출. 퀘스트 수락 요청.</summary>
     public void RequestAcceptQuest(string questId)
     {
@@ -35,7 +42,7 @@ public class QuestPresenter : MonoBehaviour
         }
 
         _system.AcceptQuest(questData);
-        GameManager.Instance?.FlagManager?.SetFlag(GameStateKeys.QuestAccepted(questId), 1);
+        _flagSystem?.SetFlag(GameStateKeys.QuestAccepted(questId), 1);
     }
 
     private void Awake()

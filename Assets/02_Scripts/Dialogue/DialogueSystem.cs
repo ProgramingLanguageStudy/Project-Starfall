@@ -2,58 +2,59 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// 대화 독립 시스템. 하는 일만: 받은 대화 재생, 다음 문장, 닫기. 로딩·선택·버튼 종류는 모름.
+/// 대화 재생. 시작·다음·종료만 담당.
 /// </summary>
 public class DialogueSystem : MonoBehaviour
 {
     private readonly DialogueModel _model = new DialogueModel();
-    private Action _onComplete;
 
     public DialogueModel Model => _model;
     public bool IsTalking => _model.IsTalking;
-    public string CurrentSpeakerName => _model.CurrentSpeakerName;
 
-    /// <summary>대화 종료 시. 종료된 DialogueData 전달 (조율층에서 플래그·퀘스트 처리용).</summary>
     public event Action<DialogueData> OnDialogueEnd
     {
         add => _model.OnDialogueEnd += value;
         remove => _model.OnDialogueEnd -= value;
     }
 
-    /// <summary>대화 시작. Coordinator가 호출. 받은 내용만 재생.</summary>
-    public void StartDialogue(DialogueData data, Action onComplete = null)
+    public void StartDialogue(DialogueData main)
     {
-        if (data == null) return;
-        _onComplete = onComplete;
-        _model.SetDialogue(data);
-        GameEvents.OnCursorShowRequested?.Invoke();
+        if (main == null) return;
+        var wasTalking = _model.IsTalking;
+        _model.SetDialogue(main);
+
+        if (main.category == DialogueCategory.Casual)
+            _model.SetRandomLine();
+
+        if (!wasTalking)
+            GameEvents.OnCursorShowRequested?.Invoke();
     }
 
-    /// <summary>다음 문장. 끝이면 자동 종료.</summary>
     public void Next()
     {
         if (!_model.IsTalking) return;
-        int next = _model.CurrentIndex + 1;
-        if (next >= _model.LineCount)
+
+        if (_model.Category == DialogueCategory.Casual)
         {
-            _model.Clear();
-            GameEvents.OnCursorHideRequested?.Invoke();
-            _onComplete?.Invoke();
-            _onComplete = null;
+            _model.SetRandomLine();
+            return;
         }
+
+        if (_model.CurrentIndex + 1 >= _model.LineCount)
+            Finish();
         else
-        {
-            _model.SetCurrentIndex(next);
-        }
+            _model.SetCurrentIndex(_model.CurrentIndex + 1);
     }
 
-    /// <summary>대화 강제 종료.</summary>
     public void EndDialogue()
     {
         if (!_model.IsTalking) return;
+        Finish();
+    }
+
+    private void Finish()
+    {
         _model.Clear();
         GameEvents.OnCursorHideRequested?.Invoke();
-        _onComplete?.Invoke();
-        _onComplete = null;
     }
 }

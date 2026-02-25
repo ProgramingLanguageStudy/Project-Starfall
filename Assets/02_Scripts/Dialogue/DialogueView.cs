@@ -1,11 +1,10 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
-
 /// <summary>
-/// 대화창: 문장 표시 + 다음/끝내기만. 퀘스트 등 다른 버튼은 다른 UI에서.
+/// 대화창: 문장 표시 + questList 기반 버튼 동적 생성.
 /// </summary>
 public class DialogueView : MonoBehaviour
 {
@@ -13,44 +12,91 @@ public class DialogueView : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _dialogueText;
     [SerializeField] private GameObject _panel;
 
-    [Header("버튼 (UI_Button 프리팹으로 생성)")]
-    [SerializeField] private GameObject _buttonPrefab;
+    [Header("버튼")]
+    [SerializeField] private UI_Button _buttonPrefab;
     [SerializeField] private Transform _buttonContainer;
-
-    [Header("버튼 (수동 연결, 프리팹 미사용 시)")]
-    [SerializeField] private Button _nextButton;
-    [SerializeField] private Button _endButton;
 
     private bool _isTyping;
     private string _currentSentence;
+    private readonly List<GameObject> _buttons = new List<GameObject>();
 
     public event Action OnNextClicked;
     public event Action OnEndClicked;
+    public event Action<DialogueData> OnQuestDialogueSelected;
 
-    private void Awake()
+    /// <summary>category·questList·isLastLine에 따라 버튼 동적 생성.</summary>
+    public void SetButtonMode(DialogueCategory category, IReadOnlyList<DialogueData> questList, bool isLastLine = false)
     {
-        if (_buttonPrefab != null && _buttonContainer != null)
-            CreateButtons();
+        ClearButtons();
+
+        if (_buttonPrefab == null || _buttonContainer == null) return;
+
+        if (category == DialogueCategory.FirstTalk)
+        {
+            if (!isLastLine)
+                AddButton("다음", () => OnNextClicked?.Invoke());
+            else
+                AddButton("끝내기", () => OnEndClicked?.Invoke());
+            return;
+        }
+
+        // VerticalLayoutGroup StartCorner=Lower → 아래→위 배치. 원하는 순서(퀘스트→다음→끝내기)를 위해 역순 추가.
+        if (category == DialogueCategory.Quest)
+        {
+            if (!isLastLine)
+                AddButton("다음", () => OnNextClicked?.Invoke());
+            else
+                AddButton("끝내기", () => OnEndClicked?.Invoke());
+        }
         else
         {
-            if (_nextButton != null)
-                _nextButton.onClick.AddListener(() => OnNextClicked?.Invoke());
-            if (_endButton != null)
-                _endButton.onClick.AddListener(() => OnEndClicked?.Invoke());
+            AddButton("끝내기", () => OnEndClicked?.Invoke());
+            AddButton("다음", () => OnNextClicked?.Invoke());
+        }
+
+        if (questList != null && questList.Count > 0)
+        {
+            foreach (var q in questList)
+            {
+                var label = GetQuestButtonLabel(q);
+                var capture = q;
+                AddButton(label, () => OnQuestDialogueSelected?.Invoke(capture));
+            }
         }
     }
 
-    private void CreateButtons()
+    private void AddButton(string label, Action onClick)
     {
-        var nextGo = Instantiate(_buttonPrefab, _buttonContainer);
-        var nextUi = nextGo.GetComponent<UI_Button>();
-        if (nextUi != null)
-            nextUi.Initialize(null, "다음", () => OnNextClicked?.Invoke());
+        var ui = Instantiate(_buttonPrefab, _buttonContainer);
+        ui.Initialize(null, label, onClick);
+        _buttons.Add(ui.gameObject);
+    }
 
-        var endGo = Instantiate(_buttonPrefab, _buttonContainer);
-        var endUi = endGo.GetComponent<UI_Button>();
-        if (endUi != null)
-            endUi.Initialize(null, "끝내기", () => OnEndClicked?.Invoke());
+    private static string GetQuestButtonLabel(DialogueData d)
+    {
+        var title = "퀘스트";
+        if (!string.IsNullOrEmpty(d.questId))
+        {
+            var questData = Resources.Load<QuestData>($"Quests/{d.questId}");
+            if (!string.IsNullOrEmpty(questData?.Title)) title = questData.Title;
+        }
+        var status = d.questDialogueType switch
+        {
+            QuestDialogueType.Accept => "수락",
+            QuestDialogueType.InProgress => "진행중",
+            QuestDialogueType.Complete => "완료",
+            _ => ""
+        };
+        return string.IsNullOrEmpty(status) ? title : $"{title} ({status})";
+    }
+
+    private void ClearButtons()
+    {
+        foreach (var go in _buttons)
+        {
+            if (go != null) Destroy(go);
+        }
+        _buttons.Clear();
     }
 
     private static string Sanitize(string s)
@@ -82,6 +128,7 @@ public class DialogueView : MonoBehaviour
     {
         StopAllCoroutines();
         _isTyping = false;
+        ClearButtons();
         _panel.SetActive(false);
     }
 

@@ -1,72 +1,106 @@
 using UnityEngine;
 
 /// <summary>
-/// 대화 종료 시 퀘스트 수락/완료 처리. IDialogueEndedHandler 구현, DialogueEndedRegistry에 등록.
-/// Complete 시 CompleteQuest만 호출 → OnQuestCompleted 발행 → QuestCompleted.InvokeAll로 핸들러들에게 전달.
+/// 퀘스트 관련 플래그·인벤토리 처리. OnItemPickedUp→NotifyProgress, OnQuestUpdated(목표달성 플래그), OnQuestCompleted(완료 플래그·아이템 차감).
+/// 대화→퀘스트 수락/완료는 DialogueController가 QuestPresenter.RequestXxx 직접 호출.
 /// PlayScene 컴포넌트. QuestPresenter를 보유.
 /// </summary>
-public class QuestController : MonoBehaviour, IDialogueEndedHandler
+public class QuestController : MonoBehaviour
 {
     [SerializeField] private QuestPresenter _presenter;
 
+    /// <summary>PlayScene 등에서 DialogueController에 주입용.</summary>
+    public QuestPresenter Presenter => _presenter;
+    private Inventory _inventory;
+
     private QuestSystem QuestSystem => _presenter != null ? _presenter.System : null;
 
-    private void Awake()
-    {
-        PlaySceneServices.DialogueEnded.Register(this);
-    }
+    private FlagSystem _flagSystem;
 
-    private void OnDestroy()
+    /// <summary>PlayScene 등에서 주입.</summary>
+    public void Initialize(Inventory inventory, FlagSystem flagSystem)
     {
-        PlaySceneServices.DialogueEnded.Unregister(this);
+        if (_inventory == null && inventory != null)
+            _inventory = inventory;
+        _flagSystem = flagSystem;
+        _presenter?.Initialize(flagSystem);
     }
 
     private void OnEnable()
     {
+        GameEvents.OnItemPickedUp += HandleItemPickedUp;
+        PlaySceneEventHub.OnEnemyKilled += HandleEnemyKilled;
         if (QuestSystem != null)
+        {
+            QuestSystem.OnQuestUpdated += HandleQuestUpdated;
             QuestSystem.OnQuestCompleted += HandleQuestCompleted;
+        }
     }
 
     private void OnDisable()
     {
+        GameEvents.OnItemPickedUp -= HandleItemPickedUp;
+        PlaySceneEventHub.OnEnemyKilled -= HandleEnemyKilled;
         if (QuestSystem != null)
-            QuestSystem.OnQuestCompleted -= HandleQuestCompleted;
-    }
-
-    public void OnDialogueEnded(DialogueData data)
-    {
-        if (data == null || string.IsNullOrEmpty(data.questId)) return;
-
-        switch (data.questDialogueType)
         {
-            case QuestDialogueType.Complete:
-                HandleQuestComplete(data);
-                break;
-            case QuestDialogueType.Accept:
-                HandleQuestAccept(data);
-                break;
-            case QuestDialogueType.InProgress:
-            case QuestDialogueType.None:
-                break;
+            QuestSystem.OnQuestUpdated -= HandleQuestUpdated;
+            QuestSystem.OnQuestCompleted -= HandleQuestCompleted;
         }
     }
 
-    private void HandleQuestComplete(DialogueData data)
+    private void HandleItemPickedUp(ItemData itemData, int amount)
     {
-        if (data == null || string.IsNullOrEmpty(data.questId) || _presenter == null) return;
+        if (itemData == null || string.IsNullOrEmpty(itemData.ItemId) || QuestSystem == null) return;
 
-        _presenter.RequestCompleteQuest(data.questId);
+        for (int i = 0; i < amount; i++)
+            QuestSystem.NotifyProgress(itemData.ItemId);
+    }
+
+    private void HandleEnemyKilled(string enemyId)
+    {
+        if (string.IsNullOrEmpty(enemyId) || QuestSystem == null) return;
+        QuestSystem.NotifyProgress(enemyId);
+    }
+
+    private void HandleQuestUpdated(QuestModel quest)
+    {
+        if (quest == null) return;
+
+        if (quest.QuestType == QuestType.Gather && quest.CurrentAmount == 0 && _inventory != null && !string.IsNullOrEmpty(quest.TargetId))
+        {
+            var count = _inventory.GetTotalCount(quest.TargetId);
+            if (count > 0)
+            {
+                QuestSystem.SetTaskProgress(quest.QuestId, quest.TargetId, count);
+                return;
+            }
+        }
+
+        if (!quest.IsCompleted) return;
+
+        _flagSystem?.SetFlag(GameStateKeys.QuestObjectivesDone(quest.QuestId), 1);
     }
 
     private void HandleQuestCompleted(QuestData data)
     {
-        PlaySceneServices.QuestCompleted.InvokeAll(data);
+        if (data == null) return;
+
+        ApplyQuestCompletedFlag(data);
+        DeductGatherItems(data);
     }
 
-    private void HandleQuestAccept(DialogueData data)
+    private void ApplyQuestCompletedFlag(QuestData data)
     {
-        if (data == null || string.IsNullOrEmpty(data.questId) || _presenter == null) return;
+        if (string.IsNullOrEmpty(data.QuestId)) return;
 
-        _presenter.RequestAcceptQuest(data.questId);
+        _flagSystem?.SetFlag(GameStateKeys.QuestCompleted(data.QuestId), 1);
+    }
+
+    private void DeductGatherItems(QuestData data)
+    {
+        if (_inventory == null) return;
+        if (data.QuestType != QuestType.Gather || string.IsNullOrEmpty(data.TargetId)) return;
+
+        _inventory.RemoveItem(data.TargetId, data.TargetAmount);
     }
 }

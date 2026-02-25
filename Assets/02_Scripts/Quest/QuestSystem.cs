@@ -65,4 +65,23 @@ public class QuestSystem : MonoBehaviour
 
     /// <summary>해당 퀘스트가 현재 수락되어 진행 중인지.</summary>
     public bool HasQuest(string questId) => GetQuestById(questId) != null;
+
+    /// <summary>디버그용. 퀘스트를 목록에서 제거. OnQuestCompleted 발행 안 함. 플래그 동기화는 호출부에서.</summary>
+    public bool RemoveQuest(string questId)
+    {
+        var quest = _activeQuests.FirstOrDefault(q => q.QuestId == questId);
+        if (quest == null) return false;
+        _activeQuests.Remove(quest);
+        OnQuestUpdated?.Invoke(quest);
+        return true;
+    }
+
+    /// <summary>디버그용. 진행 중 퀘스트 전체 제거.</summary>
+    public void ClearAllQuests()
+    {
+        var copy = new List<QuestModel>(_activeQuests);
+        _activeQuests.Clear();
+        foreach (var q in copy)
+            OnQuestUpdated?.Invoke(q);
+    }
 }
