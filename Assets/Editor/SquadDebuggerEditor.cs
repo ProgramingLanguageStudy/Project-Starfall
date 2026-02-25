@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(PlayerDebugger))]
-public class PlayerDebuggerEditor : Editor
+[CustomEditor(typeof(SquadDebugger))]
+public class SquadDebuggerEditor : Editor
 {
     private const double RepaintInterval = 0.1;
     private double _lastRepaintTime;
@@ -23,35 +23,30 @@ public class PlayerDebuggerEditor : Editor
     private void OnEditorUpdate()
     {
         if (!Application.isPlaying || target == null) return;
-        double now = EditorApplication.timeSinceStartup;
-        if (now - _lastRepaintTime >= RepaintInterval)
+        if (EditorApplication.timeSinceStartup - _lastRepaintTime >= RepaintInterval)
         {
-            _lastRepaintTime = now;
+            _lastRepaintTime = EditorApplication.timeSinceStartup;
             Repaint();
         }
     }
 
     public override void OnInspectorGUI()
     {
-        var debugger = (PlayerDebugger)target;
+        var debugger = (SquadDebugger)target;
         var so = new SerializedObject(debugger);
         var squadProp = so.FindProperty("_squadController");
+        var teleportProp = so.FindProperty("_teleportTarget");
+        var spawnableProp = so.FindProperty("_spawnableCharacters");
 
         EditorGUILayout.PropertyField(squadProp);
-
         if (squadProp.objectReferenceValue == null && GUILayout.Button("씬에서 SquadController 찾기"))
         {
             var found = FindAnyObjectByType<SquadController>();
-            if (found != null)
-            {
-                squadProp.objectReferenceValue = found;
-                so.ApplyModifiedProperties();
-            }
-            else
-            {
-                EditorGUILayout.HelpBox("씬에 SquadController가 없습니다.", MessageType.Warning);
-            }
+            if (found != null) squadProp.objectReferenceValue = found;
         }
+
+        EditorGUILayout.PropertyField(teleportProp);
+        EditorGUILayout.PropertyField(spawnableProp, true);
 
         EditorGUILayout.Space(4);
 
@@ -74,15 +69,13 @@ public class PlayerDebuggerEditor : Editor
         so.ApplyModifiedProperties();
         EditorGUILayout.Space(8);
 
-        DrawDefaultInspector();
-        EditorGUILayout.Space(4);
-
         var pc = debugger.PlayerCharacter;
+        var sc = debugger.SquadControllerRef;
 
         if (Application.isPlaying && pc != null && pc.Model != null)
         {
             var model = pc.Model;
-            EditorGUILayout.LabelField("현재 스탯", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("현재 조종 캐릭터 스탯", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
             EditorGUILayout.LabelField("체력", $"{model.CurrentHp} / {model.MaxHp}");
             EditorGUILayout.LabelField("사망", model.IsDead ? "예" : "아니오");
@@ -95,27 +88,55 @@ public class PlayerDebuggerEditor : Editor
         }
 
         EditorGUI.BeginDisabledGroup(!Application.isPlaying);
+
         if (GUILayout.Button("텔레포트: 지정 위치로 이동"))
-        {
             debugger.TeleportToTarget();
-        }
+
         if (GUILayout.Button("체력 풀회복"))
         {
             if (pc == null)
-            {
-                Debug.LogWarning("[PlayerDebugger] SquadController 또는 PlayerCharacter가 없습니다. 인스펙터에서 할당하고 플레이 모드로 실행하세요.");
-                return;
-            }
-            if (pc.Model != null)
+                Debug.LogWarning("[SquadDebugger] PlayerCharacter가 없습니다.");
+            else if (pc.Model != null)
             {
                 int need = pc.Model.MaxHp - pc.Model.CurrentHp;
-                if (need > 0)
-                    pc.Model.Heal(need);
+                if (need > 0) pc.Model.Heal(need);
             }
         }
+
+        EditorGUILayout.Space(4);
+        EditorGUILayout.LabelField("동료 소환", EditorStyles.boldLabel);
+        foreach (var data in debugger.SpawnableCharacters)
+        {
+            if (data == null) continue;
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField(data.displayName ?? data.characterId);
+            if (GUILayout.Button("소환", GUILayout.Width(50)))
+                debugger.SpawnCompanion(data);
+            EditorGUILayout.EndHorizontal();
+        }
+
+        if (sc != null && sc.Characters != null && sc.Characters.Count > 0)
+        {
+            EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("분대원 (제거)", EditorStyles.boldLabel);
+            var charsCopy = new List<Character>(sc.Characters);
+            foreach (var c in charsCopy)
+            {
+                if (c == null) continue;
+                var isPlayer = c == sc.PlayerCharacter;
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField($"{(isPlayer ? "[조종] " : "")}{c.name}");
+                EditorGUI.BeginDisabledGroup(isPlayer);
+                if (GUILayout.Button("제거", GUILayout.Width(50)))
+                    debugger.RemoveCompanion(c);
+                EditorGUI.EndDisabledGroup();
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+
         EditorGUI.EndDisabledGroup();
 
         if (!Application.isPlaying)
-            EditorGUILayout.HelpBox("플레이 모드에서만 스탯 표시·체력 회복·텔레포트가 동작합니다.", MessageType.Info);
+            EditorGUILayout.HelpBox("플레이 모드에서만 스탯·텔레포트·동료 소환/제거가 동작합니다.", MessageType.Info);
     }
 }
