@@ -2,17 +2,22 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 플레이어·캐릭터 디버그·검증. Hierarchy의 Debuggers 등에 붙이고, 인스펙터에서 SquadController 참조 할당.
+/// 분대 디버그·검증. Hierarchy의 Debuggers 등에 붙이고, 인스펙터에서 SquadController 참조 할당.
+/// 텔레포트, 체력 회복, 동료 소환/제거 등.
 /// </summary>
-public class PlayerDebugger : MonoBehaviour
+public class SquadDebugger : MonoBehaviour
 {
     [SerializeField] [Tooltip("비어 있으면 씬에서 FindObjectOfType으로 탐색")]
     private SquadController _squadController;
     [SerializeField] [Tooltip("텔레포트 시 도착 위치. 씬에 빈 오브젝트 등을 놓고 지정")]
     private Transform _teleportTarget;
+    [SerializeField] [Tooltip("동료 소환용. 인스펙터에서 CharacterData 할당")]
+    private List<CharacterData> _spawnableCharacters = new List<CharacterData>();
 
     /// <summary>디버거용 플레이어 캐릭터. 스탯 표시·체력 회복 등에 사용.</summary>
     public Character PlayerCharacter => _squadController?.PlayerCharacter;
+    public SquadController SquadControllerRef => _squadController;
+    public IReadOnlyList<CharacterData> SpawnableCharacters => _spawnableCharacters;
 
     private void OnValidate()
     {
@@ -46,7 +51,6 @@ public class PlayerDebugger : MonoBehaviour
         if (c.Animator == null) issues.Add("Character: Animator(CharacterAnimator) 없음");
         if (c.StateMachine == null) issues.Add("Character: StateMachine 없음");
 
-        // 플레이어 조종 시 필요한 것들 (동료는 일부 없을 수 있음)
         bool hasMover = c.Mover != null;
         bool hasFollowMover = c.GetComponent<CharacterFollowMover>() != null;
         if (!hasMover && !hasFollowMover)
@@ -61,39 +65,71 @@ public class PlayerDebugger : MonoBehaviour
         return issues.Count == 0;
     }
 
-    /// <summary>플레이어를 _teleportTarget 위치로 텔레포트. 땅에 박혔을 때 등 디버그용.</summary>
+    /// <summary>플레이어를 _teleportTarget 위치로 텔레포트.</summary>
     [ContextMenu("텔레포트: 지정 위치로 이동")]
     public void TeleportToTarget()
     {
         if (_teleportTarget == null)
         {
-            Debug.LogWarning("[PlayerDebugger] Teleport Target이 지정되지 않았습니다. 인스펙터에서 Transform을 할당하세요.");
+            Debug.LogWarning("[SquadDebugger] Teleport Target이 지정되지 않았습니다.");
             return;
         }
-        if (_squadController == null)
+        var sc = GetSquadController();
+        if (sc == null) return;
+        sc.TeleportPlayer(_teleportTarget);
+        Debug.Log("[SquadDebugger] 플레이어를 텔레포트했습니다.");
+    }
+
+    /// <summary>동료 소환. characterData를 플레이어 주변에 스폰.</summary>
+    public void SpawnCompanion(CharacterData characterData)
+    {
+        var sc = GetSquadController();
+        if (sc == null || characterData == null) return;
+        var player = sc.PlayerCharacter;
+        if (player == null)
         {
-            _squadController = FindAnyObjectByType<SquadController>();
-            if (_squadController == null)
-            {
-                Debug.LogWarning("[PlayerDebugger] SquadController를 찾을 수 없습니다.");
-                return;
-            }
+            Debug.LogWarning("[SquadDebugger] PlayerCharacter가 없습니다.");
+            return;
         }
-        _squadController.TeleportPlayer(_teleportTarget);
-        Debug.Log($"[PlayerDebugger] 플레이어를 {_teleportTarget.position}로 텔레포트했습니다.");
+
+        var nearPos = player.transform.position + player.transform.forward * 2f;
+        var c = sc.SpawnCharacter(characterData, nearPos, player.transform);
+        if (c != null)
+            Debug.Log($"[SquadDebugger] 동료 소환: {characterData.displayName}");
+        else
+            Debug.LogWarning("[SquadDebugger] 동료 소환 실패.");
+    }
+
+    /// <summary>지정 캐릭터를 분대에서 제거.</summary>
+    public void RemoveCompanion(Character character)
+    {
+        var sc = GetSquadController();
+        if (sc == null || character == null) return;
+        if (character == sc.PlayerCharacter)
+        {
+            Debug.LogWarning("[SquadDebugger] 조종 중인 캐릭터는 제거할 수 없습니다. 먼저 SquadSwap으로 전환하세요.");
+            return;
+        }
+        sc.RemoveCharacter(character);
+        Debug.Log($"[SquadDebugger] 동료 제거: {character.name}");
     }
 
     [ContextMenu("Validate Setup (Log)")]
     private void ValidateAndLog()
     {
         if (ValidateSetup(out var issues))
-        {
-            Debug.Log("[PlayerDebugger] 검증 통과: 부품 구성 정상");
-        }
+            Debug.Log("[SquadDebugger] 검증 통과: 부품 구성 정상");
         else
-        {
             foreach (var msg in issues)
-                Debug.LogWarning($"[PlayerDebugger] {msg}");
-        }
+                Debug.LogWarning($"[SquadDebugger] {msg}");
+    }
+
+    private SquadController GetSquadController()
+    {
+        if (_squadController == null)
+            _squadController = FindAnyObjectByType<SquadController>();
+        if (_squadController == null)
+            Debug.LogWarning("[SquadDebugger] SquadController를 찾을 수 없습니다.");
+        return _squadController;
     }
 }
