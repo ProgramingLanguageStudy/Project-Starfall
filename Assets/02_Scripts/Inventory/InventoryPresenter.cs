@@ -11,6 +11,9 @@ public class InventoryPresenter : MonoBehaviour
 
     private Character _playerCharacter;
 
+    /// <summary>QuestController 등에서 Gather 퀘스트 완료 시 아이템 차감용.</summary>
+    public Inventory Model => _model;
+
     /// <summary>PlayScene에서 주입. 플레이어 변경 시 호출.</summary>
     public void SetPlayerCharacter(Character character)
     {

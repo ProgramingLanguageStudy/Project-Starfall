@@ -27,8 +27,11 @@ public class PlayScene : MonoBehaviour
     private DialogueController _dialogueController;
     [SerializeField] [Tooltip("퀘스트 관련. 대화 종료 시 수락/완료 처리")]
     private QuestController _questController;
+    [SerializeField] [Tooltip("플래그 저장·조회. QuestSystem처럼 Play 씬에서 보유")]
+    private FlagSystem _flagSystem;
 
     private CharacterModel _hpModelSubscribed;
+    private SaveData _pendingSaveData;
 
     private void Awake()
     {
@@ -46,17 +49,19 @@ public class PlayScene : MonoBehaviour
         if (_cameraTransform == null && Camera.main != null)
             _cameraTransform = Camera.main.transform;
 
-        _saveCoordinator?.Initialize();
+        var gm = GameManager.Instance;
+        _saveCoordinator?.Initialize(
+            _squadController,
+            _flagSystem,
+            _questController?.Presenter,
+            _inventoryPresenter?.Model);
 
-        // 세이브 선로드 → 스폰 위치 결정 → 스폰 → Apply
-        var saveData = GameManager.Instance?.SaveManager?.Load();
-        var spawnPos = saveData?.squad != null ? (Vector3?)saveData.squad.playerPosition : null;
+        // 세이브 선로드 → 스폰 위치 결정 → 스폰 (세이브 있으면 멤버 목록 기준으로 동료 포함 스폰)
+        _pendingSaveData = gm?.SaveManager?.Load();
+        var spawnPos = _pendingSaveData?.squad != null ? (Vector3?)_pendingSaveData.squad.playerPosition : null;
 
-        _squadController.Initialize(spawnPos, _combatController);
+        _squadController.Initialize(spawnPos, _combatController, _pendingSaveData?.squad);
         PlaySceneServices.Register(_squadController);
-
-        if (saveData != null && _saveCoordinator != null)
-            _saveCoordinator.Apply(saveData);
 
         var player = _squadController.PlayerCharacter;
         var chaseTarget = player != null ? player.transform : transform;
@@ -65,6 +70,20 @@ public class PlayScene : MonoBehaviour
 
         if (_inventoryPresenter != null)
             _inventoryPresenter.SetPlayerCharacter(player);
+
+        _dialogueController?.Initialize(_questController?.Presenter, _flagSystem);
+        if (_questController != null && _inventoryPresenter?.Model != null)
+            _questController.Initialize(_inventoryPresenter.Model, _flagSystem);
+    }
+
+    private void Start()
+    {
+        // Apply는 Start에서. Awake 순서 미보장으로 Inventory.Initialize 전에 Apply될 수 있음.
+        if (_pendingSaveData != null && _saveCoordinator != null)
+        {
+            _saveCoordinator.Apply(_pendingSaveData);
+            _pendingSaveData = null;
+        }
     }
 
     private void OnEnable()
@@ -83,6 +102,7 @@ public class PlayScene : MonoBehaviour
 
     private void OnDisable()
     {
+        PlaySceneEventHub.Clear();
         PlaySceneServices.Clear();
 
         if (_hpModelSubscribed != null)

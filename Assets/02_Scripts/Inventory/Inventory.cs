@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -49,7 +50,7 @@ public class Inventory : MonoBehaviour
         {
             foreach (var slot in _slots)
             {
-                if (slot.Item != null && slot.Item.Data == itemData && slot.Count < itemData.MaxStack)
+                if (slot.Item != null && slot.Item.ItemId == itemData.ItemId && slot.Count < itemData.MaxStack)
                 {
                     int canAdd = itemData.MaxStack - slot.Count;
                     int amountToAdd = Mathf.Min(amount, canAdd);
@@ -96,7 +97,7 @@ public class Inventory : MonoBehaviour
         ItemSlotModel slotA = _slots[indexA];
         ItemSlotModel slotB = _slots[indexB];
 
-        if (slotA.Item != null && slotB.Item != null && slotA.Item.Data == slotB.Item.Data && slotA.Item.IsStackable)
+        if (slotA.Item != null && slotB.Item != null && slotA.Item.ItemId == slotB.Item.ItemId && slotA.Item.IsStackable)
         {
             int maxStack = slotB.Item.MaxStack;
             int canAdd = maxStack - slotB.Count;
@@ -132,6 +133,39 @@ public class Inventory : MonoBehaviour
     }
 
     public ItemSlotModel[] GetSlots() => _slots;
+
+    /// <summary>저장 데이터로 슬롯 복원. 슬롯 순서 유지. Initialize 후 호출.</summary>
+    public void LoadFromSave(InventorySaveData saveData)
+    {
+        if (_slots == null || saveData?.slots == null) return;
+
+        foreach (var slot in _slots)
+            slot?.Clear();
+
+        foreach (var entry in saveData.slots)
+        {
+            if (entry.index < 0 || entry.index >= _inventorySize) continue;
+            if (string.IsNullOrEmpty(entry.itemId) || entry.count <= 0) continue;
+
+            var itemData = GameManager.Instance?.DataManager?.GetItemData(entry.itemId);
+            if (itemData == null)
+            {
+                Debug.LogWarning($"[Inventory] LoadFromSave: ItemData not found for '{entry.itemId}'. Add to Resources/Items.");
+                continue;
+            }
+
+            _slots[entry.index].Item = new ItemModel(itemData);
+            _slots[entry.index].Count = Mathf.Min(entry.count, itemData.MaxStack);
+            OnSlotChanged?.Invoke(_slots[entry.index]);
+        }
+
+        var notifiedIds = new HashSet<string>();
+        foreach (var entry in saveData.slots)
+        {
+            if (!string.IsNullOrEmpty(entry.itemId) && notifiedIds.Add(entry.itemId))
+                OnItemChangedWithId?.Invoke(entry.itemId, GetTotalCount(entry.itemId));
+        }
+    }
 
     public bool RemoveItem(string itemId, int amount)
     {

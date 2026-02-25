@@ -39,7 +39,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: -100, y: 200}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 300, y: 50}
   m_Pivot: {x: 1, y: 1}
 --- !u!222 &596392058682192008
 CanvasRenderer:
@@ -203,7 +203,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uBC84\uC12F\uC774\uB108\uBB34\uC88B\uC544"
+  m_text: "\uBC84\uC12F\uC774\uB108\uBB34\uC88B\uC544\uBC84\uC12F\uC774\uB108\uBB34\uC88B\uC544"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3aa5b2415007fa342972f89148154301, type: 2}
   m_sharedMaterial: {fileID: -7215626741732388450, guid: 3aa5b2415007fa342972f89148154301, type: 2}
@@ -230,7 +230,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 24.75
+  m_fontSize: 20.95
   m_fontSizeBase: 24
   m_fontWeight: 400
   m_enableAutoSizing: 1
