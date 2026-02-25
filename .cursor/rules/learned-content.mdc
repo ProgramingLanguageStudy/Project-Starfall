@@ -1,0 +1,25 @@
+---
+description: 매일 배운 내용 누적. 개발일지 작성 요청 시 Docs/개발일지_YYYY-MM-DD.md에 작성
+alwaysApply: true
+---
+
+# 매일 배운 내용 (누적)
+
+개발 중 배운 내용을 누적해 둔다. 사용자가 "개발일지 작성해줘"라고 하면 `Docs/개발일지_YYYY-MM-DD.md`에 작성하고, 이 섹션의 관련 내용을 "배운 점"에 반영한다. 날짜는 `use-system-date` 규칙에 따라 시스템에서 조회.
+
+---
+
+## Unity 생명주기
+
+- **Awake**: 실행 순서 보장 안 됨. 같은 프레임 내 여러 스크립트 Awake 호출 순서는 프로젝트마다 다를 수 있음.
+- **Start**: 모든 Awake가 끝난 뒤 호출됨. 다른 오브젝트 초기화에 의존하는 작업은 Start에서 수행.
+- **적용 예**: Inventory.Initialize()가 InventoryPresenter.Awake에서 호출됨. PlayScene.Awake에서 Apply를 호출하면 Awake 순서에 따라 Inventory._slots가 아직 null일 수 있어 LoadFromSave가 early return. → Apply를 Start로 옮기면 해결.
+
+---
+
+## 규칙: 개발일지 작성 요청 시
+
+1. `powershell -Command "Get-Date -Format 'yyyy-MM-dd'"` 로 시스템 날짜 조회
+2. `Docs/개발일지_YYYY-MM-DD.md` 파일에 작성 (없으면 생성)
+3. `dev-journal` 규칙 참조: 커밋 로그 기반으로 "오늘 한 일" 작성
+4. "배운 점" 섹션에 위 누적 내용 중 오늘 작업과 관련된 것 반영
