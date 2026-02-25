@@ -9,14 +9,11 @@ public class GameManager : Singleton<GameManager>
     [Header("Managers (선택: 인스펙터 할당. 없으면 런타임 생성)")]
     [SerializeField] private SaveManager _saveManager;
     [SerializeField] private DataManager _dataManager;
-    [SerializeField] private FlagManager _flagManager;
 
     /// <summary>세이브 시점·API. ISaveHandler 등록·수집·적용, SaveSystem I/O.</summary>
     public SaveManager SaveManager => GetOrCreate(ref _saveManager, "SaveManager");
     /// <summary>게임 데이터 preload·관리.</summary>
     public DataManager DataManager => GetOrCreate(ref _dataManager, "DataManager");
-    /// <summary>플래그 저장·조회.</summary>
-    public FlagManager FlagManager => GetOrCreate(ref _flagManager, "FlagManager");
 
     protected override void Awake()
     {
@@ -24,7 +21,6 @@ public class GameManager : Singleton<GameManager>
         DontDestroyOnLoad(gameObject);
         var _ = SaveManager;
         var __ = DataManager;
-        var ___ = FlagManager;
         DataManager.Initialize();
     }
 

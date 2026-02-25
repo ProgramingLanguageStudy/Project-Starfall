@@ -48,7 +48,9 @@ public class CharacterInteractor : MonoBehaviour
         {
             Collider c = _overlapBuffer[i];
             if (c == null) continue;
-            if (!c.transform.TryGetComponent<IInteractable>(out var interactable)) continue;
+            if (!c.transform.TryGetComponent<IInteractable>(out var interactable))
+                interactable = c.transform.GetComponentInParent<IInteractable>();
+            if (interactable == null) continue;
 
             Vector3 toTarget = (c.ClosestPoint(origin) - origin);
             toTarget.y = 0f;

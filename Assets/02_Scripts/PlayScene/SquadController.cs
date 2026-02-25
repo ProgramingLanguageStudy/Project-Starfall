@@ -52,11 +52,75 @@ public class SquadController : MonoBehaviour, IPlayerProvider
         }
     }
 
-    /// <summary>분대 스폰. spawnPositionOverride가 있으면 그 위치(세이브 기준), 없으면 _spawnPoint(방어코드). combatController는 동료 AI에 주입.</summary>
-    public void Initialize(Vector3? spawnPositionOverride = null, CombatController combatController = null)
+    /// <summary>분대 스폰. spawnPositionOverride가 있으면 그 위치(세이브 기준), 없으면 _spawnPoint(방어코드). squadSaveData가 있으면 세이브 멤버 기준 스폰(동료 저장/로드).</summary>
+    public void Initialize(Vector3? spawnPositionOverride = null, CombatController combatController = null, SquadSaveData squadSaveData = null)
     {
         _combatController = combatController;
-        SpawnInitialSquad(spawnPositionOverride);
+        if (squadSaveData != null && squadSaveData.members != null && squadSaveData.members.Count > 0)
+            SpawnFromSaveData(spawnPositionOverride, squadSaveData);
+        else
+            SpawnInitialSquad(spawnPositionOverride);
+    }
+
+    private void SpawnFromSaveData(Vector3? spawnPositionOverride, SquadSaveData squadSaveData)
+    {
+        _characters.Clear();
+        var root = _squadRoot != null ? _squadRoot : transform;
+        var basePos = spawnPositionOverride ?? (_spawnPoint != null ? _spawnPoint.position : transform.position);
+        var dm = GameManager.Instance?.DataManager;
+        if (dm == null)
+        {
+            Debug.LogWarning("[SquadController] DataManager 없음. _initialSquad로 폴백.");
+            SpawnInitialSquad(spawnPositionOverride);
+            return;
+        }
+
+        Character firstCharacter = null;
+        Character targetPlayer = null;
+        int index = 0;
+
+        foreach (var m in squadSaveData.members)
+        {
+            if (string.IsNullOrEmpty(m.characterId)) continue;
+
+            var data = dm.GetCharacterData(m.characterId);
+            if (data == null || data.prefab == null)
+            {
+                Debug.LogWarning($"[SquadController] CharacterData 없음: {m.characterId}. Resources/Characters 확인.");
+                continue;
+            }
+
+            var offset = GetSpawnOffset(index);
+            var character = SpawnCharacterInternal(data, basePos + offset, root);
+            if (character == null) continue;
+
+            _characters.Add(character);
+            character.Model?.SetCurrentHpForLoad(m.currentHp);
+
+            var companionStateMachine = character.GetComponent<CompanionStateMachine>();
+            companionStateMachine?.Initialize(_combatController);
+
+            if (index == 0)
+                firstCharacter = character;
+
+            if (!string.IsNullOrEmpty(squadSaveData.currentPlayerId) &&
+                (m.characterId == squadSaveData.currentPlayerId || character.Model?.Data?.displayName == squadSaveData.currentPlayerId))
+                targetPlayer = character;
+
+            index++;
+        }
+
+        _playerCharacter = targetPlayer ?? firstCharacter;
+        if (_playerCharacter != null)
+        {
+            _playerCharacter.SetAsPlayer();
+            foreach (var c in _characters)
+            {
+                if (c != null && c != _playerCharacter)
+                    c.SetAsCompanion(_playerCharacter.transform);
+            }
+        }
+        OnPlayerChanged?.Invoke(_playerCharacter);
     }
 
     private void SpawnInitialSquad(Vector3? spawnPositionOverride)
