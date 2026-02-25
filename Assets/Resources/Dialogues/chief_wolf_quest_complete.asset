@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bfb51a6792633b418706756853c58c4, type: 3}
+  m_Name: chief_wolf_quest_complete
+  m_EditorClassIdentifier: 
+  category: 2
+  npcId: chief
+  speakerDisplayName: "\uCD0C\uC7A5"
+  priority: 20
+  requiredFlagsOn:
+  - quest_wolf_kill_5_accepted
+  - quest_wolf_kill_5_objectives_done
+  requiredFlagsOff:
+  - quest_wolf_kill_5_completed
+  flagsToModify: []
+  questId: wolf_kill_5
+  questDialogueType: 3
+  lines:
+  - "\uB291\uB300 \uCC98\uCE58\uB97C \uC644\uB8CC\uD588\uAD6C\uB098!"
+  - "\uACE0\uB9C8\uC6CC. \uB355\uBD84\uC5D0 \uB9C8\uC744\uC5D0 \uC704\uD611\uC774
+    \uC904\uC5B4\uB4E4\uC5C8\uC5B4."

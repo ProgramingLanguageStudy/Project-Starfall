@@ -6,6 +6,10 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "EnemyData", menuName = "Enemy/Enemy Data")]
 public class EnemyData : ScriptableObject
 {
+    [Header("식별")]
+    [Tooltip("퀘스트 TargetId 매칭용. 비면 처치 퀘스트 진행 안 함")]
+    public string enemyId;
+
     [Header("생존")]
     [Tooltip("최대 체력")]
     public int maxHp = 50;

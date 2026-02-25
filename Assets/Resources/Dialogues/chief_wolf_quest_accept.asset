@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bfb51a6792633b418706756853c58c4, type: 3}
+  m_Name: chief_wolf_quest_accept
+  m_EditorClassIdentifier: 
+  category: 2
+  npcId: chief
+  speakerDisplayName: "\uCD0C\uC7A5"
+  priority: 10
+  requiredFlagsOn:
+  - first_talk_chief
+  - quest_mushroom_gather_completed
+  requiredFlagsOff:
+  - quest_wolf_kill_5_accepted
+  flagsToModify: []
+  questId: wolf_kill_5
+  questDialogueType: 1
+  lines:
+  - "\uB291\uB300\uAC00 \uB9C8\uC744\uC744 \uC704\uD611\uD558\uACE0 \uC788\uC5B4\uC11C
+    \uAC71\uC815\uC774\uC57C."
+  - "\uB291\uB300 5\uB9C8\uB9AC\uB97C \uCC98\uCE58\uD574\uC904\uC218 \uC788\uB2C8?"
+  - "\uB291\uB300\uB294 \uB9C8\uC744\uBC16\uC5D0 \uB098\uAC00\uBA74 \uBCFC \uC218
+    \uC788\uC744\uAC70\uC57C."

@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85280704d59e1904882f101fa00ebc65, type: 3}
   m_Name: EnemyData
   m_EditorClassIdentifier: 
+  enemyId: enemy_wolf
   maxHp: 50
   attackPower: 5
   defense: 0

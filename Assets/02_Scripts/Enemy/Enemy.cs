@@ -122,6 +122,10 @@ public class Enemy : MonoBehaviour
     /// <summary>Model.OnDeath 구독. 죽음 관련 처리(팀 해제 등). 풀링 시에도 사망 시점에 한 번만 호출.</summary>
     private void HandleDeath()
     {
+        var enemyId = _model?.Data?.enemyId;
+        if (!string.IsNullOrEmpty(enemyId))
+            PlaySceneEventHub.OnEnemyKilled?.Invoke(enemyId);
+
         OnDestroyed?.Invoke(this);
     }
 }
