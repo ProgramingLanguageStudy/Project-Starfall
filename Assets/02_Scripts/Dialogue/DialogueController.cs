@@ -15,6 +15,7 @@ public class DialogueController : MonoBehaviour
         if (_questPresenter == null && questPresenter != null)
             _questPresenter = questPresenter;
         _flagSystem = flagSystem;
+        _presenter.Initialize();
         _selector?.Initialize(flagSystem);
     }
 

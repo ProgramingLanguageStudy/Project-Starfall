@@ -24,6 +24,11 @@ public class DialogueView : MonoBehaviour
     public event Action OnEndClicked;
     public event Action<DialogueData> OnQuestDialogueSelected;
 
+    public void Initialize()
+    {
+        _panel.SetActive(false);
+    }
+
     /// <summary>category·questList·isLastLine에 따라 버튼 동적 생성.</summary>
     public void SetButtonMode(DialogueCategory category, IReadOnlyList<DialogueData> questList, bool isLastLine = false)
     {

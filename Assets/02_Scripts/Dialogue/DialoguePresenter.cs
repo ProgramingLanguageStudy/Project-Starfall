@@ -22,6 +22,11 @@ public class DialoguePresenter : MonoBehaviour
         if (_view == null) _view = FindFirstObjectByType<DialogueView>();
     }
 
+    public void Initialize()
+    {
+        _view.Initialize();
+    }
+
     private void OnEnable()
     {
         if (Model != null) Model.OnDialogueStateChanged += RefreshView;
