@@ -140,7 +140,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""name"": ""Jump"",
                     ""type"": ""Button"",
                     ""id"": ""f1ba0d36-48eb-4cd5-b651-1c94a6531f70"",
-                    ""expectedControlType"": ""Button"",
+                    ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
@@ -194,6 +194,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""name"": ""Save"",
                     ""type"": ""Button"",
                     ""id"": ""9b0c721d-cf1b-4b3a-85f0-a08038f06d48"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Map"",
+                    ""type"": ""Button"",
+                    ""id"": ""0c23fc31-2720-4d52-aaf2-851cbc8af0a0"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -618,6 +627,17 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""action"": ""Save"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""2228e9d9-464c-408f-8ae0-fbe3dc9dcdaa"",
+                    ""path"": ""<Keyboard>/m"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Map"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -719,6 +739,15 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""name"": ""Inventory"",
                     ""type"": ""Button"",
                     ""id"": ""ef84ab30-bac4-4c25-a62e-83661a3088cb"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Map"",
+                    ""type"": ""Button"",
+                    ""id"": ""77eb5970-a0af-44da-b595-c4df9b9e1ac5"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -1154,6 +1183,17 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""action"": ""Inventory"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""ef981f2f-c5f8-4d46-97d7-174436aac089"",
+                    ""path"": ""<Keyboard>/m"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Map"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -1235,6 +1275,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Player_Inventory = m_Player.FindAction("Inventory", throwIfNotFound: true);
         m_Player_SquadSwap = m_Player.FindAction("SquadSwap", throwIfNotFound: true);
         m_Player_Save = m_Player.FindAction("Save", throwIfNotFound: true);
+        m_Player_Map = m_Player.FindAction("Map", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1248,6 +1289,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_UI_TrackedDevicePosition = m_UI.FindAction("TrackedDevicePosition", throwIfNotFound: true);
         m_UI_TrackedDeviceOrientation = m_UI.FindAction("TrackedDeviceOrientation", throwIfNotFound: true);
         m_UI_Inventory = m_UI.FindAction("Inventory", throwIfNotFound: true);
+        m_UI_Map = m_UI.FindAction("Map", throwIfNotFound: true);
     }
 
     ~@InputSystem_Actions()
@@ -1341,6 +1383,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Inventory;
     private readonly InputAction m_Player_SquadSwap;
     private readonly InputAction m_Player_Save;
+    private readonly InputAction m_Player_Map;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -1400,6 +1443,10 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Save".
         /// </summary>
         public InputAction @Save => m_Wrapper.m_Player_Save;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Map".
+        /// </summary>
+        public InputAction @Map => m_Wrapper.m_Player_Map;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -1462,6 +1509,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Save.started += instance.OnSave;
             @Save.performed += instance.OnSave;
             @Save.canceled += instance.OnSave;
+            @Map.started += instance.OnMap;
+            @Map.performed += instance.OnMap;
+            @Map.canceled += instance.OnMap;
         }
 
         /// <summary>
@@ -1509,6 +1559,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Save.started -= instance.OnSave;
             @Save.performed -= instance.OnSave;
             @Save.canceled -= instance.OnSave;
+            @Map.started -= instance.OnMap;
+            @Map.performed -= instance.OnMap;
+            @Map.canceled -= instance.OnMap;
         }
 
         /// <summary>
@@ -1557,6 +1610,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     private readonly InputAction m_UI_TrackedDevicePosition;
     private readonly InputAction m_UI_TrackedDeviceOrientation;
     private readonly InputAction m_UI_Inventory;
+    private readonly InputAction m_UI_Map;
     /// <summary>
     /// Provides access to input actions defined in input action map "UI".
     /// </summary>
@@ -1612,6 +1666,10 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "UI/Inventory".
         /// </summary>
         public InputAction @Inventory => m_Wrapper.m_UI_Inventory;
+        /// <summary>
+        /// Provides access to the underlying input action "UI/Map".
+        /// </summary>
+        public InputAction @Map => m_Wrapper.m_UI_Map;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -1671,6 +1729,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Inventory.started += instance.OnInventory;
             @Inventory.performed += instance.OnInventory;
             @Inventory.canceled += instance.OnInventory;
+            @Map.started += instance.OnMap;
+            @Map.performed += instance.OnMap;
+            @Map.canceled += instance.OnMap;
         }
 
         /// <summary>
@@ -1715,6 +1776,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
             @Inventory.started -= instance.OnInventory;
             @Inventory.performed -= instance.OnInventory;
             @Inventory.canceled -= instance.OnInventory;
+            @Map.started -= instance.OnMap;
+            @Map.performed -= instance.OnMap;
+            @Map.canceled -= instance.OnMap;
         }
 
         /// <summary>
@@ -1904,6 +1968,13 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnSave(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Map" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnMap(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
@@ -1989,5 +2060,12 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnInventory(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Map" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnMap(InputAction.CallbackContext context);
     }
 }

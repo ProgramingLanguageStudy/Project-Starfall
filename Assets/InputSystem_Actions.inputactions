@@ -54,7 +54,7 @@
                     "name": "Jump",
                     "type": "Button",
                     "id": "f1ba0d36-48eb-4cd5-b651-1c94a6531f70",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -108,6 +108,15 @@
                     "name": "Save",
                     "type": "Button",
                     "id": "9b0c721d-cf1b-4b3a-85f0-a08038f06d48",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Map",
+                    "type": "Button",
+                    "id": "0c23fc31-2720-4d52-aaf2-851cbc8af0a0",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -532,6 +541,17 @@
                     "action": "Save",
                     "isComposite": false,
                     "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2228e9d9-464c-408f-8ae0-fbe3dc9dcdaa",
+                    "path": "<Keyboard>/m",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Map",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
@@ -633,6 +653,15 @@
                     "name": "Inventory",
                     "type": "Button",
                     "id": "ef84ab30-bac4-4c25-a62e-83661a3088cb",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Map",
+                    "type": "Button",
+                    "id": "77eb5970-a0af-44da-b595-c4df9b9e1ac5",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -1066,6 +1095,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "Inventory",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ef981f2f-c5f8-4d46-97d7-174436aac089",
+                    "path": "<Keyboard>/m",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Map",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

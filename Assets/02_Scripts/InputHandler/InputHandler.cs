@@ -17,6 +17,8 @@ public class InputHandler : MonoBehaviour
     private InputAction _moveAction;
     private InputAction _lookAction;
     private InputAction _uiInventoryAction;
+    private InputAction _uiMapAction;
+    private InputAction _uiScrollAction;
     private int _blockingUICount;
 
     private Action<InputAction.CallbackContext> _interactCallback;
@@ -24,9 +26,11 @@ public class InputHandler : MonoBehaviour
     private Action<InputAction.CallbackContext> _inventoryCallback;
     private Action<InputAction.CallbackContext> _squadSwapCallback;
     private Action<InputAction.CallbackContext> _saveCallback;
+    private Action<InputAction.CallbackContext> _mapCallback;
 
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
+    public Vector2 ScrollInput { get; private set; }
 
     /// <summary>true면 Player 액션 맵 비활성화(대화/인벤토리 등 UI 모드).</summary>
     public bool IsUIMode => _blockingUICount > 0;
@@ -36,6 +40,7 @@ public class InputHandler : MonoBehaviour
     public event Action OnInventoryPerformed;
     public event Action OnSquadSwapPerformed;
     public event Action OnSavePerformed;
+    public event Action OnMapPerformed;
 
     private void OnEnable()
     {
@@ -67,17 +72,20 @@ public class InputHandler : MonoBehaviour
         _inventoryCallback = _ => OnInventoryPerformed?.Invoke();
         _squadSwapCallback = _ => OnSquadSwapPerformed?.Invoke();
         _saveCallback = _ => OnSavePerformed?.Invoke();
+        _mapCallback = _ => OnMapPerformed?.Invoke();
 
         var interact = _playerMap.FindAction("Interact");
         var attack = _playerMap.FindAction("Attack");
         var inventory = _playerMap.FindAction("Inventory");
         var squadSwap = _playerMap.FindAction("SquadSwap");
         var save = _playerMap.FindAction("Save");
+        var map = _playerMap.FindAction("Map");
         if (interact != null) interact.performed += _interactCallback;
         if (attack != null) attack.performed += _attackCallback;
         if (inventory != null) inventory.performed += _inventoryCallback;
         if (squadSwap != null) squadSwap.performed += _squadSwapCallback;
         if (save != null) save.performed += _saveCallback;
+        if (map != null) map.performed += _mapCallback;
 
         _playerMap.Enable();
 
@@ -87,6 +95,12 @@ public class InputHandler : MonoBehaviour
             _uiInventoryAction = _uiMap.FindAction("Inventory");
             if (_uiInventoryAction != null)
                 _uiInventoryAction.performed += _inventoryCallback;
+            _uiMapAction = _uiMap.FindAction("Map");
+            if (_uiMapAction != null)
+            {
+                _uiMapAction.performed += _mapCallback;
+            }
+            _uiScrollAction = _uiMap.FindAction("ScrollWheel");
         }
 
         GameEvents.OnCursorShowRequested += OnBlockingUIOpened;
@@ -98,8 +112,12 @@ public class InputHandler : MonoBehaviour
         GameEvents.OnCursorShowRequested -= OnBlockingUIOpened;
         GameEvents.OnCursorHideRequested -= OnBlockingUIClosed;
 
-        if (_uiMap != null && _uiInventoryAction != null && _inventoryCallback != null)
+        if (_uiMap != null)
+        {
             _uiInventoryAction.performed -= _inventoryCallback;
+            _uiMapAction.performed -= _mapCallback;
+        }
+            
 
         if (_playerMap != null)
         {
@@ -109,11 +127,13 @@ public class InputHandler : MonoBehaviour
             var inventory = _playerMap.FindAction("Inventory");
             var squadSwap = _playerMap.FindAction("SquadSwap");
             var save = _playerMap.FindAction("Save");
+            var map = _playerMap.FindAction("Map");
             if (interact != null && _interactCallback != null) interact.performed -= _interactCallback;
             if (attack != null && _attackCallback != null) attack.performed -= _attackCallback;
             if (inventory != null && _inventoryCallback != null) inventory.performed -= _inventoryCallback;
             if (squadSwap != null && _squadSwapCallback != null) squadSwap.performed -= _squadSwapCallback;
             if (save != null && _saveCallback != null) save.performed -= _saveCallback;
+            if (map != null && _mapCallback != null) map.performed -= _mapCallback;
         }
 
         _uiMap?.Disable();
@@ -123,6 +143,7 @@ public class InputHandler : MonoBehaviour
         _moveAction = null;
         _lookAction = null;
         _uiInventoryAction = null;
+        _uiMapAction = null;
     }
 
     private void OnBlockingUIOpened()
@@ -160,10 +181,15 @@ public class InputHandler : MonoBehaviour
         {
             MoveInput = Vector2.zero;
             LookInput = Vector2.zero;
-            return;
+        }
+        if (_uiMap == null || !_uiMap.enabled)
+        {
+            ScrollInput = Vector2.zero;
         }
 
         MoveInput = _moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
         LookInput = _lookAction?.ReadValue<Vector2>() ?? Vector2.zero;
+        ScrollInput = _uiScrollAction?.ReadValue<Vector2>() ?? Vector2.zero;
+        Debug.Log(ScrollInput);
     }
 }
