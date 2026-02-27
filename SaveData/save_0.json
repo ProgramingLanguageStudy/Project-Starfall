@@ -1,16 +1,24 @@
 {
     "squad": {
-        "currentPlayerId": "sapphi",
+        "currentPlayerId": "celeste",
         "playerPosition": {
-            "x": 62.80440139770508,
-            "y": 3.083112955093384,
-            "z": 60.361812591552737
+            "x": 62.18819808959961,
+            "y": 3.0831127166748049,
+            "z": 62.86281967163086
         },
-        "playerRotationY": 292.45916748046877,
+        "playerRotationY": 108.89154052734375,
         "members": [
             {
                 "characterId": "sapphi",
                 "currentHp": 25
+            },
+            {
+                "characterId": "celeste",
+                "currentHp": 100
+            },
+            {
+                "characterId": "pico",
+                "currentHp": 100
             }
         ]
     },
@@ -27,14 +35,25 @@
         ]
     },
     "quests": {
-        "entries": []
+        "entries": [
+            {
+                "questId": "wolf_kill_5",
+                "targetId": "enemy_wolf",
+                "currentAmount": 0
+            },
+            {
+                "questId": "mushroom_gather",
+                "targetId": "item_mushroom",
+                "currentAmount": 0
+            }
+        ]
     },
     "inventory": {
         "slots": [
             {
                 "index": 0,
                 "itemId": "item_mushroom",
-                "count": 13
+                "count": 17
             }
         ]
     }
