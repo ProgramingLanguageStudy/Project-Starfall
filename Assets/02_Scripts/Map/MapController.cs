@@ -4,9 +4,11 @@ public class MapController : MonoBehaviour
 {
     [SerializeField] MapView _mapView;
 
-    public void Initialize()
+    public MapView MapView => _mapView;
+
+    public void Initialize(PortalController pc, Character player)
     {
-        _mapView.Initialize();
+        _mapView.Initialize(pc, player.transform);
     }
 
     public void RequestToggleMap()
@@ -16,6 +18,6 @@ public class MapController : MonoBehaviour
 
     public void RequestScrollMap(Vector2 input)
     {
-        _mapView.ScrollMap(input);
+        _mapView.ScrollZoom(input);
     }
 }
