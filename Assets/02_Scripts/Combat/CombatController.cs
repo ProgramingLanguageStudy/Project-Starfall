@@ -39,4 +39,31 @@ public class CombatController : MonoBehaviour
             OnCombatStateChanged?.Invoke(false);
         }
     }
+
+    /// <summary>특정 위치에서 가장 가까운 적을 반환합니다.</summary>
+    public Enemy GetNearestEnemy(Vector3 origin)
+    {
+        if (_enemiesInCombat.Count == 0) return null;
+
+        Enemy nearest = null;
+        float minDistanceSq = float.MaxValue;
+
+        // 리스트를 돌며 거리의 제곱을 비교 (Distance보다 sqrMagnitude가 성능에 더 좋습니다)
+        for (int i = 0; i < _enemiesInCombat.Count; i++)
+        {
+            var enemy = _enemiesInCombat[i];
+
+            // 유효성 및 사망 체크 (안전장치)
+            if (enemy == null || enemy.Model == null || enemy.Model.IsDead) continue;
+
+            float distSq = (enemy.transform.position - origin).sqrMagnitude;
+            if (distSq < minDistanceSq)
+            {
+                minDistanceSq = distSq;
+                nearest = enemy;
+            }
+        }
+
+        return nearest;
+    }
 }

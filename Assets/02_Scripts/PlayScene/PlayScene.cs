@@ -79,7 +79,7 @@ public class PlayScene : MonoBehaviour
 
         if (_mapController != null)
         {
-            _mapController.Initialize(_portalController, player);
+            _mapController.Initialize(_portalController, player, _squadController);
         }
 
         if (_portalController != null)

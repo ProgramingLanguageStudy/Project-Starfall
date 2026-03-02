@@ -6,9 +6,9 @@ public class MapController : MonoBehaviour
 
     public MapView MapView => _mapView;
 
-    public void Initialize(PortalController pc, Character player)
+    public void Initialize(PortalController pc, Character player, SquadController sc)
     {
-        _mapView.Initialize(pc, player.transform);
+        _mapView.Initialize(pc, player, sc);
     }
 
     public void RequestToggleMap()

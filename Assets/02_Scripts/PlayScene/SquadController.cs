@@ -191,9 +191,19 @@ public class SquadController : MonoBehaviour, IPlayerProvider
         return true;
     }
 
-    /// <summary>플레이어를 목표 위치로 텔레포트. 디버거·포탈 등에서 사용.</summary>
-    public void TeleportPlayer(Vector3 worldPosition) => _playerCharacter?.Teleport(worldPosition);
-    public void TeleportPlayer(Transform destination) => _playerCharacter?.Teleport(destination);
+    /// <summary>플레이어와 모든 분대원을 목표 위치로 텔레포트.</summary>
+    public void TeleportPlayer(Vector3 worldPosition)
+    {
+        if (_playerCharacter == null) return;
+
+        // 1. 플레이어를 먼저 목표 위치로 이동
+        _playerCharacter.Teleport(worldPosition);
+
+        // 2. 이미 만들어둔 메서드를 사용하여 동료들을 플레이어 주변으로 재배치
+        // 이 메서드 내부에 NavMesh 샘플링과 오프셋 계산이 이미 포함되어 있어 안전합니다.
+        RepositionCompanionsAround(_playerCharacter.transform);
+    }
+
 
     private Vector3 GetSpawnOffset(int index)
     {
@@ -258,16 +268,24 @@ public class SquadController : MonoBehaviour, IPlayerProvider
         if (center == null) return;
         var basePos = center.position;
         int companionIndex = 0;
+
         foreach (var c in _characters)
         {
             if (c == null || c.transform == center) continue;
             companionIndex++;
+
             var offset = GetSpawnOffset(companionIndex);
             var nearPos = basePos + offset;
+
             if (NavMesh.SamplePosition(nearPos, out var hit, _spawnRadius * 2f, NavMesh.AllAreas))
+            {
+                // 1. 기존 경로를 제거 (이걸 안 하면 이전 목적지로 가려고 함)
+                var agent = c.GetComponent<NavMeshAgent>();
+                if (agent != null) agent.ResetPath();
+
+                // 2. Warp로 즉시 이동
                 c.Teleport(hit.position);
-            else
-                c.Teleport(nearPos);
+            }
         }
     }
 }
