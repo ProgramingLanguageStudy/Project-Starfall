@@ -71,15 +71,15 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Character (Facade)                       │
-│  RequestMove / RequestAttack / SetFollowTarget / SetCombatTarget│
+│                        Character (Facade)                         │
+│  RequestMove / RequestAttack / SetFollowTarget / SetCombatTarget  │
 └─────────────────────────────────────────────────────────────────┘
                     │                           │
         ┌───────────┴───────────┐   ┌──────────┴──────────┐
         ▼                       ▼   ▼                     ▼
 ┌───────────────┐     ┌─────────────────┐     ┌──────────────────┐
-│ CharacterState│     │ MovementHandler │     │ AIBrain (동료)   │
-│ Machine       │     │ (Direction/Target)    │                  │
+│ CharacterState│     │ MovementHandler │     │ AIBrain (동료)    │
+│ Machine       │     │ (Direction/Target)     │                  │
 │ Idle·Move·    │     │                 │     │ Follow/Combat/   │
 │ Attack·Dead   │     │ 플레이어↔동료    │     │ Attack 판단      │
 └───────────────┘     │ Handler 교체    │     └──────────────────┘
@@ -96,14 +96,43 @@
 
 ---
 
-### 3.2 시스템 간 독립성 (MVP + 조율층) (2순위)
+### 3.2 AIBrain / 동료 AI (2순위)
+
+#### 도식
+
+```
+CombatController (IsInCombat, GetNearestEnemy)
+        │
+        ▼
+┌──────────────────────────────────────────┐
+│              AIBrain (동료 전용)            │
+│  IsInCombat ? TickCombat() : TickFollow()  │
+└──────────────────────────────────────────┘
+        │
+        ├─ TickFollow ──► SetFollowTarget(플레이어)
+        │
+        └─ TickCombat ──► SetCombatTarget(적, attackRange)
+                          dist ≤ attackRange ? RequestAttack()
+```
+
+#### 문제 → 해결 → 결과
+
+| 구분 | 내용 |
+|------|------|
+| **문제** | 동료가 플레이어처럼 입력을 받지 않아, 전투 시 추적·사거리 판단·공격 시점을 자동으로 결정해야 함 |
+| **해결** | CombatController(전투 상태·가장 가까운 적) 기반 AIBrain. IsInCombat으로 Follow/Combat 분기, GetNearestEnemy로 타겟, 사거리 내에서만 RequestAttack 호출. Character API만 사용해 별도 상태머신 없음 |
+| **결과** | 플레이어와 동일한 CharacterStateMachine·Attacker 재사용. AIBrain은 “판단”만 담당, 실행은 Character에 위임 |
+
+---
+
+### 3.3 시스템 간 독립성 (MVP + 조율층) (3순위)
 
 #### 도식
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    PlayScene (조율층)                        │
-│  InputHandler, SquadController, QuestPresenter, Inventory.. │
+│                    PlayScene (조율층)                         │
+│  InputHandler, SquadController, QuestPresenter, Inventory... │
 └─────────────────────────────────────────────────────────────┘
     │              │              │              │
     ▼              ▼              ▼              ▼
@@ -128,7 +157,7 @@
 
 ---
 
-### 3.3 세이브/로드 Contributor 패턴 (3순위)
+### 3.4 세이브/로드 Contributor 패턴 (4순위)
 
 #### 도식
 
@@ -153,7 +182,7 @@ SaveManager
 
 ---
 
-### 3.4 플래그·대화·퀘스트 연동 (4순위)
+### 3.5 플래그·대화·퀘스트 연동 (5순위)
 
 #### 도식
 
@@ -180,7 +209,7 @@ DialogueSelector ──► requiredFlagsOn/Off 체크
 
 ---
 
-### 3.5 인스펙터·주입 우선 (5순위)
+### 3.6 인스펙터·주입 우선 (6순위)
 
 #### 문제 → 해결 → 결과
 
@@ -192,7 +221,177 @@ DialogueSelector ──► requiredFlagsOn/Off 체크
 
 ---
 
-## 4. 부록: 사용 에셋
+## 4. 전체 시스템 아키텍처
+
+> PlayScene이 조율층으로, 모든 시스템을 연결·초기화·이벤트 구독한다.
+
+### 4.1 PlayScene과 시스템 연결도
+
+```
+                              ┌─────────────────────┐
+                              │     InputHandler    │
+                              └──────────┬──────────┘
+                                         │ Move/Attack/Interact/Map/...
+                                         ▼
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                              PlayScene (조율층)                                    │
+│  Awake: Initialize 모두 호출 / OnEnable: 이벤트 구독 / Update: MoveInput 전달      │
+└──────────────────────────────────────────────────────────────────────────────────┘
+    │         │         │         │         │         │         │         │         │
+    ▼         ▼         ▼         ▼         ▼         ▼         ▼         ▼         ▼
+┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐
+│Squad  │ │Enemy  │ │Combat │ │Inventory│ │Dialogue│ │Quest  │ │Map    │ │Portal │ │PlaySave│
+│Ctrl   │ │Spawner│ │Ctrl   │ │Present │ │Ctrl   │ │Ctrl   │ │Ctrl   │ │Ctrl   │ │Coord  │
+└───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘
+    │         │         │         │         │         │         │         │         │
+    │         └────┬────┘         │         │         │         │         │         │
+    │              │              │         │         └────┬────┴─────────┘         │
+    │              │              │         │              │   FlagSystem           │
+    │              │              │         │              │   PlaySceneEventHub    │
+    ▼              ▼              ▼         ▼              ▼                       ▼
+ Character     Enemy          AIBrain   Inventory      Dialogue               SaveManager
+ (Player/      (Chase/        (Follow/  (Model+View)   (Selector+             (Contributors)
+  Companion)    Attack)        Combat)                  Presenter)
+```
+
+### 4.2 포탈 시스템
+
+```
+[플레이어가 포탈 근처에서 상호작용]  또는  [맵 UI에서 포탈 아이콘 클릭]
+                    │
+    ┌───────────────┼───────────────┐
+    ▼                               ▼
+Portal.OnInteracted           Map_PortalIcon 클릭
+    │                               │
+    ▼                               │
+PortalController ───────────────────┤
+    │                               │
+    └───────────────┬───────────────┘
+                    ▼
+        MapView.ToggleMap() (맵 열기/닫기)
+                    │
+                    ▼ (맵에서 포탈 아이콘 클릭 시)
+        SquadController.TeleportPlayer(ArrivalPosition)
+                    │
+                    ▼
+        플레이어·동료 전체 Teleport → RepositionCompanionsAround
+```
+
+**주요 컴포넌트**
+| 컴포넌트 | 역할 |
+|----------|------|
+| Portal | IInteractable. OnInteracted 발행, ArrivalPosition 제공 |
+| PortalController | FindObjectsByType으로 포탈 등록, OnInteracted 구독, MapView 연동 |
+| PortalModel | FlagSystem 기반 해금 여부 |
+| MapView | 포탈 아이콘 생성, 클릭 시 TeleportPlayer 호출 |
+| SquadController | TeleportPlayer → 플레이어+동료 Warp, RepositionCompanionsAround |
+
+### 4.3 맵 시스템
+
+```
+PlayScene.Update ──► MapController.RequestScrollMap(scrollInput)
+PlayScene.HandleMap ──► MapController.RequestToggleMap()
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      MapView                                 │
+│  ToggleMap: 패널 On/Off, TakeSnapshot, RefreshPortalIcons   │
+│  ScrollZoom: 마우스 휠로 지도 줌                             │
+│  Update: 플레이어 아이콘 위치·회전 실시간 갱신                │
+└─────────────────────────────────────────────────────────────┘
+        │                    │                    │
+        ▼                    ▼                    ▼
+  MapCamera             PortalController     SquadController
+  (RenderTexture        (해금 포탈 목록)       (플레이어 위치)
+   스냅샷)
+```
+
+### 4.4 인벤토리 시스템
+
+```
+GameEvents.OnInventoryKeyPressed  ←── PlayScene.HandleInventoryKey
+                    │
+                    ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 InventoryPresenter                           │
+│  Model(Inventory) ←→ View(InventoryView) 연결                │
+│  SetPlayerCharacter: 소비품 효과 대상(ItemUser) 갱신          │
+└─────────────────────────────────────────────────────────────┘
+        │                              │
+        ▼                              ▼
+  Inventory (Model)              InventoryView
+  - Slots, AddItem,             - UI 표시, OnUseItemRequested,
+    SetItemUser                   OnDropEnded
+  - Quest 완료 시 아이템 차감
+```
+
+**PlayScene 연동**: HandlePlayerChanged → InventoryPresenter.SetPlayerCharacter (플레이어 변경 시 ItemUser 갱신)
+
+### 4.5 대화 시스템
+
+```
+Npc 상호작용 (Interactor.TryInteract)
+                    │
+                    ▼
+PlaySceneEventHub.OnNpcInteracted(npcId)
+                    │
+                    ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 DialogueController                           │
+│  HandleNpcInteracted → Selector.SelectMain → Presenter 시작  │
+│  HandleDialogueEnded → ApplyFlags + Quest Accept/Complete    │
+└─────────────────────────────────────────────────────────────┘
+        │                    │                    │
+        ▼                    ▼                    ▼
+  DialogueSelector      DialoguePresenter    FlagSystem
+  (requiredFlags 체크)   (대화 UI 재생)       (flagsToModify)
+                              │
+                              ▼
+                        QuestPresenter
+                        (questId 있으면 Accept/Complete)
+```
+
+### 4.6 퀘스트 시스템
+
+```
+PlaySceneEventHub.OnEnemyKilled(enemyId)  ←── 적 처치 시
+                    │
+                    ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 QuestController                              │
+│  QuestPresenter 보유. DialogueController에 주입              │
+│  OnEnemyKilled → 목표 타입이 Kill이면 진행도 갱신             │
+└─────────────────────────────────────────────────────────────┘
+        │
+        ▼
+  QuestPresenter / QuestSystem
+  - AcceptQuest, CompleteQuest, RequestCompleteQuest
+  - Gather 퀘스트 완료 시 InventoryPresenter.Model에서 아이템 차감
+```
+
+### 4.7 전투·적 시스템
+
+```
+Enemy Detector (반경 내 Character 감지)
+        │
+        ▼
+EnemyAggro (어그로 누적) ──► 임계값 초과 시 NotifyEnteringCombat
+        │
+        ▼
+EnemyStateMachine (Chase/Attack) ──► NotifyCombatStateChanged
+        │
+        ▼
+CombatController.RegisterInCombat(Enemy)
+        │
+        ▼
+AIBrain (동료) ──► IsInCombat ? TickCombat() : TickFollow()
+```
+
+**PlayScene 연동**: SquadController.Initialize(combatController) → AIBrain.Initialize(combatController)
+
+---
+
+## 5. 부록: 사용 에셋
 
 > Asset Store 에셋명과 사용 용도를 정리해 두세요.
 
@@ -218,7 +417,7 @@ DialogueSelector ──► requiredFlagsOn/Off 체크
 
 ---
 
-## 5. 체크리스트 (제출 전)
+## 6. 체크리스트 (제출 전)
 
 - [ ] 타이틀 화면·게임플레이 스크린샷 (각 1장 이상)
 - [ ] 3분 이내 영상 제작·업로드
