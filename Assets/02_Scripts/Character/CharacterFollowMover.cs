@@ -7,12 +7,11 @@ using UnityEngine.AI;
 /// 판단(전투/추적/정지)은 Brain/StateMachine이 담당.
 /// </summary>
 [RequireComponent(typeof(NavMeshAgent))]
-public class CharacterFollowMover : MonoBehaviour, IMover
+public class CharacterFollowMover : MonoBehaviour
 {
     private NavMeshAgent _agent;
     private CharacterModel _model;
 
-    // ── IMover 인터페이스 ──────────────────────────────
     public void SetCurrentMoveSpeed(float speed)
     {
         _model.SetCurrentMoveSpeed(speed);

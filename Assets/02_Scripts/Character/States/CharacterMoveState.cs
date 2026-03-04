@@ -10,7 +10,7 @@ public class CharacterMoveState : CharacterStateBase
 
     public override void Update()
     {
-        Character?.ApplyMovementIntent();
+        Character?.ApplyMovement();
     }
 
     public override void Exit() { }

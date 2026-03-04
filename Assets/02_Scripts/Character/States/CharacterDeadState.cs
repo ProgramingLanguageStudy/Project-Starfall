@@ -1,8 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 죽음 상태. 모든 죽음 시각/물리 처리는 CharacterDeathHandler에 위임.
-/// 사운드·이펙트 추가 시 DeathHandler.Handle()만 수정.
+/// 죽음 상태. Character.Die() / Revive() 호출.
 /// </summary>
 public class CharacterDeadState : CharacterStateBase
 {
@@ -13,13 +12,7 @@ public class CharacterDeadState : CharacterStateBase
 
     public override void Enter()
     {
-        if (Character?.DeathHandler == null)
-        {
-            Debug.LogError($"[CharacterDeadState] {Character?.gameObject.name}: DeathHandler 없음. Character에 RequireComponent 확인.");
-            _deadTimer = 0f;
-            return;
-        }
-        Character.DeathHandler.Handle();
+        Character?.Die();
         _deadTimer = 0f;
     }
 
@@ -34,9 +27,6 @@ public class CharacterDeadState : CharacterStateBase
 
     public override void Exit()
     {
-        if (Character != null)
-        {
-            Character.SetCharacterControllerEnabled(true);
-        }
+        Character?.Revive();
     }
 }

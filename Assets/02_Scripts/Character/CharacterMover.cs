@@ -7,7 +7,7 @@ using UnityEngine;
 /// 카메라/입력 변환은 호출부(PlayerInputHandler 등)에서 처리.
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
-public class CharacterMover : MonoBehaviour, IMover
+public class CharacterMover : MonoBehaviour
 {
     [SerializeField] private float _rotationSpeed = 15f;
 
@@ -20,7 +20,6 @@ public class CharacterMover : MonoBehaviour, IMover
 
     public event Action<float> OnMoved;
 
-    // ── IMover ──────────────────────────────────────────────
     public void SetCurrentMoveSpeed(float speed)
     {
         _model.SetCurrentMoveSpeed(speed);
@@ -31,7 +30,6 @@ public class CharacterMover : MonoBehaviour, IMover
         // CC는 Move()를 안 부르면 멈춤. 수직 속도는 유지(낙하 중 Stop해도 자연스럽게 착지).
         _verticalVelocity = Mathf.Min(_verticalVelocity, 0f);
     }
-    // ────────────────────────────────────────────────────────
 
     public void Initialize(CharacterController controller, CharacterModel model)
     {

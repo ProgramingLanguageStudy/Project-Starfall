@@ -12,13 +12,15 @@ public class CharacterAttacker : MonoBehaviour
     private Character _ownerCharacter;
     private CharacterModel _ownerModel;
     private CharacterStateMachine _stateMachine;
+    private CharacterAnimator _characterAnimator;
     private readonly HashSet<IDamageable> _hitThisAttack = new HashSet<IDamageable>();
 
-    public void Initialize(Character owner, CharacterStateMachine stateMachine, CharacterModel ownerModel)
+    public void Initialize(Character owner, CharacterStateMachine stateMachine, CharacterModel ownerModel, CharacterAnimator characterAnimator)
     {
         _ownerCharacter = owner;
         _stateMachine = stateMachine;
         _ownerModel = ownerModel;
+        _characterAnimator = characterAnimator;
 
         if (_hitboxController == null)
             _hitboxController = GetComponentInChildren<HitboxController>(true);
@@ -64,10 +66,17 @@ public class CharacterAttacker : MonoBehaviour
         target.TakeDamage(damage, attacker);
     }
 
-    public void OnAttackStarted()
+    /// <summary>AttackState.Enter에서 호출. 공격 시작.</summary>
+    public void Begin()
     {
-        Debug.Log($"[CharacterAttacker] {gameObject.name} OnAttackStarted");
+        _characterAnimator?.Attack();
         _hitThisAttack.Clear();
+    }
+
+    /// <summary>AttackState.Exit에서 호출. 공격 종료 정리.</summary>
+    public void End()
+    {
+        _hitboxController?.DisableHit();
     }
 
     public void Animation_BeginHitWindow()
@@ -86,10 +95,5 @@ public class CharacterAttacker : MonoBehaviour
     {
         _hitboxController?.DisableHit();
         _stateMachine?.RequestIdle();
-    }
-
-    public void EndAttackCleanup()
-    {
-        _hitboxController?.DisableHit();
     }
 }
