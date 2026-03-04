@@ -12,17 +12,19 @@ public class QuestController : MonoBehaviour
     /// <summary>PlayScene 등에서 DialogueController에 주입용.</summary>
     public QuestPresenter Presenter => _presenter;
     private Inventory _inventory;
+    private SquadController _squadController;
 
     private QuestSystem QuestSystem => _presenter != null ? _presenter.System : null;
 
     private FlagSystem _flagSystem;
 
-    /// <summary>PlayScene 등에서 주입.</summary>
-    public void Initialize(Inventory inventory, FlagSystem flagSystem)
+    /// <summary>PlayScene 등에서 주입. SquadController는 영입 퀘스트용.</summary>
+    public void Initialize(Inventory inventory, FlagSystem flagSystem, SquadController squadController = null)
     {
         if (_inventory == null && inventory != null)
             _inventory = inventory;
         _flagSystem = flagSystem;
+        _squadController = squadController;
         _presenter?.Initialize(flagSystem);
     }
 
@@ -86,7 +88,38 @@ public class QuestController : MonoBehaviour
         if (data == null) return;
 
         ApplyQuestCompletedFlag(data);
-        DeductGatherItems(data);
+
+        switch (data)
+        {
+            case RecruitmentQuestData recruitment:
+                HandleRecruitmentComplete(recruitment);
+                break;
+            default:
+                DeductGatherItems(data);
+                break;
+        }
+    }
+
+    private void HandleRecruitmentComplete(RecruitmentQuestData data)
+    {
+        var characterId = data.recruitCharacterId;
+        if (string.IsNullOrEmpty(characterId))
+        {
+            Debug.LogWarning("[QuestController] RecruitmentQuestData에 recruitCharacterId가 비어 있습니다.");
+            return;
+        }
+
+        var dm = GameManager.Instance?.DataManager;
+        if (dm == null) return;
+
+        var characterData = dm.GetCharacterData(characterId);
+        if (characterData == null || characterData.prefab == null)
+        {
+            Debug.LogWarning($"[QuestController] CharacterData 없음: {characterId}. Resources/Characters 확인.");
+            return;
+        }
+
+        _squadController.AddCompanion(characterData);
     }
 
     private void ApplyQuestCompletedFlag(QuestData data)

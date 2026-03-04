@@ -1,4 +1,4 @@
-public enum QuestType { Gather, Kill, Visit } // 수집, 처치, 방문
+public enum QuestType { Gather, Kill, Visit, Recruitment } // 수집, 처치, 방문, 동료 영입
 
 /// <summary>아이템 종류. 일반 인벤토리에는 Consumable, Material만. 장비는 장비 인벤토리로.</summary>
 public enum ItemType { Consumable, Material, Equipment }
