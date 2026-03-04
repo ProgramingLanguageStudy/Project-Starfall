@@ -1,12 +1,12 @@
 {
     "squad": {
-        "currentPlayerId": "sapphi",
+        "currentPlayerId": "celeste",
         "playerPosition": {
-            "x": 61.128292083740237,
-            "y": 3.083112955093384,
-            "z": 63.17423629760742
+            "x": 56.024879455566409,
+            "y": 3.083113193511963,
+            "z": 62.3653450012207
         },
-        "playerRotationY": 82.4681167602539,
+        "playerRotationY": 109.4395523071289,
         "members": [
             {
                 "characterId": "sapphi",

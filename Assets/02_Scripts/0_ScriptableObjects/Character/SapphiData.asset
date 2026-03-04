@@ -20,6 +20,6 @@ MonoBehaviour:
   attackPower: 10
   attackSpeed: 1
   defense: 0
-  followDistance: 3
-  stopDistance: 3
+  followDistance: 1
+  stopDistance: 1
   catchUpSpeed: 1.2

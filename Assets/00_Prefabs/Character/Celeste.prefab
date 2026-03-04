@@ -774,7 +774,6 @@ GameObject:
   - component: {fileID: 5067203014106038484}
   - component: {fileID: 6057299259712985800}
   - component: {fileID: 2736251941742274607}
-  - component: {fileID: 3071114161184261623}
   - component: {fileID: 8422114773226217040}
   m_Layer: 6
   m_Name: Celeste
@@ -811,19 +810,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ec2d744cf8b7264c9c50cfbc7c5e92f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _model: {fileID: 5400152327717923209}
-  _mover: {fileID: 6730298362862721870}
-  _followMover: {fileID: 9080496653042769427}
-  _characterAnimator: {fileID: 7222830391119099079}
-  _interactor: {fileID: 6849455593633291798}
-  _attacker: {fileID: 921449358368872681}
-  _stateMachine: {fileID: 3796980449492209383}
-  _animatorEventBridge: {fileID: 1194677428109972584}
-  _characterController: {fileID: 6096065474174897666}
-  _navMeshAgent: {fileID: 5067203014106038484}
-  _animator: {fileID: 8393567434396438281}
-  _aiBrain: {fileID: 0}
-  _deathHandler: {fileID: 0}
 --- !u!114 &6730298362862721870
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -907,7 +893,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ea7831067d2ea94b868b71414cb5173, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _currentStateName: '-'
+  _currentState: 0
 --- !u!114 &9080496653042769427
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1017,20 +1003,6 @@ CapsuleCollider:
   m_Height: 1
   m_Direction: 1
   m_Center: {x: 0, y: 0.5, z: 0}
---- !u!114 &3071114161184261623
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1088137518137199013}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: efaf44bc771700a4184006f34148c94d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _character: {fileID: 0}
-  _navMeshAgent: {fileID: 0}
 --- !u!114 &8422114773226217040
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1043,8 +1015,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 674d984be0055584db2eb138396f0b4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _character: {fileID: 0}
-  _combatController: {fileID: 0}
   _attackRange: 2
   _targetUpdateInterval: 0.5
 --- !u!1 &1260965491560503668
