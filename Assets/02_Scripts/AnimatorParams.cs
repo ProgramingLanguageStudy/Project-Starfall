@@ -9,6 +9,9 @@ public static class AnimatorParams
     public const string MoveSpeedName = "MoveSpeed";
     public static readonly int MoveSpeed = Animator.StringToHash(MoveSpeedName);
 
+    public const string IsMovingName = "IsMoving";
+    public static readonly int IsMoving = Animator.StringToHash(IsMovingName);
+
     public const string AttackName = "Attack";
     public static readonly int Attack = Animator.StringToHash(AttackName);
 

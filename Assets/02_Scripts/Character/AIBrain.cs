@@ -1,16 +1,13 @@
 using UnityEngine;
 
 /// <summary>
-/// 동료 AI 제어. CombatController·PlaySceneServices 기반으로 Follow/Combat/Attack 판단.
-/// Character API(SetFollowTarget, SetCombatTarget, RequestAttack) 호출.
+/// 동료 AI 제어. FollowTarget 관리·CombatController·PlaySceneServices 기반 Follow/Combat/Attack 판단.
+/// Character는 CurrentTarget, CurrentStopDistance 프로퍼티로 읽어 ApplyMovement에서 사용.
 /// </summary>
 [RequireComponent(typeof(Character))]
 public class AIBrain : MonoBehaviour
 {
-    [Header("참조")]
-    [SerializeField] [Tooltip("인스펙터에서 할당 (없으면 Awake에서 자동 탐색)")]
     private Character _character;
-    [SerializeField] [Tooltip("Initialize로 주입. 인스펙터 대신 SquadController가 호출")]
     private CombatController _combatController;
 
     [Header("전투 설정")]
@@ -19,21 +16,35 @@ public class AIBrain : MonoBehaviour
     private Enemy _currentCombatTarget;
     private float _targetUpdateTimer;
 
-    /// <summary>SquadController에서 호출. CombatController 주입.</summary>
-    public void Initialize(CombatController combatController)
+    private Transform _currentTarget;
+    private float _currentStopDistance;
+
+    /// <summary>Character.Initialize에서 호출. Character·CombatController 주입.</summary>
+    public void Initialize(Character character, CombatController combatController)
     {
+        _character = character;
         _combatController = combatController;
     }
 
-    private void Awake()
+    /// <summary>SquadController·외부 호출. 따라갈 대상 설정. null이면 타겟 해제.</summary>
+    public void SetFollowTarget(Transform target)
     {
-        if (_character == null) _character = GetComponent<Character>();
+        _currentTarget = target;
+        _currentStopDistance = _character?.Model != null ? _character.Model.StopDistance : 1.5f;
+        if (target != null)
+            _character?.RequestMove();
     }
+
+    /// <summary>Character.ApplyMovement에서 동료 이동 시 읽음.</summary>
+    public Transform CurrentTarget => _currentTarget;
+
+    /// <summary>Character.ApplyMovement에서 동료 이동 시 읽음.</summary>
+    public float CurrentStopDistance => _currentStopDistance;
 
     private void Update()
     {
         if (_character == null || _character.Model == null || _character.Model.IsDead) return;
-        if (_character.StateMachine != null && _character.StateMachine.IsAttack) return;
+        if (_character.StateMachine != null && _character.StateMachine.CurrentState == CharacterState.Attack) return;
 
         bool isInCombat = _combatController != null && _combatController.IsInCombat;
         if (isInCombat)
@@ -46,7 +57,20 @@ public class AIBrain : MonoBehaviour
     {
         _currentCombatTarget = null;
         var player = PlaySceneServices.Player?.GetPlayer();
-        _character?.SetFollowTarget(player != null ? player.transform : null);
+        _currentTarget = player != null ? player.transform : null;
+        _currentStopDistance = _character?.Model != null ? _character.Model.StopDistance : 1.5f;
+        if (_currentTarget == null)
+        {
+            _character?.RequestIdle();
+        }
+        else if (HasArrived())
+        {
+            _character?.RequestIdle();
+        }
+        else
+        {
+            _character?.RequestMove();
+        }
     }
 
     private void TickCombat()
@@ -63,14 +87,32 @@ public class AIBrain : MonoBehaviour
 
         if (_currentCombatTarget == null || _currentCombatTarget.Model.IsDead) return;
 
+        _currentTarget = _currentCombatTarget.transform;
+        _currentStopDistance = _attackRange;
+
         float dist = Vector3.Distance(transform.position, _currentCombatTarget.transform.position);
-        _character?.SetCombatTarget(_currentCombatTarget.transform, _attackRange);
+        if (dist > _attackRange)
+        {
+            if (!HasArrived())
+                _character?.RequestMove();
+        }
+        else
+        {
+            _character?.RequestIdle(); // 사거리 안: 이동 중단, 공격만
+        }
 
         if (dist <= _attackRange)
         {
             FaceTargetImmediate();
             _character?.RequestAttack();
         }
+    }
+
+    private bool HasArrived()
+    {
+        if (_currentTarget == null) return true;
+        float dist = Vector3.Distance(transform.position, _currentTarget.position);
+        return dist <= _currentStopDistance + 0.1f;
     }
 
     private void FaceTargetImmediate()

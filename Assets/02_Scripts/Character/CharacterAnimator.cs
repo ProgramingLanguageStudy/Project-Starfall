@@ -15,7 +15,14 @@ public class CharacterAnimator : MonoBehaviour
         _animator = animator;
     }
 
-    /// <summary>이동 속도 적용. Character.Update에서 매 프레임 호출.</summary>
+    /// <summary>Idle↔Move 전환. Character.Update에서 StateMachine.CurrentState 기준으로 호출.</summary>
+    public void SetMoving(bool value)
+    {
+        if (_animator != null)
+            _animator.SetBool(AnimatorParams.IsMoving, value);
+    }
+
+    /// <summary>이동 속도 적용. Move 상태 내 walk/run 블렌드용. Character.Update에서 호출.</summary>
     public void Move(float moveSpeed)
     {
         if (_animator != null)

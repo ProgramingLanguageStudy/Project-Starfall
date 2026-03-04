@@ -8,36 +8,25 @@ using UnityEngine.AI;
 [RequireComponent(typeof(CharacterModel)), RequireComponent(typeof(CharacterAnimator)),
  RequireComponent(typeof(CharacterStateMachine)),
  RequireComponent(typeof(CharacterMover)), RequireComponent(typeof(CharacterFollowMover)),
- RequireComponent(typeof(CharacterAttacker)), RequireComponent(typeof(CharacterInteractor)),
- RequireComponent(typeof(CharacterDeathHandler))]
+ RequireComponent(typeof(CharacterAttacker)), RequireComponent(typeof(CharacterInteractor))]
 public class Character : MonoBehaviour, IInteractReceiver
 {
-    [Header("----- 부품 -----")]
-    [SerializeField] private CharacterModel _model;
-    [SerializeField] private CharacterMover _mover;
-    [SerializeField] private CharacterFollowMover _followMover;
-    [SerializeField] private CharacterAnimator _characterAnimator;
-    [SerializeField] private CharacterInteractor _interactor;
-    [SerializeField] private CharacterAttacker _attacker;
-    [SerializeField] private CharacterStateMachine _stateMachine;
-    [SerializeField] private AnimatorEventBridge _animatorEventBridge;
-
-    [Header("----- 주입용 참조 -----")]
-    [SerializeField] private CharacterController _characterController;
-    [SerializeField] private NavMeshAgent _navMeshAgent;
-    [SerializeField] private Animator _animator;
-    [SerializeField] [Tooltip("동료 전용. 인스펙터에서 할당")]
+    private CharacterModel _model;
+    private CharacterMover _mover;
+    private CharacterFollowMover _followMover;
+    private CharacterAnimator _characterAnimator;
+    private CharacterInteractor _interactor;
+    private CharacterAttacker _attacker;
+    private CharacterStateMachine _stateMachine;
+    private AnimatorEventBridge _animatorEventBridge;
+    private CharacterController _characterController;
+    private NavMeshAgent _navMeshAgent;
+    private Animator _animator;
     private AIBrain _aiBrain;
-    [SerializeField] [Tooltip("인스펙터에서 할당 (없으면 Initialize 시 자동 탐색)")]
-    private CharacterDeathHandler _deathHandler;
+    // ── 이동 (플레이어=방향, 동료=타겟. 타겟은 AIBrain이 관리) ─
+    private Vector3 _currentMoveDirection;
 
-    // ── 현재 활성 이동 컴포넌트 ─────────────────────────────
-    private IMover _activeMover;
-
-    // ── MovementHandler (SetAsPlayer/SetAsCompanion 시 교체) ─
-    private IMovementHandler _movementHandler;
-    private DirectionMovementHandler _directionHandler;
-    private TargetMovementHandler _targetHandler;
+    private bool _isPlayer;
 
     // ── Public 프로퍼티 ─────────────────────────────────────
     public CharacterModel Model => _model;
@@ -47,23 +36,17 @@ public class Character : MonoBehaviour, IInteractReceiver
     public CharacterInteractor Interactor => _interactor;
     public CharacterAttacker Attacker => _attacker;
     public CharacterStateMachine StateMachine => _stateMachine;
-    public AIBrain AIBrain => _aiBrain;
-    public CharacterDeathHandler DeathHandler => _deathHandler;
 
     public bool CanMove => StateMachine != null && StateMachine.CanMove;
+
+    /// <summary>플레이어 조종 여부. SetAsPlayer/SetAsCompanion 시 설정. SquadController 등이 읽음.</summary>
+    public bool IsPlayer => _isPlayer;
 
     // ── 공개 API (StateMachine·InputHandler·AIBrain 연동) ────
 
     public void RequestAttack() => _stateMachine?.RequestAttack();
 
-    /// <summary>방향 설정 후 Move 상태로 전환. SetDirectionIntent는 호출 전에 별도 호출 가능.</summary>
-    public void RequestMove(Vector3 moveDir)
-    {
-        _movementHandler?.SetDirectionIntent(moveDir);
-        _stateMachine?.RequestMove();
-    }
-
-    /// <summary>이미 설정된 intent 기준으로 Move 상태로 전환.</summary>
+    /// <summary>Move 상태로 전환. 플레이어/AI 공통. 방향·타겟은 호출 전 설정.</summary>
     public void RequestMove()
     {
         _stateMachine?.RequestMove();
@@ -71,74 +54,59 @@ public class Character : MonoBehaviour, IInteractReceiver
 
     public void RequestIdle() => _stateMachine?.RequestIdle();
 
-    /// <summary>Idle 전환 시 이동 intent 클리어. 이전 입력 방향으로 특수 흐름에서 움직이는 것 방지.</summary>
-    public void ClearMovementIntent()
+    /// <summary>플레이어용. PlayScene에서 입력→월드 방향 설정.</summary>
+    public void SetMoveDirection(Vector3 worldDir)
     {
-        _movementHandler?.ClearDirectionIntent();
-        _movementHandler?.ClearTargetIntent();
+        _currentMoveDirection = worldDir;
     }
 
-    /// <summary>플레이어용. 이동 방향 갱신. 상태 변경 없이 intent만 설정.</summary>
-    public void SetDirectionIntent(Vector3 worldDir)
-    {
-        _movementHandler?.SetDirectionIntent(worldDir);
-    }
-
-    /// <summary>동료용. SquadController·AIBrain 호출. 타겟 설정 시 Move 상태로 전환.</summary>
+    /// <summary>동료용. SquadController 호출. 따라갈 대상 설정. null이면 타겟 해제.</summary>
     public void SetFollowTarget(Transform target)
     {
-        if (target == null)
+        _aiBrain?.SetFollowTarget(target);
+    }
+
+    /// <summary>이동 적용. MoveState.Update에서 호출. 플레이어=방향, 동료=AIBrain 타겟 읽음.</summary>
+    public void ApplyMovement()
+    {
+        if (_isPlayer)
         {
-            _movementHandler?.ClearTargetIntent();
-            return;
+            _mover?.Move(_currentMoveDirection);
         }
-        var dist = _model != null ? _model.StopDistance : 1.5f;
-        _movementHandler?.SetTargetIntent(target, dist);
-        _stateMachine?.RequestMove();
+        else
+        {
+            var target = _aiBrain?.CurrentTarget;
+            if (target != null)
+            {
+                var stopDist = _aiBrain.CurrentStopDistance;
+                _followMover?.MoveToTarget(target.position, stopDist);
+            }
+        }
     }
 
-    /// <summary>동료용. AIBrain 호출. 타겟 설정 시 Move 상태로 전환.</summary>
-    public void SetCombatTarget(Transform target, float stopDistance)
-    {
-        _movementHandler?.SetTargetIntent(target, stopDistance);
-        _stateMachine?.RequestMove();
-    }
-
-    /// <summary>동료용. 전투 타겟 해제.</summary>
-    public void ClearCombatTarget()
-    {
-        _movementHandler?.ClearTargetIntent();
-    }
-
-    /// <summary>이동 의도 적용. MoveState에서 호출.</summary>
-    public void ApplyMovementIntent()
-    {
-        _movementHandler?.Apply();
-    }
-
-    /// <summary>즉시 정지. 공격 진입 시 등.</summary>
+    /// <summary>즉시 정지. 공격 진입·사망 등.</summary>
     public void StopMovement()
     {
-        _activeMover?.Stop();
+        if (_isPlayer)
+            _mover?.Stop();
+        else
+            _followMover?.Stop();
     }
 
-    /// <summary>공격 애니·Attacker 시작. Attack 상태 Enter에서 호출.</summary>
-    public void BeginAttack()
+    /// <summary>죽음 처리. DeadState.Enter에서 호출.</summary>
+    public void Die()
     {
-        _characterAnimator?.Attack();
-        _attacker?.OnAttackStarted();
-    }
-
-    /// <summary>공격 종료 정리. Attack 상태 Exit에서 호출.</summary>
-    public void EndAttackCleanup()
-    {
-        _attacker?.EndAttackCleanup();
-    }
-
-    /// <summary>사망 애니 재생. Dead 상태 Enter에서 호출.</summary>
-    public void PlayDeadAnimation()
-    {
+        StopMovement();
         _characterAnimator?.Dead();
+        if (_characterController != null)
+            _characterController.enabled = false;
+    }
+
+    /// <summary>부활 처리. DeadState.Exit에서 호출.</summary>
+    public void Revive()
+    {
+        if (_characterController != null)
+            _characterController.enabled = true;
     }
 
     /// <summary>동료용. 직접 목표 위치로 이동 요청. (레거시/특수용)</summary>
@@ -172,41 +140,31 @@ public class Character : MonoBehaviour, IInteractReceiver
         _characterController.enabled = true;
     }
 
-    public void SetCharacterControllerEnabled(bool enabled)
-    {
-        if (_characterController != null)
-            _characterController.enabled = enabled;
-    }
-
     /// <summary>플레이어 조종 모드로 전환.</summary>
     public void SetAsPlayer()
     {
+        _isPlayer = true;
         if (_characterController != null) _characterController.enabled = true;
         if (_navMeshAgent != null) _navMeshAgent.enabled = false;
         if (_interactor != null) _interactor.enabled = true;
         gameObject.layer = LayerMask.NameToLayer(LayerParams.Player);
 
         if (_aiBrain != null) _aiBrain.enabled = false;
-
-        _activeMover = _mover;
-        _movementHandler = _directionHandler;
     }
 
     /// <summary>동료 모드로 전환.</summary>
     public void SetAsCompanion(Transform followTarget)
     {
+        _isPlayer = false;
         if (_characterController != null) _characterController.enabled = false;
         if (_navMeshAgent != null) _navMeshAgent.enabled = true;
         if (_interactor != null) _interactor.enabled = false;
         gameObject.layer = LayerMask.NameToLayer(LayerParams.Character);
 
         if (_aiBrain != null) _aiBrain.enabled = true;
-
-        _activeMover = _followMover;
-        _movementHandler = _targetHandler;
     }
 
-    public void Initialize()
+    public void Initialize(CombatController combatController = null)
     {
         if (_model == null) _model = GetComponent<CharacterModel>();
         if (_mover == null) _mover = GetComponent<CharacterMover>();
@@ -220,9 +178,8 @@ public class Character : MonoBehaviour, IInteractReceiver
         if (_navMeshAgent == null) _navMeshAgent = GetComponent<NavMeshAgent>();
         if (_animator == null) _animator = GetComponentInChildren<Animator>();
         if (_aiBrain == null) _aiBrain = GetComponent<AIBrain>();
-        if (_deathHandler == null) _deathHandler = GetComponent<CharacterDeathHandler>();
 
-        _deathHandler?.Initialize(this, _navMeshAgent);
+        _aiBrain?.Initialize(this, combatController);
 
         _model?.Initialize();
         _mover.Initialize(_characterController, _model);
@@ -230,17 +187,7 @@ public class Character : MonoBehaviour, IInteractReceiver
         _characterAnimator?.Initialize(_animator);
         _interactor?.Initialize(this);
         _stateMachine?.Initialize(this);
-        _attacker?.Initialize(this, _stateMachine, _model);
-
-        _directionHandler = new DirectionMovementHandler(_mover);
-        _targetHandler = new TargetMovementHandler(_followMover, _model);
-
-        _activeMover = (_navMeshAgent != null && _navMeshAgent.enabled)
-            ? (IMover)_followMover
-            : _mover;
-        _movementHandler = (_navMeshAgent != null && _navMeshAgent.enabled)
-            ? (IMovementHandler)_targetHandler
-            : _directionHandler;
+        _attacker?.Initialize(this, _stateMachine, _model, _characterAnimator);
 
         if (_animatorEventBridge != null && _attacker != null)
         {
@@ -259,10 +206,10 @@ public class Character : MonoBehaviour, IInteractReceiver
     {
         if (_characterAnimator == null) return;
 
-        // Move 상태일 때만 CurrentMoveSpeed 사용. Idle/Attack/Dead에서는 0으로 Idle 블렌드.
-        float speed = (StateMachine != null && StateMachine.IsMove)
-            ? (_model != null ? _model.CurrentMoveSpeed : 0f)
-            : 0f;
+        bool isMove = StateMachine != null && StateMachine.CurrentState == CharacterState.Move;
+        _characterAnimator.SetMoving(isMove);
+
+        float speed = isMove && _model != null ? _model.CurrentMoveSpeed : 0f;
         _characterAnimator.Move(speed);
     }
 
