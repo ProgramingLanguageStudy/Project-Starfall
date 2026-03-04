@@ -29,6 +29,8 @@ public class PlayScene : MonoBehaviour
     private QuestController _questController;
     [SerializeField] [Tooltip("플래그 저장·조회. QuestSystem처럼 Play 씬에서 보유")]
     private FlagSystem _flagSystem;
+    [SerializeField] [Tooltip("NPC 등록·조회 관리")]
+    private NpcController _npcController;
     [SerializeField] MapController _mapController;
     [SerializeField] PortalController _portalController;
     [SerializeField] SettingsView _settingsView;
@@ -66,6 +68,8 @@ public class PlayScene : MonoBehaviour
         _squadController.Initialize(spawnPos, _combatController, _pendingSaveData?.squad);
         PlaySceneServices.Register(_squadController);
 
+        _npcController?.Initialize();
+
         var player = _squadController.PlayerCharacter;
         var chaseTarget = player != null ? player.transform : transform;
         _enemySpawner?.Initialize(_combatController);
@@ -76,7 +80,7 @@ public class PlayScene : MonoBehaviour
 
         _dialogueController?.Initialize(_questController?.Presenter, _flagSystem);
         if (_questController != null && _inventoryPresenter?.Model != null)
-            _questController.Initialize(_inventoryPresenter.Model, _flagSystem);
+            _questController.Initialize(_inventoryPresenter.Model, _flagSystem, _squadController);
 
         if (_mapController != null)
         {
