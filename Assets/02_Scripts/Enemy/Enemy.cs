@@ -129,6 +129,12 @@ public class Enemy : MonoBehaviour
         combat?.UnregisterFromCombat(this);
     }
 
+    [SerializeField, Tooltip("사망 후 파괴 지연(초)")]
+    private float _destroyDelay = 3f;
+
+    [SerializeField, Tooltip("사망 시 드롭할 아이템 프리팹(Meat 등). 비워두면 드롭 안 함")]
+    private GameObject _dropPrefab;
+
     /// <summary>Model.OnDeath 구독. 죽음 관련 처리(팀 해제 등). 풀링 시에도 사망 시점에 한 번만 호출.</summary>
     private void HandleDeath()
     {
@@ -137,5 +143,18 @@ public class Enemy : MonoBehaviour
             PlaySceneEventHub.OnEnemyKilled?.Invoke(enemyId);
 
         OnDestroyed?.Invoke(this);
+
+        if (_dropPrefab != null)
+        {
+            var pos = transform.position + Vector3.up * 0.3f;
+            Instantiate(_dropPrefab, pos, Quaternion.identity);
+        }
+
+        Invoke(nameof(DestroySelf), _destroyDelay);
+    }
+
+    private void DestroySelf()
+    {
+        Destroy(gameObject);
     }
 }
