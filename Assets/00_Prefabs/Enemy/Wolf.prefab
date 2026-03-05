@@ -526,10 +526,11 @@ MonoBehaviour:
   _stateMachine: {fileID: 4079789302513656771}
   _healthBarView: {fileID: 6236372863425756507}
   _detector: {fileID: 946283564678098797}
-  _team: {fileID: 0}
   _agent: {fileID: 1024757035387484573}
   _animator: {fileID: 7689840444072217521}
   _aggro: {fileID: 8077997873504499615}
+  _destroyDelay: 3
+  _dropPrefab: {fileID: 5455539541645617507, guid: fcf67d2efae723143b00e005a436e2a6, type: 3}
 --- !u!114 &4079789302513656771
 MonoBehaviour:
   m_ObjectHideFlags: 0

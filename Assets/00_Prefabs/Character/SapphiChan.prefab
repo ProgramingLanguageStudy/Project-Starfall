@@ -3918,18 +3918,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ec2d744cf8b7264c9c50cfbc7c5e92f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _model: {fileID: 7698566945367648151}
-  _mover: {fileID: 6861323881556423291}
-  _followMover: {fileID: 2753700013160270801}
-  _characterAnimator: {fileID: 9061510359540647326}
-  _interactor: {fileID: 5549935423751321646}
-  _attacker: {fileID: 7151813252311166651}
-  _stateMachine: {fileID: 2348055305631281926}
-  _animatorEventBridge: {fileID: 4789398741541922976}
-  _characterController: {fileID: 1328047616071130437}
-  _navMeshAgent: {fileID: 2881532154463720035}
-  _animator: {fileID: 339994707384117059}
-  _aiBrain: {fileID: 0}
 --- !u!114 &7698566945367648151
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3968,7 +3956,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ea7831067d2ea94b868b71414cb5173, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _currentStateName: '-'
+  _currentState: 0
 --- !u!114 &6861323881556423291
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4048,7 +4036,7 @@ CharacterController:
   m_Radius: 0.2
   m_SlopeLimit: 45
   m_StepOffset: 0.3
-  m_SkinWidth: 0.08
+  m_SkinWidth: 0.0001
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!195 &2881532154463720035
@@ -4070,7 +4058,7 @@ NavMeshAgent:
   m_AutoBraking: 1
   m_AutoRepath: 1
   m_Height: 1
-  m_BaseOffset: 0
+  m_BaseOffset: -0.1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
 --- !u!54 &-7207064888938436247
@@ -4112,7 +4100,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 674d984be0055584db2eb138396f0b4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _attackRange: 2
+  _attackRange: 1
   _targetUpdateInterval: 0.5
 --- !u!1 &4553062666767447923
 GameObject:
@@ -5787,7 +5775,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 6675747063065685385}
@@ -5805,7 +5793,7 @@ Animator:
   m_GameObject: {fileID: 6395706683843883135}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: c17302b294b179d45afeabff23af8b13, type: 3}
-  m_Controller: {fileID: 22100000, guid: 7f5ddb4fc33de2545a7743d811da0f4c, type: 2}
+  m_Controller: {fileID: 9100000, guid: 77d13b6d7aa867d48b0f845940b70cc5, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
