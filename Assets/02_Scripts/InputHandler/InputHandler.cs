@@ -197,6 +197,5 @@ public class InputHandler : MonoBehaviour
         MoveInput = _moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
         LookInput = _lookAction?.ReadValue<Vector2>() ?? Vector2.zero;
         ScrollInput = _uiScrollAction?.ReadValue<Vector2>() ?? Vector2.zero;
-        Debug.Log(ScrollInput);
     }
 }
