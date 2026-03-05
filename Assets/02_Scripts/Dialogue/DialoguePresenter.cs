@@ -86,7 +86,13 @@ public class DialoguePresenter : MonoBehaviour
         _system.Next();
     }
 
-    private void HandleEnd() => _system?.EndDialogue();
+    private void HandleEnd()
+    {
+        if (_system == null) return;
+        // 대화 진행 중이면 먼저 스킵, 다음 끝내기 클릭 시 종료
+        if (_view != null && _view.TrySkipTyping()) return;
+        _system.EndDialogue();
+    }
 
     private void HandleQuestSelected(DialogueData quest)
     {
