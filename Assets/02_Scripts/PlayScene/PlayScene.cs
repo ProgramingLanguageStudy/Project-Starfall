@@ -122,6 +122,9 @@ public class PlayScene : MonoBehaviour
         _inputHandler.OnSavePerformed += HandleSave;
         _inputHandler.OnMapPerformed += HandleMap;
         _inputHandler.OnSettingsPerformed += HandleSettings;
+
+        if (_settingsView != null)
+            _settingsView.OnEscapeRequested += HandleEscapeRequested;
     }
 
     private void OnDisable()
@@ -145,6 +148,9 @@ public class PlayScene : MonoBehaviour
         _inputHandler.OnSavePerformed -= HandleSave;
         _inputHandler.OnMapPerformed -= HandleMap;
         _inputHandler.OnSettingsPerformed -= HandleSettings;
+
+        if (_settingsView != null)
+            _settingsView.OnEscapeRequested -= HandleEscapeRequested;
     }
 
     private void Update()
@@ -157,16 +163,10 @@ public class PlayScene : MonoBehaviour
         Vector3 worldDir = InputToWorldDirection(input);
         bool hasInput = worldDir.sqrMagnitude >= 0.01f;
 
-        // Idle↔Move: 입력 있음→Move, 없음→Idle. StateMachine이 Attack/Dead 등 거부 처리.
+        // Idle↔Move: 입력 있음→Move, 없음→MoveState.IsComplete로 Idle 전환. RequestIdle 호출 안 함.
+        player.SetMoveDirection(hasInput ? worldDir : Vector3.zero);
         if (hasInput)
-        {
-            player.SetMoveDirection(worldDir);
             player.RequestMove();
-        }
-        else
-        {
-            player.RequestIdle();
-        }
 
         _mapController.RequestScrollMap(_inputHandler.ScrollInput);
     }
@@ -222,6 +222,11 @@ public class PlayScene : MonoBehaviour
     private void HandleSettings()
     {
         _settingsView?.RequestToggle();
+    }
+
+    private void HandleEscapeRequested()
+    {
+        _squadController?.TeleportToDefaultPoint();
     }
 
     /// <summary>플레이어 변경 시 chase/follow/인벤토리/체력바/카메라 등 갱신.</summary>

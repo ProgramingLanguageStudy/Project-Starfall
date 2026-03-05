@@ -194,6 +194,13 @@ public class SquadController : MonoBehaviour, IPlayerProvider
         return true;
     }
 
+    /// <summary>끼임 탈출용. 분대를 _spawnPoint(또는 this.position)로 텔레포트.</summary>
+    public void TeleportToDefaultPoint()
+    {
+        var pos = _spawnPoint != null ? _spawnPoint.position : transform.position;
+        TeleportPlayer(pos);
+    }
+
     /// <summary>플레이어와 모든 분대원을 목표 위치로 텔레포트.</summary>
     public void TeleportPlayer(Vector3 worldPosition)
     {

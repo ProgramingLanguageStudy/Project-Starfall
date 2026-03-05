@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -6,15 +7,18 @@ public class SettingsView : PanelViewBase
 {
     [SerializeField] GameObject _settingsPanel;
     [SerializeField] Button _closeButton;
-    [SerializeField] Button _saveButton;
+    [SerializeField] Button _escapeButton;
     [SerializeField] Button _introButton;
     [SerializeField] Button _quitButton;
+
+    /// <summary>끼임 탈출 버튼 클릭 시 발행. PlayScene에서 구독해 분대를 마을로 텔레포트.</summary>
+    public event Action OnEscapeRequested;
 
     public void Initialize()
     {
         _settingsPanel.SetActive(false);
         _closeButton.onClick.AddListener(() => ToggleSettings());
-        _saveButton.onClick.AddListener(() => OnSaveButtonClicked());
+        _escapeButton.onClick.AddListener(() => OnEscapeRequested?.Invoke());
         _introButton.onClick.AddListener(() => OnIntroButtonClicked());
         _quitButton.onClick.AddListener(() => OnQuitButtonClicked());
     }
@@ -45,11 +49,6 @@ public class SettingsView : PanelViewBase
     protected override void OnPanelClosed()
     {
         _settingsPanel.SetActive(false);
-    }
-
-    public void OnSaveButtonClicked()
-    {
-        GameManager.Instance.SaveManager.Save();
     }
 
     public void OnIntroButtonClicked()
