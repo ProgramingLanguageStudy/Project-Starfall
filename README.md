@@ -1,7 +1,6 @@
 # Squad System Framework - 포트폴리오
 
-> 이력서 제출용 포트폴리오 문서  
-> 제출 마감: 일요일 (5일 남음)
+> 이력서 제출용 포트폴리오 문서
 
 ---
 
@@ -12,10 +11,12 @@
 **Squad System Framework**는 **분대 시스템 기반 3인칭 RPG 프레임워크**입니다.
 
 - **플레이어·동료 분대**: 한 명을 조종하고, 나머지는 AI가 따라오며 전투에 참여
-- **분대 교체(Swap)**: 조종 대상을 순환 전환
+- **분대 교체(Swap)**: 조종 대상을 순환 전환 (Q키)
+- **동료 영입**: 퀘스트 완료 시 NPC를 분대에 영입 (Pico, Sapphi 등)
 - **퀘스트·대화·인벤토리**: NPC 대화, 퀘스트 수락/완료, 아이템 수집·사용
 - **포탈·맵**: 마을↔던전 이동, 미니맵
 - **세이브/로드**: 분대 구성, 퀘스트, 인벤토리, 플래그 저장
+- **끼임 탈출**: 설정에서 분대를 마을 기본 위치로 즉시 이동
 
 ### 1.2 이미지 (제작 필요)
 
@@ -27,9 +28,10 @@
 **권장 촬영 장면**
 1. 분대와 함께 이동하는 장면 (동료 따라오기)
 2. 분대 교체 후 전투하는 장면
-3. NPC와 대화·퀘스트 수락 장면
+3. NPC와 대화·퀘스트 수락·동료 영입 장면
 4. 인벤토리·맵 UI가 보이는 장면
 5. 포탈로 맵 이동하는 장면
+6. 설정에서 끼임 탈출·세이브/로드 장면
 
 ### 1.3 영상 (3분 이내)
 
@@ -39,7 +41,7 @@
 - 1:00~1:30 대화·퀘스트
 - 1:30~2:00 인벤토리·아이템 사용
 - 2:00~2:30 맵·포탈 이동
-- 2:30~3:00 세이브/로드·부활 등
+- 2:30~3:00 세이브/로드·끼임 탈출
 
 ---
 
@@ -209,18 +211,6 @@ DialogueSelector ──► requiredFlagsOn/Off 체크
 
 ---
 
-### 3.6 인스펙터·주입 우선 (6순위)
-
-#### 문제 → 해결 → 결과
-
-| 구분 | 내용 |
-|------|------|
-| **문제** | GetComponent 남용 시 의존 관계가 코드에 숨겨지고, 테스트·리팩터링이 어려움 |
-| **해결** | [SerializeField]로 인스펙터 연결 우선, `Initialize(의존성)` 주입 패턴. 필요 시 null일 때만 GetComponent fallback |
-| **결과** | 의존 관계가 명확하고, 프리팹·씬에서 연결 상태를 한눈에 확인 가능 |
-
----
-
 ## 4. 전체 시스템 아키텍처
 
 > PlayScene이 조율층으로, 모든 시스템을 연결·초기화·이벤트 구독한다.
@@ -233,16 +223,16 @@ DialogueSelector ──► requiredFlagsOn/Off 체크
                               └──────────┬──────────┘
                                          │ Move/Attack/Interact/Map/...
                                          ▼
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│                              PlayScene (조율층)                                    │
-│  Awake: Initialize 모두 호출 / OnEnable: 이벤트 구독 / Update: MoveInput 전달      │
-└──────────────────────────────────────────────────────────────────────────────────┘
-    │         │         │         │         │         │         │         │         │
-    ▼         ▼         ▼         ▼         ▼         ▼         ▼         ▼         ▼
-┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐
-│Squad  │ │Enemy  │ │Combat │ │Inventory│ │Dialogue│ │Quest  │ │Map    │ │Portal │ │PlaySave│
-│Ctrl   │ │Spawner│ │Ctrl   │ │Present │ │Ctrl   │ │Ctrl   │ │Ctrl   │ │Ctrl   │ │Coord  │
-└───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              PlayScene (조율층)                                                │
+│  Awake: Initialize / OnEnable: 이벤트 구독 / Update: MoveInput / CursorController, SettingsView │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+    │         │         │         │         │         │         │         │         │         │         │
+    ▼         ▼         ▼         ▼         ▼         ▼         ▼         ▼         ▼         ▼         ▼
+┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐
+│Squad  │ │Enemy  │ │Combat │ │Inventory│ │Dialogue│ │Quest  │ │Map    │ │Portal │ │Cursor │ │Settings│ │PlaySave│
+│Ctrl   │ │Spawner│ │Ctrl   │ │Present │ │Ctrl   │ │Ctrl   │ │Ctrl   │ │Ctrl   │ │Ctrl   │ │View    │ │Coord  │
+└───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘ └───┬───┘
     │         │         │         │         │         │         │         │         │
     │         └────┬────┘         │         │         │         │         │         │
     │              │              │         │         └────┬────┴─────────┘         │
@@ -253,6 +243,10 @@ DialogueSelector ──► requiredFlagsOn/Off 체크
  (Player/      (Chase/        (Follow/  (Model+View)   (Selector+             (Contributors)
   Companion)    Attack)        Combat)                  Presenter)
 ```
+
+**추가 연동**
+- **CursorController**: UI 열기/닫기 시 커서 표시, Cinemachine 카메라 회전값 저장·복원, InputAxisController 비활성화(UI 열린 동안 카메라 회전 차단)
+- **SettingsView**: OnEscapeRequested → PlayScene → SquadController.TeleportToDefaultPoint(끼임 탈출)
 
 ### 4.2 포탈 시스템
 
@@ -272,6 +266,7 @@ PortalController ───────────────────┤
                     │
                     ▼ (맵에서 포탈 아이콘 클릭 시)
         SquadController.TeleportPlayer(ArrivalPosition)
+        (설정 끼임 탈출: TeleportToDefaultPoint → _spawnPoint)
                     │
                     ▼
         플레이어·동료 전체 Teleport → RepositionCompanionsAround
@@ -284,7 +279,7 @@ PortalController ───────────────────┤
 | PortalController | FindObjectsByType으로 포탈 등록, OnInteracted 구독, MapView 연동 |
 | PortalModel | FlagSystem 기반 해금 여부 |
 | MapView | 포탈 아이콘 생성, 클릭 시 TeleportPlayer 호출 |
-| SquadController | TeleportPlayer → 플레이어+동료 Warp, RepositionCompanionsAround |
+| SquadController | TeleportPlayer, TeleportToDefaultPoint(끼임 탈출), RepositionCompanionsAround, AddCompanion(영입) |
 
 ### 4.3 맵 시스템
 
@@ -351,6 +346,8 @@ PlaySceneEventHub.OnNpcInteracted(npcId)
                         (questId 있으면 Accept/Complete)
 ```
 
+**대화 UX**: 끝내기 버튼 — 타이핑 중 첫 클릭=스킵(텍스트 즉시 표시), 두 번째 클릭=대화 종료
+
 ### 4.6 퀘스트 시스템
 
 ```
@@ -368,6 +365,11 @@ PlaySceneEventHub.OnEnemyKilled(enemyId)  ←── 적 처치 시
   - AcceptQuest, CompleteQuest, RequestCompleteQuest
   - Gather 퀘스트 완료 시 InventoryPresenter.Model에서 아이템 차감
 ```
+
+**동료 영입**
+- `RecruitmentQuestData`: 퀘스트 완료 시 분대에 영입. `recruitCharacterId`로 CharacterData 참조
+- `QuestController.HandleQuestCompleted`: RecruitmentQuestData면 `SquadController.AddCompanion(characterData)` 호출
+- 대화·퀘스트 완료 플래그(`quest_*_completed`)로 수락 대화 재표시 여부 제어
 
 ### 4.7 전투·적 시스템
 
@@ -388,6 +390,8 @@ AIBrain (동료) ──► IsInCombat ? TickCombat() : TickFollow()
 ```
 
 **PlayScene 연동**: SquadController.Initialize(combatController) → AIBrain.Initialize(combatController)
+
+**적 사망**: HandleDeath → 3초 후 Destroy, _dropPrefab(Meat 등) 드롭
 
 ---
 
@@ -412,6 +416,8 @@ AIBrain (동료) ──► IsInCombat ? TickCombat() : TickFollow()
 | Sci-fi Sword | 무기 |
 | CharacterAnimation / Human Animations | 애니메이션 |
 | DOTween (Plugins) | 트윈 애니메이션 |
+| FREE Food Pack | 음식 오브젝트 |
+| Stylized Fantasy Weapons Pack | 무기 모델 |
 
 ※ Asset Store 정확한 이름은 `Assets/99_StoreAssets` 구조와 패키지 설명을 기준으로 보완해 주세요.
 
