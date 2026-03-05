@@ -10,20 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6bfb51a6792633b418706756853c58c4, type: 3}
-  m_Name: pico_quest_in_progress
+  m_Name: sapphi_quest_in_progress
   m_EditorClassIdentifier: 
   category: 2
-  npcId: pico
-  speakerDisplayName: Pico
+  npcId: sapphi
+  speakerDisplayName: Sapphi
   priority: 15
   requiredFlagsOn:
-  - quest_pico_recruit_accepted
+  - quest_sapphi_recruit_accepted
   requiredFlagsOff:
-  - quest_pico_recruit_objectives_done
+  - quest_sapphi_recruit_objectives_done
   flagsToModify: []
   questId: 
   questDialogueType: 2
   lines:
-  - "\uBC84\uC12F\uC740 \uC544\uC9C1\uC774\uC57C?"
-  - "\uC124\uB9C8... \uC774\uB807\uAC8C \uC26C\uC6B4 \uD018\uC2A4\uD2B8\uB3C4 \uBABB\uD558\uB294\uAC74
-    \uC544\uB2C8\uACA0\uC9C0?"
+  - "\uC751? \uC544\uC9C1 \uC0AC\uACFC\uB97C \uBABB \uCC3E\uC740 \uAC70\uC57C?"
+  - "\uC124\uB9C8 \uB0B4 \uB370\uBDD4 \uBB34\uB300\uAC00 \uB2A6\uC5B4\uC9C0\uB294
+    \uAC74 \uC544\uB2C8\uACA0\uC9C0?"
+  - "\uBE68\uAC1B\uACE0 \uC608\uC05C \uC0AC\uACFC\uB85C \uBD80\uD0C1\uD574!"

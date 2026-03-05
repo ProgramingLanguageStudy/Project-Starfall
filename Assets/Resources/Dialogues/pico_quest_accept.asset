@@ -20,10 +20,11 @@ MonoBehaviour:
   - first_talk_pico
   requiredFlagsOff:
   - quest_pico_recruit_accepted
+  - quest_pico_recruit_completed
   flagsToModify: []
   questId: pico_recruit
   questDialogueType: 1
   lines:
   - "\uB098\uB97C \uB3D9\uB8CC\uB85C \uC601\uC785\uD558\uACE0 \uC2F6\uB2E4\uACE0?"
-  - "\uADF8\uB7FC \uB0B4\uAC00 \uAC00\uC7A5 \uC88B\uC544\uD558\uB294 \uBC84\uC12F
-    \uD558\uB098\uB9CC \uAD6C\uD574\uB2E4\uC904\uB798?"
+  - "\uC88B\uC544, \uB300\uC2E0 \uB0B4\uAC00 \uAC00\uC7A5 \uC88B\uC544\uD558\uB294
+    \uBC84\uC12F \uD558\uB098\uB9CC \uAD6C\uD574\uB2E4\uC904\uB798?"

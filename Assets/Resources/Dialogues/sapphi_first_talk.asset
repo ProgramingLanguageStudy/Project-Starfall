@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bfb51a6792633b418706756853c58c4, type: 3}
+  m_Name: sapphi_first_talk
+  m_EditorClassIdentifier: 
+  category: 0
+  npcId: sapphi
+  speakerDisplayName: Sapphi
+  priority: 0
+  requiredFlagsOn: []
+  requiredFlagsOff:
+  - first_talk_sapphi
+  flagsToModify:
+  - key: first_talk_sapphi
+    op: 0
+    value: 1
+  questId: 
+  questDialogueType: 0
+  lines:
+  - "\uC548\uB155, \uB098\uC758 \uCCAB \uBC88\uC9F8 \uD32C\uC774 \uB420 \uB2F9\uC2E0!
+    \uB0B4 \uC774\uB984\uC740 \uC0AC\uD53C(Sapphi). \uC7A5\uCC28 \uC774 \uC138\uACC4\uC5D0\uC11C
+    \uAC00\uC7A5 \uB208\uBD80\uC2DC\uAC8C \uBE5B\uB0A0 \uB8E8\uD0A4\uC9C0!"

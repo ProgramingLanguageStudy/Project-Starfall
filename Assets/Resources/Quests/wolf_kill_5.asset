@@ -20,4 +20,6 @@ MonoBehaviour:
   TargetId: enemy_wolf
   TargetAmount: 5
   RewardGold: 0
-  RewardItems: []
+  RewardItems:
+  - itemId: 
+    amount: 0

@@ -21,6 +21,7 @@ MonoBehaviour:
   - quest_mushroom_gather_completed
   requiredFlagsOff:
   - quest_wolf_kill_5_accepted
+  - quest_wolf_kill_5_completed
   flagsToModify: []
   questId: wolf_kill_5
   questDialogueType: 1

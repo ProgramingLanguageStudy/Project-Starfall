@@ -20,6 +20,7 @@ MonoBehaviour:
   - first_talk_chief
   requiredFlagsOff:
   - quest_mushroom_gather_accepted
+  - quest_mushroom_gather_completed
   flagsToModify: []
   questId: mushroom_gather
   questDialogueType: 1
