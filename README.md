@@ -24,16 +24,29 @@
 
 ### 1.2 게임 이미지
 
-| 구분 | 이미지 |
-|------|--------|
-| **인트로** | ![인트로](Recordings/pictures/인트로.png) |
-| **분대 따라오기** | ![분대 따라오기](Recordings/pictures/분대따라오기.png) |
-| **분대 전투** | ![분대 전투](Recordings/pictures/분대전투.png) |
-| **대화·퀘스트** | ![대화·퀘스트](Recordings/pictures/대화퀘스트.png) |
-| **동료 영입 완료** | ![동료 영입 완료](Recordings/pictures/동료영입완료.png) |
-| **인벤토리** | ![인벤토리](Recordings/pictures/인벤토리.png) |
-| **지도** | ![지도](Recordings/pictures/지도.png) |
-| **포탈** | ![포탈](Recordings/pictures/포탈.png) |
+#### 인트로
+![인트로](Recordings/pictures/인트로.png)
+
+#### 분대 따라오기
+![분대 따라오기](Recordings/pictures/분대따라오기.png)
+
+#### 분대 전투
+![분대 전투](Recordings/pictures/분대전투.png)
+
+#### 대화·퀘스트
+![대화·퀘스트](Recordings/pictures/대화퀘스트.png)
+
+#### 동료 영입 완료
+![동료 영입 완료](Recordings/pictures/동료영입완료.png)
+
+#### 인벤토리
+![인벤토리](Recordings/pictures/인벤토리.png)
+
+#### 지도
+![지도](Recordings/pictures/지도.png)
+
+#### 포탈
+![포탈](Recordings/pictures/포탈.png)
 
 ### 1.3 영상 (3분 이내)
 
