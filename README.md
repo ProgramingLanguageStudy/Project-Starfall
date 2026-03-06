@@ -49,36 +49,9 @@
 
 ---
 
-## 2. 사용 Tool
+## 2. 핵심 기술 항목
 
-### 2.1 개발
-| Tool | 버전/내용 |
-|------|-----------|
-| **Unity** | 6000.0.59f2 (Unity 6) |
-| **Git** | 버전 관리 |
-| **Cursor** | AI 기반 코드 에디터 (개발·리팩터링 보조) |
-
-**주요 패키지**
-- Unity AI Navigation 2.0.9
-- Cinemachine 3.1.5
-- Input System 1.14.0
-- Universal RP 17.1.0
-
-### 2.2 제작·문서
-| Tool | 용도 |
-|------|------|
-| **Capcut** | 영상 편집 |
-| **Notion** | 개발일지·문서 정리 |
-
----
-
-## 3. 핵심 기술 항목
-
-> 우선순위 기준: 시스템 설계·확장성·실무 연관성
-
----
-
-### 3.1 분대·캐릭터 통합 상태머신 (1순위)
+### 2.1 분대·캐릭터 통합 상태머신
 
 #### 도식
 
@@ -96,16 +69,22 @@ flowchart TB
 
     subgraph Character["Character (Facade)"]
         API["RequestMove / RequestAttack / SetMoveDirection<br/>(Request API - 플레이어·AI 공통)"]
+        ApplyMovement["ApplyMovement"]
     end
 
     StateMachine["CharacterStateMachine<br/>Idle·Move·Attack·Dead"]
-    Mover["플레이어 : CharacterMover 동료: FollowMover"]
+    MoveState["MoveState.Update"]
+    CharMover["CharacterMover<br/>방향 기반"]
+    FollowMover["FollowMover<br/>목표 기반 NavMesh"]
 
     InputHandler --> PlayScene --> SquadController
     SquadController -->|Request| API
     AIBrain -->|Request| API
-    Character --> StateMachine
-    Mover --> Character
+    API --> StateMachine
+    StateMachine --> MoveState
+    MoveState -->|호출| ApplyMovement
+    ApplyMovement -->|"플레이어 _isPlayer"| CharMover
+    ApplyMovement -->|"동료"| FollowMover
 ```
 
 #### 문제 → 해결 → 결과
@@ -113,44 +92,62 @@ flowchart TB
 | 구분 | 내용 |
 |------|------|
 | **문제** | 플레이어(방향 이동)와 동료(목표 추적)의 이동 방식이 달라, 동일한 StateMachine으로 통합하기 어려움 |
-| **해결** | CharacterMover(방향)와 CharacterFollowMover(목표)를 모두 두고, ApplyMovement에서 플레이어/동료 여부에 따라 서로 다른 Mover를 호출 |
-| **결과** | 하나의 `CharacterStateMachine`(Idle·Move·Attack·Dead)으로 플레이어·동료 모두 처리. MoveState.Update에서 ApplyMovement 호출, 플레이어=SetMoveDirection 값, 동료=AIBrain.CurrentTarget 사용 |
+| **해결** | RequestMove/RequestAttack 등 Request API는 플레이어·동료 공통. 이동 실행부만 분리: CharacterMover(방향)와 CharacterFollowMover(목표)를 두고, ApplyMovement에서 `_isPlayer`로 분기해 플레이어는 CharacterMover, 동료는 FollowMover 호출 |
+| **결과** | 하나의 `CharacterStateMachine`(Idle·Move·Attack·Dead)으로 플레이어·동료 모두 처리. 플레이어는 입력→Request, 동료는 AIBrain→Request로 같은 API 사용. MoveState.Update에서 ApplyMovement 호출, 플레이어=SetMoveDirection·CharacterMover, 동료=AIBrain.CurrentTarget·FollowMover(NavMesh) |
 
 ---
 
-### 3.2 AIBrain / 동료 AI (2순위)
+### 2.2 AIBrain / 동료 AI
 
 #### 도식
 
-```
-CombatController (IsInCombat, GetNearestEnemy)
-        │
-        ▼
-┌──────────────────────────────────────────┐
-│              AIBrain (동료 전용)            │
-│  IsInCombat ? TickCombat() : TickFollow()  │
-└──────────────────────────────────────────┘
-        │
-        ├─ TickFollow ──► _currentTarget = 플레이어 (PlaySceneServices)
-        │                 Character.ApplyMovement가 CurrentTarget 읽음
-        │
-        └─ TickCombat ──► GetNearestEnemy → _currentCombatTarget
-                          dist ≤ attackRange ? RequestAttack()
+```mermaid
+flowchart TB
+    subgraph CombatCtrl["CombatController"]
+        IsInCombat["IsInCombat"]
+        GetNearest["GetNearestEnemy"]
+    end
+
+    subgraph AIBrain["AIBrain (동료 전용)"]
+        Branch["IsInCombat ? TickCombat : TickFollow"]
+    end
+
+    subgraph TickFollow["TickFollow"]
+        TF1["PlaySceneServices로 플레이어 획득"]
+        TF2["_currentTarget = 플레이어"]
+        TF3["HasArrived ? RequestIdle : RequestMove"]
+    end
+
+    subgraph TickCombat["TickCombat"]
+        TC1["GetNearestEnemy → _currentCombatTarget"]
+        TC2["dist > attackRange → RequestMove"]
+        TC3["dist ≤ attackRange → RequestAttack"]
+    end
+
+    subgraph Char["Character"]
+        ApplyMove["ApplyMovement가 CurrentTarget 읽어 FollowMover 호출"]
+    end
+
+    CombatCtrl --> AIBrain
+    AIBrain --> TickFollow
+    AIBrain --> TickCombat
+    TF2 --> ApplyMove
+    TC1 --> ApplyMove
 ```
 
-**SetFollowTarget**: SquadController가 플레이어 변경 시 호출 → Character → AIBrain.SetFollowTarget(플레이어). 따라갈 대상 설정.
+**SetFollowTarget**: SquadController가 플레이어 변경 시 Character → AIBrain.SetFollowTarget(플레이어) 호출. 따라갈 대상 설정.
 
 #### 문제 → 해결 → 결과
 
 | 구분 | 내용 |
 |------|------|
 | **문제** | 동료가 플레이어처럼 입력을 받지 않아, 전투 시 추적·사거리 판단·공격 시점을 자동으로 결정해야 함 |
-| **해결** | CombatController(전투 상태·가장 가까운 적) 기반 AIBrain. IsInCombat으로 Follow/Combat 분기, GetNearestEnemy로 타겟, 사거리 내에서만 RequestAttack 호출. CurrentTarget/CurrentStopDistance를 Character.ApplyMovement가 읽어 FollowMover.MoveToTarget 호출 |
+| **해결** | CombatController(전투 상태, GetNearestEnemy) 기반 AIBrain. IsInCombat으로 TickFollow/TickCombat 분기. Follow 시 PlaySceneServices로 플레이어 획득, Combat 시 GetNearestEnemy로 타겟. 사거리 밖이면 RequestMove, 안이면 RequestAttack. Character.ApplyMovement가 CurrentTarget을 읽어 NavMesh 기반 FollowMover.MoveToTarget 호출 |
 | **결과** | 플레이어와 동일한 CharacterStateMachine·Attacker 재사용. AIBrain은 “판단”만 담당, 실행은 Character에 위임 |
 
 ---
 
-### 3.3 시스템 간 독립성 (MVP + 조율층) (3순위)
+### 2.3 시스템 간 독립성 (MVP + 조율층) (3순위)
 
 #### 도식
 
@@ -182,7 +179,7 @@ CombatController (IsInCombat, GetNearestEnemy)
 
 ---
 
-### 3.4 세이브/로드 Contributor 패턴 (4순위)
+### 2.4 세이브/로드 Contributor 패턴 (4순위)
 
 #### 도식
 
@@ -207,7 +204,7 @@ SaveManager
 
 ---
 
-### 3.5 플래그·대화·퀘스트 연동 (5순위)
+### 2.5 플래그·대화·퀘스트 연동 (5순위)
 
 #### 도식
 
@@ -234,11 +231,11 @@ DialogueSelector ──► requiredFlagsOn/Off 체크
 
 ---
 
-## 4. 전체 시스템 아키텍처
+## 3. 전체 시스템 아키텍처
 
 > PlayScene이 조율층으로, 모든 시스템을 연결·초기화·이벤트 구독한다.
 
-### 4.1 PlayScene과 시스템 연결도
+### 3.1 PlayScene과 시스템 연결도
 
 ```
                               ┌─────────────────────┐
@@ -271,7 +268,7 @@ DialogueSelector ──► requiredFlagsOn/Off 체크
 - **CursorController**: UI 열기/닫기 시 커서 표시, Cinemachine 카메라 회전값 저장·복원, InputAxisController 비활성화(UI 열린 동안 카메라 회전 차단)
 - **SettingsView**: OnEscapeRequested → PlayScene → SquadController.TeleportToDefaultPoint(끼임 탈출)
 
-### 4.2 포탈 시스템
+### 3.2 포탈 시스템
 
 ```
 [플레이어가 포탈 근처에서 상호작용(IInteractable)]  또는  [맵 UI에서 Map_PortalIcon 클릭]
@@ -305,7 +302,7 @@ PortalController (FindObjectsByType으로 포탈 등록, OnInteracted 구독)
 | MapView | Map_PortalIcon 생성, OnPortalClicked 시 TeleportPlayer 호출 |
 | SquadController | TeleportPlayer, TeleportToDefaultPoint(끼임 탈출), RepositionCompanionsAround, AddCompanion(영입) |
 
-### 4.3 맵 시스템
+### 3.3 맵 시스템
 
 ```
 PlayScene.Update ──► MapController.RequestScrollMap(scrollInput)
@@ -325,7 +322,7 @@ PlayScene.HandleMap ──► MapController.RequestToggleMap()
    스냅샷)
 ```
 
-### 4.4 인벤토리 시스템
+### 3.4 인벤토리 시스템
 
 ```
 InputHandler.OnInventoryPerformed  ←── PlayScene.HandleInventoryKey
@@ -346,7 +343,7 @@ InputHandler.OnInventoryPerformed  ←── PlayScene.HandleInventoryKey
 
 **PlayScene 연동**: HandlePlayerChanged → InventoryPresenter.SetPlayerCharacter (플레이어 변경 시 ItemUser 갱신)
 
-### 4.5 대화 시스템
+### 3.5 대화 시스템
 
 ```
 Npc 상호작용 (Interactor.TryInteract)
@@ -372,7 +369,7 @@ PlaySceneEventHub.OnNpcInteracted(npcId)
 
 **대화 UX**: 끝내기 버튼 — 타이핑 중 첫 클릭=스킵(텍스트 즉시 표시), 두 번째 클릭=대화 종료
 
-### 4.6 퀘스트 시스템
+### 3.6 퀘스트 시스템
 
 ```
 PlaySceneEventHub.OnEnemyKilled(enemyId)  ←── 적 처치 시
@@ -395,7 +392,7 @@ PlaySceneEventHub.OnEnemyKilled(enemyId)  ←── 적 처치 시
 - `QuestController.HandleQuestCompleted`: RecruitmentQuestData면 `SquadController.AddCompanion(characterData)` 호출
 - 대화·퀘스트 완료 플래그(`quest_*_completed`)로 수락 대화 재표시 여부 제어
 
-### 4.7 전투·적 시스템
+### 3.7 전투·적 시스템
 
 ```
 EnemyDetector (반경 내 Character 감지) ──► EnemyAggro에 전달
@@ -419,7 +416,7 @@ AIBrain (동료) ──► IsInCombat ? TickCombat() : TickFollow()
 
 ---
 
-## 5. 부록: 사용 에셋
+## 4. 부록: 사용 에셋
 
 > Asset Store 에셋명과 사용 용도를 정리해 두세요.
 
@@ -444,6 +441,29 @@ AIBrain (동료) ──► IsInCombat ? TickCombat() : TickFollow()
 | Stylized Fantasy Weapons Pack | 무기 모델 |
 
 ※ Asset Store 정확한 이름은 `Assets/99_StoreAssets` 구조와 패키지 설명을 기준으로 보완해 주세요.
+
+---
+
+## 5. 사용 Tool
+
+### 5.1 개발
+| Tool | 버전/내용 |
+|------|-----------|
+| **Unity** | 6000.0.59f2 (Unity 6) |
+| **Git** | 버전 관리 |
+| **Cursor** | AI 기반 코드 에디터 (개발·리팩터링 보조) |
+
+**주요 패키지**
+- Unity AI Navigation 2.0.9
+- Cinemachine 3.1.5
+- Input System 1.14.0
+- Universal RP 17.1.0
+
+### 5.2 제작·문서
+| Tool | 용도 |
+|------|------|
+| **Capcut** | 영상 편집 |
+| **Notion** | 개발일지·문서 정리 |
 
 ---
 
