@@ -25,37 +25,38 @@
 ### 1.2 게임 이미지
 
 #### 인트로
-![인트로](Docs/images/intro.png)
+<img src="Docs/images/intro.png" width="600" alt="인트로">
 
 #### 분대 따라오기
-![분대 따라오기](Docs/images/squad-follow.png)
+<img src="Docs/images/squad-follow.png" width="600" alt="분대 따라오기">
 
 #### 분대 전투
-![분대 전투](Docs/images/squad-combat.png)
+<img src="Docs/images/squad-combat.png" width="600" alt="분대 전투">
 
 #### 대화·퀘스트
-![대화·퀘스트](Docs/images/dialogue-quest.png)
+<img src="Docs/images/dialogue-quest.png" width="600" alt="대화·퀘스트">
 
 #### 동료 영입 완료
-![동료 영입 완료](Docs/images/companion-join.png)
+<img src="Docs/images/companion-join.png" width="600" alt="동료 영입 완료">
 
 #### 인벤토리
-![인벤토리](Docs/images/inventory.png)
+<img src="Docs/images/inventory.png" width="600" alt="인벤토리">
 
 #### 지도
-![지도](Docs/images/map.png)
+<img src="Docs/images/map.png" width="600" alt="지도">
 
 #### 포탈
-![포탈](Docs/images/portal.png)
+<img src="Docs/images/portal.png" width="600" alt="포탈">
 
 ### 1.3 영상
 
-<a href="https://youtu.be/l2WycMeBfec" target="_blank" rel="noopener noreferrer">🎬 영상 보기</a>
+[🎬 영상 보기](https://youtu.be/l2WycMeBfec)
 
 ---
 
 ## 2. 사용 Tool
 
+### 2.1 개발
 | Tool | 버전/내용 |
 |------|-----------|
 | **Unity** | 6000.0.59f2 (Unity 6) |
@@ -67,6 +68,12 @@
 - Cinemachine 3.1.5
 - Input System 1.14.0
 - Universal RP 17.1.0
+
+### 2.2 제작·문서
+| Tool | 용도 |
+|------|------|
+| **Capcut** | 영상 편집 |
+| **Notion** | 개발일지·문서 정리 |
 
 ---
 
