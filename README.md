@@ -50,7 +50,7 @@
 
 ### 1.3 영상
 
-[🎬 영상 보기](https://youtu.be/l2WycMeBfec)
+<a href="https://youtu.be/l2WycMeBfec" target="_blank" rel="noopener noreferrer">🎬 영상 보기</a>
 
 ---
 
