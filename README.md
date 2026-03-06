@@ -285,41 +285,33 @@ flowchart TB
 
 Request API·ApplyMovement 분기·통합 상태머신 등 상세는 2.1 참조.
 
-### 3.2 포탈 시스템
+### 3.2 전투·적 시스템
 
 ```mermaid
 flowchart TB
-    A["플레이어 포탈 근처 상호작용"]
-    B["맵 UI Map_PortalIcon 클릭"]
+    Detector["EnemyDetector<br/>반경 내 Character 감지"]
+    Aggro["EnemyAggro<br/>어그로 누적"]
+    ESM["EnemyStateMachine<br/>Idle·Patrol·Chase·Attack·Dead"]
+    Combat["CombatController<br/>RegisterInCombat / UnregisterFromCombat"]
+    AIBrain["AIBrain (동료)<br/>IsInCombat ? TickCombat : TickFollow"]
 
-    Portal["Portal.OnInteracted"]
-    Icon["Map_PortalIcon.OnPortalClicked"]
-
-    PController["PortalController<br/>FindObjectsByType 등록, OnInteracted 구독"]
-    MapView["MapView<br/>맵 열기/닫기, 포탈 아이콘 생성"]
-
-    Teleport["SquadController.TeleportPlayer"]
-    Repos["RepositionCompanionsAround"]
-
-    A --> Portal
-    Portal --> PController
-    PController -->|"ToggleMap"| MapView
-
-    B --> Icon
-    Icon --> MapView
-    MapView -->|"포탈 아이콘 클릭 시"| Teleport
-    Teleport --> Repos
+    Detector -->|"OnCharacterDetected"| Aggro
+    Aggro -->|"임계값 초과"| ESM
+    ESM -->|"Chase/Attack 진입·이탈"| Combat
+    Combat -->|"IsInCombat, GetNearestEnemy"| AIBrain
 ```
 
 **주요 컴포넌트**
 | 컴포넌트 | 역할 |
 |----------|------|
-| Portal | IInteractable. Interact 시 OnInteracted(IInteractReceiver, Portal) 발행. PortalData 표시용, ArrivalPosition 제공 |
-| PortalDetector | OnTriggerStay/Exit로 반경 내 플레이어 감지. Portal에 연결되어 PortalEffect 토글 |
-| PortalController | FindObjectsByType으로 포탈 등록, Portal.OnInteracted 구독. HandlePortalInteracted에서 MapView.ToggleMap 호출. PortalModel 목록 유지 |
-| PortalModel | Portal + FlagSystem. 해금 여부 관리. MapView에서 해금된 포탈만 아이콘 표시 |
-| MapView | Map_PortalIcon 생성(해금된 PortalModel만). OnPortalClicked 시 SquadController.TeleportPlayer 호출 후 맵 닫기 |
-| SquadController | TeleportPlayer(ArrivalPosition), TeleportToDefaultPoint(끼임 탈출), RepositionCompanionsAround |
+| EnemyDetector | Physics.OverlapSphere로 반경 내 Character 감지. OnCharacterDetected(Character, 거리) 발행 |
+| EnemyAggro | 거리별 어그로 누적. HasAnyAboveThreshold, GetHighestAggroTarget. EnemyDetector 구독 |
+| EnemyStateMachine | Idle·Patrol·Chase·Attack·Dead. 어그로 임계값 초과 시 NotifyEnteringCombat. Chase/Attack 시 NotifyCombatStateChanged |
+| Enemy | Model·Aggro·Detector·Mover·Attacker 보유. NotifyCombatStateChanged에서 CombatController 등록/해제 |
+| CombatController | 전투 중인 Enemy 목록 관리. IsInCombat, GetNearestEnemy. AIBrain에 주입 |
+| AIBrain | CombatController.IsInCombat으로 TickCombat/TickFollow 분기 |
+
+SquadController.Initialize(combatController) → AIBrain.Initialize(combatController). 적 사망 시 Enemy.HandleDeath → 3초 후 Destroy, _dropPrefab 드롭.
 
 ### 3.3 맵 시스템
 
@@ -411,27 +403,41 @@ PlaySceneEventHub.OnEnemyKilled(enemyId)  ←── 적 처치 시
 - `QuestController.HandleQuestCompleted`: RecruitmentQuestData면 `SquadController.AddCompanion(characterData)` 호출
 - 대화·퀘스트 완료 플래그(`quest_*_completed`)로 수락 대화 재표시 여부 제어
 
-### 3.7 전투·적 시스템
+### 3.7 포탈 시스템
 
+```mermaid
+flowchart TB
+    A["플레이어 포탈 근처 상호작용"]
+    B["맵 UI Map_PortalIcon 클릭"]
+
+    Portal["Portal.OnInteracted"]
+    Icon["Map_PortalIcon.OnPortalClicked"]
+
+    PController["PortalController<br/>FindObjectsByType 등록, OnInteracted 구독"]
+    MapView["MapView<br/>맵 열기/닫기, 포탈 아이콘 생성"]
+
+    Teleport["SquadController.TeleportPlayer"]
+    Repos["RepositionCompanionsAround"]
+
+    A --> Portal
+    Portal --> PController
+    PController -->|"ToggleMap"| MapView
+
+    B --> Icon
+    Icon --> MapView
+    MapView -->|"포탈 아이콘 클릭 시"| Teleport
+    Teleport --> Repos
 ```
-EnemyDetector (반경 내 Character 감지) ──► EnemyAggro에 전달
-        │
-        ▼
-EnemyAggro (어그로 누적) ──► 임계값 초과 시 NotifyEnteringCombat
-        │
-        ▼
-EnemyStateMachine (Idle·Patrol·Chase·Attack·Dead) ──► NotifyCombatStateChanged
-        │
-        ▼
-CombatController.RegisterInCombat(Enemy) / UnregisterFromCombat
-        │
-        ▼
-AIBrain (동료) ──► IsInCombat ? TickCombat() : TickFollow()
-```
 
-**PlayScene 연동**: SquadController.Initialize(combatController) → AIBrain.Initialize(combatController)
-
-**적 사망**: Enemy.HandleDeath → 3초 후 Destroy, _dropPrefab(Meat 등) 드롭
+**주요 컴포넌트**
+| 컴포넌트 | 역할 |
+|----------|------|
+| Portal | IInteractable. Interact 시 OnInteracted(IInteractReceiver, Portal) 발행. PortalData 표시용, ArrivalPosition 제공 |
+| PortalDetector | OnTriggerStay/Exit로 반경 내 플레이어 감지. Portal에 연결되어 PortalEffect 토글 |
+| PortalController | FindObjectsByType으로 포탈 등록, Portal.OnInteracted 구독. HandlePortalInteracted에서 MapView.ToggleMap 호출. PortalModel 목록 유지 |
+| PortalModel | Portal + FlagSystem. 해금 여부 관리. MapView에서 해금된 포탈만 아이콘 표시 |
+| MapView | Map_PortalIcon 생성(해금된 PortalModel만). OnPortalClicked 시 SquadController.TeleportPlayer 호출 후 맵 닫기 |
+| SquadController | TeleportPlayer(ArrivalPosition), TeleportToDefaultPoint(끼임 탈출), RepositionCompanionsAround |
 
 ---
 
