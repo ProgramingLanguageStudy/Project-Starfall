@@ -71,7 +71,7 @@
 
 #### 도식
 
-```
+```mermaid
 flowchart TB
     subgraph PlayerPath["플레이어 경로"]
         InputHandler["InputHandler"]
