@@ -87,8 +87,6 @@ flowchart TB
     ApplyMovement -->|"동료"| FollowMover
 ```
 
-#### 문제 → 해결 → 결과
-
 | 구분 | 내용 |
 |------|------|
 | **문제** | 플레이어(방향 이동)와 동료(목표 추적)의 이동 방식이 달라, 동일한 StateMachine으로 통합하기 어려움 |
@@ -137,8 +135,6 @@ flowchart TB
 
 **SetFollowTarget**: SquadController가 플레이어 변경 시 Character → AIBrain.SetFollowTarget(플레이어) 호출. 따라갈 대상 설정.
 
-#### 문제 → 해결 → 결과
-
 | 구분 | 내용 |
 |------|------|
 | **문제** | 동료가 플레이어처럼 입력을 받지 않아, 전투 시 추적·사거리 판단·공격 시점을 자동으로 결정해야 함 |
@@ -147,7 +143,7 @@ flowchart TB
 
 ---
 
-### 2.3 시스템 간 독립성 (MVP + 조율층) (3순위)
+### 2.3 시스템 간 독립성 (MVP + 조율층)
 
 #### 도식
 
@@ -170,8 +166,6 @@ flowchart TB
     CoordDesc --> Flag
 ```
 
-#### 문제 → 해결 → 결과
-
 | 구분 | 내용 |
 |------|------|
 | **문제** | 퀘스트·인벤토리·대화가 서로 참조하면 결합도 증가, 수정 범위 확대 |
@@ -180,54 +174,62 @@ flowchart TB
 
 ---
 
-### 2.4 세이브/로드 Contributor 패턴 (4순위)
+### 2.4 세이브/로드 Contributor 패턴
 
 #### 도식
 
-```
-SaveManager
-    │
-    ├─ Gather() ──► SquadSaveContributor
-    │               FlagSaveContributor
-    │               InventorySaveContributor
-    │               QuestSaveContributor
-    │
-    └─ Apply() ──► (동일 순서로 로드)
-```
+```mermaid
+flowchart TB
+    SaveManager["SaveManager"]
+    PSC["PlaySaveCoordinator<br/>ISaveHandler"]
 
-#### 문제 → 해결 → 결과
+    subgraph Contrib["Contributors (SaveOrder 순)"]
+        Squad["SquadSaveContributor"]
+        Flag["FlagSaveContributor"]
+        Inv["InventorySaveContributor"]
+        Quest["QuestSaveContributor"]
+    end
+
+    SaveManager -->|"Gather / Apply"| PSC
+    PSC --> Squad
+    PSC --> Flag
+    PSC --> Inv
+    PSC --> Quest
+```
 
 | 구분 | 내용 |
 |------|------|
-| **문제** | 세이브 대상이 늘어날 때마다 SaveManager가 모든 시스템을 알아야 함 |
-| **해결** | `ISaveHandler` + `SaveContributorBehaviour` 기반. 각 Contributor가 Gather/Apply만 구현, SaveOrder로 의존 순서 보장 |
-| **결과** | 새 저장 대상 추가 시 새 Contributor만 추가하면 되고, SaveManager 수정 불필요 |
+| **문제** | 세이브 대상이 늘어날 때마다 조율층이 모든 시스템을 알아야 함 |
+| **해결** | `ISaveHandler` + `SaveContributorBehaviour` 기반. PlaySaveCoordinator가 Contributor 목록 보유, 각 Contributor가 Gather/Apply만 구현. SaveOrder로 적용 순서 보장 |
+| **결과** | 새 저장 대상 추가 시 Contributor 생성 후 PlaySaveCoordinator에 등록하면 되고, SaveManager 수정 불필요 |
 
 ---
 
-### 2.5 플래그·대화·퀘스트 연동 (5순위)
+### 2.5 대화·퀘스트 데이터(Scriptable Object) 기반 연동
 
 #### 도식
 
-```
-NPC 상호작용
-    │
-    ▼
-DialogueSelector ──► requiredFlagsOn/Off 체크
-    │
-    ▼
-대화 재생 (DialogueSystem)
-    │
-    ▼
-대화 종료 ──► flagsToModify / QuestSystem.AcceptQuest·CompleteQuest
-```
+```mermaid
+flowchart TB
+    NPC["NPC 상호작용"]
+    Selector["DialogueSelector<br/>requiredFlagsOn/Off 체크"]
+    Presenter["DialoguePresenter<br/>대화 재생"]
+    End["대화 종료"]
 
-#### 문제 → 해결 → 결과
+    Flag["FlagSystem<br/>flagsToModify 적용"]
+    Quest["QuestPresenter<br/>questId, questDialogueType<br/>Accept / Complete"]
+
+    NPC --> Selector
+    Selector --> Presenter
+    Presenter --> End
+    End --> Flag
+    End --> Quest
+```
 
 | 구분 | 내용 |
 |------|------|
 | **문제** | 대화 분기·퀘스트 수락/완료를 하드코딩하면 시나리오 추가가 어려움 |
-| **해결** | DialogueData에 `requiredFlagsOn/Off`, `flagsToModify`, `questId` 등 데이터로 정의. 시나리오 설계자는 ScriptableObject만 수정 |
+| **해결** | DialogueData(ScriptableObject)에 `requiredFlagsOn/Off`(선택 조건), `flagsToModify`(종료 시 플래그), `questId`·`questDialogueType`(수락/완료)로 정의. 시나리오 설계자는 에셋만 수정 |
 | **결과** | 코드 수정 없이 대화·퀘스트 흐름 추가·변경 가능 |
 
 ---
