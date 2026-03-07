@@ -319,105 +319,131 @@ flowchart TB
 
 **전투 연계** EnemyDetector가 분대(Character) 감지 → EnemyAggro에 어그로 누적 → 임계값 초과 시 EnemyStateMachine이 Chase/Attack 진입 → CombatController에 등록 → AIBrain이 IsInCombat·GetNearestEnemy로 동료 전투 판단(TickCombat). SquadController.Initialize(combatController)로 AIBrain에 CombatController 주입. 적 사망 시 HandleDeath → 3초 후 Destroy, _dropPrefab 드롭.
 
-### 3.3 맵 시스템
+### 3.3 인벤토리 시스템
 
-```
-PlayScene.Update ──► MapController.RequestScrollMap(scrollInput)
-PlayScene.HandleMap ──► MapController.RequestToggleMap()
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      MapView                                 │
-│  ToggleMap: 패널 On/Off, TakeSnapshot, RefreshPortalIcons   │
-│  ScrollZoom: 마우스 휠로 지도 줌                             │
-│  Update: 플레이어 아이콘 위치·회전 실시간 갱신                │
-└─────────────────────────────────────────────────────────────┘
-        │                    │                    │
-        ▼                    ▼                    ▼
-  MapCamera             PortalController     SquadController
-  (RenderTexture        (해금 포탈 목록)       (플레이어 위치)
-   스냅샷)
+```mermaid
+flowchart TB
+    Input["InputHandler.OnInventoryPerformed"]
+    PlayScene["PlayScene.HandleInventoryKey"]
+
+    subgraph Presenter["InventoryPresenter"]
+        Model["Inventory (Model)"]
+        View["InventoryView (View)"]
+    end
+
+    Input --> PlayScene
+    PlayScene -->|"RequestToggleInventory"| Presenter
+    Model <--> View
 ```
 
-### 3.4 인벤토리 시스템
+**주요 컴포넌트**
+| 컴포넌트 | 역할 |
+|----------|------|
+| InventoryPresenter | Model·View 연결. RequestToggleInventory, SetPlayerCharacter. OnUseItemRequested→TryUseItem, OnDropEnded→SwapItems |
+| Inventory | 슬롯 배열, AddItem, SetItemUser, TryUseItem, SwapItems. GameEvents.OnItemPickedUp 구독. Quest 완료 시 아이템 차감 |
+| InventoryView | UI 표시. OnUseItemRequested, OnDropEnded, OnRefreshRequested. ToggleInventory |
 
-```
-InputHandler.OnInventoryPerformed  ←── PlayScene.HandleInventoryKey
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 InventoryPresenter                           │
-│  Model(Inventory) ←→ View(InventoryView) 연결                │
-│  SetPlayerCharacter: 소비품 효과 대상(ItemUser) 갱신          │
-└─────────────────────────────────────────────────────────────┘
-        │                              │
-        ▼                              ▼
-  Inventory (Model)              InventoryView
-  - Slots, AddItem,             - UI 표시, OnUseItemRequested,
-    SetItemUser                   OnDropEnded
-  - Quest 완료 시 아이템 차감
-```
+PlayScene.HandlePlayerChanged → InventoryPresenter.SetPlayerCharacter (플레이어 변경 시 소비품 효과 대상 ItemUser 갱신)
 
-**PlayScene 연동**: HandlePlayerChanged → InventoryPresenter.SetPlayerCharacter (플레이어 변경 시 ItemUser 갱신)
+### 3.4 대화 시스템
 
-### 3.5 대화 시스템
+```mermaid
+flowchart TB
+    NPC["Npc 상호작용<br/>Interactor.TryInteract"]
+    EventHub["PlaySceneEventHub.OnNpcInteracted"]
 
-```
-Npc 상호작용 (Interactor.TryInteract)
-                    │
-                    ▼
-PlaySceneEventHub.OnNpcInteracted(npcId)
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 DialogueController                           │
-│  HandleNpcInteracted → Selector.SelectMain → Presenter 시작  │
-│  HandleDialogueEnded → ApplyFlags + Quest Accept/Complete    │
-└─────────────────────────────────────────────────────────────┘
-        │                    │                    │
-        ▼                    ▼                    ▼
-  DialogueSelector      DialoguePresenter    FlagSystem
-  (requiredFlags 체크)   (대화 UI 재생)       (flagsToModify)
-                              │
-                              ▼
-                        QuestPresenter
-                        (questId 있으면 Accept/Complete)
+    subgraph DC["DialogueController"]
+        Selector["DialogueSelector<br/>requiredFlags 체크"]
+        Presenter["DialoguePresenter<br/>대화 UI 재생"]
+    end
+
+    Flag["FlagSystem<br/>flagsToModify"]
+    Quest["QuestPresenter<br/>Accept/Complete"]
+
+    NPC --> EventHub
+    EventHub --> DC
+    DC -->|"HandleNpcInteracted"| Selector
+    Selector -->|"SelectMain"| Presenter
+    Presenter -->|"HandleDialogueEnded"| Flag
+    Presenter -->|"questId"| Quest
 ```
 
-**대화 UX**: 끝내기 버튼 — 타이핑 중 첫 클릭=스킵(텍스트 즉시 표시), 두 번째 클릭=대화 종료
+**주요 컴포넌트**
+| 컴포넌트 | 역할 |
+|----------|------|
+| DialogueController | PlaySceneEventHub.OnNpcInteracted 구독. Selector.SelectMain → Presenter.RequestStartDialogue. HandleDialogueEnded → ApplyFlags, RequestQuestAction |
+| DialogueSelector | DataManager·FlagSystem 기반. SelectMain(npcId): requiredFlagsOn/Off 체크 후 재생할 대화 1개 선택. GetAvailableQuests |
+| DialoguePresenter | DialogueSystem↔DialogueView 연결. RequestStartDialogue, OnDialogueEnded 발행 |
+| DialogueSystem | 대화 상태·진행. StartDialogue |
+| DialogueView | 대화 UI. OnNextClicked, OnEndClicked, OnQuestDialogueSelected |
+| FlagSystem | flagsToModify 적용 (Set/Add) |
+| QuestPresenter | questId·questDialogueType에 따라 RequestAcceptQuest, RequestCompleteQuest |
 
-### 3.6 퀘스트 시스템
+끝내기 버튼: 타이핑 중 첫 클릭=스킵, 두 번째 클릭=대화 종료
 
+### 3.5 퀘스트 시스템
+
+```mermaid
+flowchart TB
+    EnemyKilled["Enemy.HandleDeath<br/>PlaySceneEventHub.OnEnemyKilled"]
+    ItemPicked["GameEvents.OnItemPickedUp"]
+    Dialogue["DialogueController<br/>대화 종료 시"]
+
+    QC["QuestController"]
+    QP["QuestPresenter"]
+    QS["QuestSystem"]
+
+    EnemyKilled --> QC
+    ItemPicked --> QC
+    QC -->|"NotifyProgress"| QS
+    Dialogue -->|"RequestAccept/Complete"| QP
+    QP --> QS
 ```
-PlaySceneEventHub.OnEnemyKilled(enemyId)  ←── 적 처치 시
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 QuestController                              │
-│  QuestPresenter 보유. DialogueController에 주입              │
-│  OnEnemyKilled → 목표 타입이 Kill이면 진행도 갱신             │
-└─────────────────────────────────────────────────────────────┘
-        │
-        ▼
-  QuestPresenter / QuestSystem
-  - AcceptQuest, CompleteQuest, RequestCompleteQuest
-  - Gather 퀘스트 완료 시 InventoryPresenter.Model에서 아이템 차감
+
+**주요 컴포넌트**
+| 컴포넌트 | 역할 |
+|----------|------|
+| QuestController | OnEnemyKilled, OnItemPickedUp 구독 → QuestSystem.NotifyProgress. OnQuestUpdated: 목표 달성 플래그, Gather 시 인벤토리 동기화. OnQuestCompleted: 완료 플래그, Gather 아이템 차감, RecruitmentQuestData면 AddCompanion |
+| QuestPresenter | QuestSystem↔QuestView 연결. RequestAcceptQuest, RequestCompleteQuest. DialogueController에 주입 |
+| QuestSystem | NotifyProgress(targetId), AcceptQuest, CompleteQuest. OnQuestUpdated, OnQuestCompleted |
+
+**동료 영입** RecruitmentQuestData: 퀘스트 완료 시 `recruitCharacterId`로 CharacterData 참조해 SquadController.AddCompanion 호출. 대화·퀘스트 완료 플래그(`quest_*_completed`)로 수락 대화 재표시 여부 제어.
+
+### 3.6 맵 시스템
+
+```mermaid
+flowchart TB
+    PlayScene["PlayScene"]
+    MController["MapController"]
+
+    subgraph MapView["MapView"]
+        Toggle["ToggleMap"]
+        Scroll["ScrollZoom"]
+        Snapshot["TakeSnapshot"]
+        Portals["RefreshPortalIcons"]
+    end
+
+    PlayScene -->|"HandleMap<br/>OnMapPerformed"| MController
+    PlayScene -->|"Update<br/>ScrollInput"| MController
+    MController -->|"RequestToggleMap"| Toggle
+    MController -->|"RequestScrollMap"| Scroll
+    Toggle --> Snapshot
+    Toggle --> Portals
 ```
 
-**동료 영입**
-- `RecruitmentQuestData`: 퀘스트 완료 시 분대에 영입. `recruitCharacterId`로 CharacterData 참조
-- `QuestController.HandleQuestCompleted`: RecruitmentQuestData면 `SquadController.AddCompanion(characterData)` 호출
-- 대화·퀘스트 완료 플래그(`quest_*_completed`)로 수락 대화 재표시 여부 제어
+**주요 컴포넌트**
+| 컴포넌트 | 역할 |
+|----------|------|
+| MapController | RequestToggleMap, RequestScrollMap. MapView에 위임. Initialize(PortalController, Character, SquadController) |
+| MapView | ToggleMap(패널 On/Off), ScrollZoom(마우스 휠), TakeSnapshot, RefreshPortalIcons. MapCamera(RenderTexture 스냅샷), PortalController(해금 포탈), SquadController(플레이어 위치) 참조. Update에서 플레이어 아이콘 실시간 갱신 |
 
 ### 3.7 포탈 시스템
 
 ```mermaid
 flowchart TB
     A["플레이어 포탈 근처 상호작용"]
-    B["맵 UI Map_PortalIcon 클릭"]
 
     Portal["Portal.OnInteracted"]
-    Icon["Map_PortalIcon.OnPortalClicked"]
 
     PController["PortalController<br/>FindObjectsByType 등록, OnInteracted 구독"]
     MapView["MapView<br/>맵 열기/닫기, 포탈 아이콘 생성"]
@@ -429,8 +455,6 @@ flowchart TB
     Portal --> PController
     PController -->|"ToggleMap"| MapView
 
-    B --> Icon
-    Icon --> MapView
     MapView -->|"포탈 아이콘 클릭 시"| Teleport
     Teleport --> Repos
 ```
@@ -449,29 +473,28 @@ flowchart TB
 
 ## 4. 부록: 사용 에셋
 
-> Asset Store 에셋명과 사용 용도를 정리해 두세요.
+본 프로젝트에서 사용한 Asset Store 에셋 목록
 
-| 에셋 (폴더/추정명) | 사용 용도 |
-|--------------------|-----------|
-| FemaleAssasin (Female Assassin?) | 캐릭터 모델·애니메이션 |
+| 에셋 (폴더) | 사용 용도 |
+|-------------|-----------|
+| FemaleAssasin | 캐릭터 모델·애니메이션 |
 | PicoChan | 캐릭터 모델 |
 | SapphiArtchan | 캐릭터 모델 |
 | Stellar Girl Celeste | 캐릭터 모델 |
+| Monster_Wolf | 적(늑대) 모델 |
 | Space_Exploration_GUI_Kit | UI (인벤토리, 퀘스트 등) |
 | Classic_RPG_GUI | UI 부품 |
 | RunesAndPortals | 포탈·이펙트 |
-| Town (Lowpoly Town?) | 마을 맵·환경 |
+| Town | 마을 맵·환경 |
 | Lowpoly_Environments | 맵·환경 |
 | Lowpoly_Demos | 데모 맵 |
 | Lowpoly_Village | 마을 오브젝트 |
 | Fruits and Vegetables | 오브젝트 |
+| FREE Food Pack | 음식 오브젝트 |
 | Sci-fi Sword | 무기 |
+| Stylized Fantasy Weapons Pack | 무기 모델 |
 | CharacterAnimation / Human Animations | 애니메이션 |
 | DOTween (Plugins) | 트윈 애니메이션 |
-| FREE Food Pack | 음식 오브젝트 |
-| Stylized Fantasy Weapons Pack | 무기 모델 |
-
-※ Asset Store 정확한 이름은 `Assets/99_StoreAssets` 구조와 패키지 설명을 기준으로 보완해 주세요.
 
 ---
 
@@ -496,12 +519,3 @@ flowchart TB
 | **Capcut** | 영상 편집 |
 | **Notion** | 개발일지·문서 정리 |
 
----
-
-## 6. 체크리스트 (제출 전)
-
-- [ ] 타이틀 화면·게임플레이 스크린샷 (각 1장 이상)
-- [ ] 3분 이내 영상 제작·업로드
-- [ ] Unity/Git/Cursor 버전 확인
-- [ ] 부록 에셋 목록 정확한 이름으로 수정
-- [ ] PDF 또는 웹 페이지 형태로 최종 정리
