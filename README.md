@@ -511,13 +511,17 @@ flowchart TB
 
 **디버거 인스펙터 뷰**
 
-| Squad | Quest | Inventory |
-|:---:|:---:|:---:|
-| ![Squad](Docs/images/debug_squad.png) | ![Quest](Docs/images/debug_quest.png) | ![Inventory](Docs/images/debug_inventory.png) |
+| Squad | Quest |
+|:---:|:---:|
+| ![Squad](Docs/images/debug_squad.png) | ![Quest](Docs/images/debug_quest.png) |
 
-| Portal | EnemySpawner | Flag |
-|:---:|:---:|:---:|
-| ![Portal](Docs/images/debug_portal.png) | ![EnemySpawner](Docs/images/debug_spawner.png) | ![Flag](Docs/images/debug__flag.png) |
+| Inventory | Portal |
+|:---:|:---:|
+| ![Inventory](Docs/images/debug_inventory.png) | ![Portal](Docs/images/debug_portal.png) |
+
+| EnemySpawner | Flag |
+|:---:|:---:|
+| ![EnemySpawner](Docs/images/debug_spawner.png) | ![Flag](Docs/images/debug__flag.png) |
 
 **주요 패키지**
 - Unity AI Navigation 2.0.9
