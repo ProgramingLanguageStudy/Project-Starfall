@@ -694,3 +694,8 @@ flowchart TB
 | **Capcut** | 영상 편집 |
 | **Notion** | 개발일지·문서 정리 |
 
+---
+
+### 참고
+
+- **Repository**: https://github.com/ProgramingLanguageStudy/Squad_System_Framework
