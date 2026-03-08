@@ -9,6 +9,7 @@ const renderer = {
 };
 
 module.exports = {
+  dest: "SSF_포트폴리오.pdf",
   marked_extensions: [{ renderer }],
   script: [
     { url: "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js" },
