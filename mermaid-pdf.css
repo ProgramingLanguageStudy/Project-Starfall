@@ -1,0 +1,13 @@
+/* Mermaid 다이어그램 크기 제한 (PDF용) */
+.mermaid {
+  max-width: 100%;
+  margin: 1em auto;
+  overflow: visible;
+  page-break-inside: avoid;
+}
+.mermaid svg {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
