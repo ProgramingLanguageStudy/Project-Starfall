@@ -47,6 +47,10 @@
 
 [🎬 영상 보기](https://youtu.be/l2WycMeBfec)
 
+### 1.4 게임 빌드 파일
+
+[ 구글 드라이브 링크](https://drive.google.com/file/d/1W-kQanPIanT2rcA6QPB2fi-XtjkgfTfw/view?usp=drive_link)
+
 ---
 
 ## 2. 핵심 기술 항목
