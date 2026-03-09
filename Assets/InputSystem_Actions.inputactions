@@ -1119,6 +1119,45 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "Global",
+            "id": "98b67baa-e9d0-4293-b342-c87b724c6759",
+            "actions": [
+                {
+                    "name": "FreeCursor",
+                    "type": "Button",
+                    "id": "e5d4dfb3-fb9c-4f78-9963-c3b5d2259787",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "974abddd-a8c9-46d1-b6e7-774bb7ffcd16",
+                    "path": "<Keyboard>/leftAlt",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "FreeCursor",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ba876e12-86f4-45b3-bdd6-6c570fcd14f3",
+                    "path": "<Keyboard>/rightAlt",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "FreeCursor",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": [
