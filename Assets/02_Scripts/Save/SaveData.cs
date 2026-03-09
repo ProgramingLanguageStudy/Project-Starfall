@@ -10,4 +10,6 @@ public class SaveData
     public FlagSaveData flags = new FlagSaveData();
     public QuestSaveData quests = new QuestSaveData();
     public InventorySaveData inventory = new InventorySaveData();
+    /// <summary>계정 귀속 재화. 골드.</summary>
+    public int gold;
 }

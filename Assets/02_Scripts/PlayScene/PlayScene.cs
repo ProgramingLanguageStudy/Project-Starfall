@@ -25,7 +25,9 @@ public class PlayScene : MonoBehaviour
     private PlaySaveCoordinator _saveCoordinator;
     [SerializeField] [Tooltip("대화 관련 컴포넌트·이벤트 연결")]
     private DialogueController _dialogueController;
-    [SerializeField] [Tooltip("퀘스트 관련. 대화 종료 시 수락/완료 처리")]
+    [SerializeField] [Tooltip("퀘스트 UI(M-V). SaveCoordinator·QuestController 초기화 시 System 주입용")]
+    private QuestPresenter _questPresenter;
+    [SerializeField] [Tooltip("퀘스트 조율·수락/완료 API. DialogueController에 주입")]
     private QuestController _questController;
     [SerializeField] [Tooltip("플래그 저장·조회. QuestSystem처럼 Play 씬에서 보유")]
     private FlagSystem _flagSystem;
@@ -58,7 +60,7 @@ public class PlayScene : MonoBehaviour
         _saveCoordinator?.Initialize(
             _squadController,
             _flagSystem,
-            _questController?.Presenter,
+            _questPresenter,
             _inventoryPresenter?.Model);
 
         // 세이브 선로드 → 스폰 위치 결정 → 스폰 (세이브 있으면 멤버 목록 기준으로 동료 포함 스폰)
@@ -78,9 +80,9 @@ public class PlayScene : MonoBehaviour
         if (_inventoryPresenter != null)
             _inventoryPresenter.SetPlayerCharacter(player);
 
-        _dialogueController?.Initialize(_questController?.Presenter, _flagSystem);
-        if (_questController != null && _inventoryPresenter?.Model != null)
-            _questController.Initialize(_inventoryPresenter.Model, _flagSystem, _squadController);
+        _dialogueController?.Initialize(_questController, _flagSystem);
+        if (_questController != null && _questPresenter != null && _inventoryPresenter?.Model != null)
+            _questController.Initialize(_questPresenter.System, _inventoryPresenter.Model, _flagSystem, _squadController);
 
         if (_mapController != null)
         {
@@ -101,9 +103,9 @@ public class PlayScene : MonoBehaviour
     private void Start()
     {
         // Apply는 Start에서. Awake 순서 미보장으로 Inventory.Initialize 전에 Apply될 수 있음.
-        if (_pendingSaveData != null && _saveCoordinator != null)
+        if (_pendingSaveData != null && GameManager.Instance?.SaveManager != null)
         {
-            _saveCoordinator.Apply(_pendingSaveData);
+            GameManager.Instance.SaveManager.ApplySaveData(_pendingSaveData);
             _pendingSaveData = null;
         }
     }
