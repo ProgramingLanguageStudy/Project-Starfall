@@ -76,3 +76,7 @@ msg.txt
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Firebase: 100MB+ native libs (Mac/Linux). Windows uses .dll only.
+Assets/Firebase/Plugins/x86_64/FirebaseCppApp-13_9_0.bundle
+Assets/Firebase/Plugins/x86_64/FirebaseCppApp-13_9_0.so
