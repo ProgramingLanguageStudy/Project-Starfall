@@ -2,43 +2,27 @@
     "squad": {
         "currentPlayerId": "celeste",
         "playerPosition": {
-            "x": 63.95695877075195,
-            "y": 3.0032129287719728,
-            "z": 62.34773635864258
+            "x": 62.42506790161133,
+            "y": 3.0032131671905519,
+            "z": 63.459285736083987
         },
-        "playerRotationY": 99.65447235107422,
+        "playerRotationY": 94.57762145996094,
         "members": [
             {
                 "characterId": "celeste",
-                "currentHp": 30
+                "currentHp": 100
             }
         ]
     },
     "flags": {
-        "keys": [
-            "first_talk_chief"
-        ],
-        "values": [
-            1
-        ]
+        "keys": [],
+        "values": []
     },
     "quests": {
-        "entries": [
-            {
-                "questId": "mushroom_gather",
-                "targetId": "item_mushroom",
-                "currentAmount": 0
-            }
-        ]
+        "entries": []
     },
     "inventory": {
-        "slots": [
-            {
-                "index": 0,
-                "itemId": "item_meat",
-                "count": 1
-            }
-        ]
+        "slots": []
     },
     "gold": 0
 }
