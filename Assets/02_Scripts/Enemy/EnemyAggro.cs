@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 /// <summary>
 /// 적(Enemy) 전투 관련 유틸. 플레이어 도주 시 전투 종료 판단 등.
