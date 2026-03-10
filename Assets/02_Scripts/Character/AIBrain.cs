@@ -1,7 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// 동료 AI 제어. FollowTarget 관리·CombatController·PlaySceneServices 기반 Follow/Combat/Attack 판단.
+/// 동료 AI 제어. FollowTarget 관리·CombatController 기반 Follow/Combat/Attack 판단.
+/// Character.Squad.PlayerCharacter로 따라갈 타겟 획득.
 /// Character는 CurrentTarget, CurrentStopDistance 프로퍼티로 읽어 ApplyMovement에서 사용.
 /// </summary>
 [RequireComponent(typeof(Character))]
@@ -26,15 +27,6 @@ public class AIBrain : MonoBehaviour
         _combatController = combatController;
     }
 
-    /// <summary>SquadController·외부 호출. 따라갈 대상 설정. null이면 타겟 해제.</summary>
-    public void SetFollowTarget(Transform target)
-    {
-        _currentTarget = target;
-        _currentStopDistance = _character?.Model != null ? _character.Model.StopDistance : 1.5f;
-        if (target != null)
-            _character?.RequestMove();
-    }
-
     /// <summary>Character.ApplyMovement에서 동료 이동 시 읽음.</summary>
     public Transform CurrentTarget => _currentTarget;
 
@@ -56,7 +48,7 @@ public class AIBrain : MonoBehaviour
     private void TickFollow()
     {
         _currentCombatTarget = null;
-        var player = PlaySceneServices.Player?.GetPlayer();
+        var player = _character?.Squad?.Player;
         _currentTarget = player != null ? player.transform : null;
         _currentStopDistance = _character?.Model != null ? _character.Model.StopDistance : 1.5f;
         if (_currentTarget == null)

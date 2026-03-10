@@ -68,14 +68,11 @@ public class PlayScene : MonoBehaviour
         var spawnPos = _pendingSaveData?.squad != null ? (Vector3?)_pendingSaveData.squad.playerPosition : null;
 
         _squadController.Initialize(spawnPos, _combatController, _pendingSaveData?.squad);
-        PlaySceneServices.Register(_squadController);
 
         _npcController?.Initialize();
 
         var player = _squadController.PlayerCharacter;
-        var chaseTarget = player != null ? player.transform : transform;
         _enemySpawner?.Initialize(_combatController);
-        _squadController.SetFollowTarget(chaseTarget);
 
         if (_inventoryPresenter != null)
             _inventoryPresenter.SetPlayerCharacter(player);
@@ -132,7 +129,6 @@ public class PlayScene : MonoBehaviour
     private void OnDisable()
     {
         PlaySceneEventHub.Clear();
-        PlaySceneServices.Clear();
 
         if (_hpModelSubscribed != null)
         {
@@ -235,12 +231,8 @@ public class PlayScene : MonoBehaviour
     private void HandlePlayerChanged(Character newPlayer)
     {
         var chaseTarget = newPlayer != null ? newPlayer.transform : _squadController?.transform;
-        if (chaseTarget != null)
-        {
-            _squadController?.SetFollowTarget(chaseTarget);
-            if (_cinemachineCamera != null)
-                _cinemachineCamera.Follow = chaseTarget;
-        }
+        if (chaseTarget != null && _cinemachineCamera != null)
+            _cinemachineCamera.Follow = chaseTarget;
         _inventoryPresenter?.SetPlayerCharacter(newPlayer);
 
         if (_hpModelSubscribed != null)

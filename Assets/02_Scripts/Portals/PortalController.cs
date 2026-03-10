@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 맵의 포탈을 참조로 보유. 각 포탈의 OnInteracted에 구독해 '갈 수 있는 포탈 목록'을 PortalMenuView로 넘김.
+/// 맵의 포탈을 참조로 보유. 각 포탈의 OnInteracted 시 맵(MapView) 열기.
 /// 해금 로직은 나중에 여기서만 관리하면 됨.
 /// </summary>
 public class PortalController : MonoBehaviour

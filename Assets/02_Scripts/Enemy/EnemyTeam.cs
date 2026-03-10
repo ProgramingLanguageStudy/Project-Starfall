@@ -32,12 +32,17 @@ public class EnemyTeam : MonoBehaviour
         _members.Remove(enemy);
     }
 
-    private void HandleMemberEnteringCombat(Transform chaseTarget)
+    private void HandleMemberEnteringCombat(Character triggerCharacter)
     {
+        if (triggerCharacter == null) return;
+
+        var target = Enemy.ResolveChaseTarget(triggerCharacter);
+        var squad = triggerCharacter.Squad;
+
         foreach (var m in _members)
         {
             if (m == null || m.Model == null || m.Model.IsDead) continue;
-            m.SetChaseTarget(chaseTarget);
+            m.SetChaseTargetAndSquad(target, squad);
             m.StateMachine.RequestChase();
         }
     }

@@ -42,6 +42,9 @@ public class Character : MonoBehaviour, IInteractReceiver
     /// <summary>플레이어 조종 여부. SetAsPlayer/SetAsCompanion 시 설정. SquadController 등이 읽음.</summary>
     public bool IsPlayer => _isPlayer;
 
+    /// <summary>소속 분대. 스폰 시 주입. Enemy가 Character→Squad→Player로 타겟 해석.</summary>
+    public Squad Squad { get; private set; }
+
     // ── 공개 API (StateMachine·InputHandler·AIBrain 연동) ────
 
     public void RequestAttack() => _stateMachine?.RequestAttack();
@@ -62,12 +65,6 @@ public class Character : MonoBehaviour, IInteractReceiver
 
     /// <summary>플레이어용. MoveState.IsComplete에서 이동 입력 유무 판단.</summary>
     public bool HasMoveInput => _currentMoveDirection.sqrMagnitude >= 0.01f;
-
-    /// <summary>동료용. SquadController 호출. 따라갈 대상 설정. null이면 타겟 해제.</summary>
-    public void SetFollowTarget(Transform target)
-    {
-        _aiBrain?.SetFollowTarget(target);
-    }
 
     /// <summary>이동 적용. MoveState.Update에서 호출. 플레이어=방향, 동료=AIBrain 타겟 읽음.</summary>
     public void ApplyMovement()
@@ -167,8 +164,9 @@ public class Character : MonoBehaviour, IInteractReceiver
         if (_aiBrain != null) _aiBrain.enabled = true;
     }
 
-    public void Initialize(CombatController combatController = null)
+    public void Initialize(CombatController combatController = null, Squad squad = null)
     {
+        Squad = squad;
         if (_model == null) _model = GetComponent<CharacterModel>();
         if (_mover == null) _mover = GetComponent<CharacterMover>();
         if (_followMover == null) _followMover = GetComponent<CharacterFollowMover>();

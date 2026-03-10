@@ -29,7 +29,6 @@ public class GameManager : Singleton<GameManager>
         var __ = DataManager;
         var ___ = CurrencyManager;
         var ____ = GlobalSaveCoordinator;
-        DataManager.Initialize();
     }
 
     /// <summary>매니저가 없으면 자식 오브젝트에서 찾거나, 없으면 생성해서 붙임.</summary>

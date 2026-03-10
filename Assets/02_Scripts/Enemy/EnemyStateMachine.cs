@@ -19,7 +19,6 @@ public class EnemyStateMachine : MonoBehaviour
     private Enemy _enemy;
     private Vector3 _patrolCenter;
     private Transform _chaseTarget;
-    private float _targetReevalTimer;
 
     private Dictionary<EnemyState, EnemyStateBase> _states;
     private EnemyState _currentStateKey;
@@ -65,7 +64,6 @@ public class EnemyStateMachine : MonoBehaviour
         };
 
         ChangeState(EnemyState.Patrol);
-        _targetReevalTimer = _enemy?.Model?.TargetReevalInterval ?? 1.5f;
 
         if (_enemy?.Model != null)
         {
@@ -89,7 +87,14 @@ public class EnemyStateMachine : MonoBehaviour
         bool isChaseOrAttack = _currentStateKey == EnemyState.Chase || _currentStateKey == EnemyState.Attack;
         if (isChaseOrAttack) return;
 
-        _enemy.NotifyEnteringCombat(attacker);
+        var ch = attacker.GetComponentInParent<Character>();
+        if (ch != null)
+            _enemy.NotifyEnteringCombat(ch);
+        else
+        {
+            _enemy.SetChaseTarget(attacker);
+            RequestChase();
+        }
     }
 
     private void HandleDeath()
@@ -102,35 +107,16 @@ public class EnemyStateMachine : MonoBehaviour
         if (_states == null) return;
         if (_currentStateKey == EnemyState.Dead) return;
 
-        // 전투 판단: 진입/포기/타겟 재평가
+        // 전투 판단: 플레이어 도주 시 전투 종료
         bool isChaseOrAttack = _currentStateKey == EnemyState.Chase || _currentStateKey == EnemyState.Attack;
         if (isChaseOrAttack)
         {
-            var playerTransform = PlaySceneServices.Player?.GetPlayerTransform();
-
-            if (_enemy?.Aggro?.TryResetIfPlayerOutOfRange(_enemy.transform.position, playerTransform) == true)
+            var resetTarget = _enemy?.CombatSquad?.Player?.transform ?? _chaseTarget;
+            if (_enemy?.Aggro?.TryResetIfTargetOutOfRange(_enemy.transform.position, resetTarget) == true)
             {
+                _enemy.ClearCombatSquad();
                 RequestPatrol();
                 return;
-            }
-            _targetReevalTimer -= Time.deltaTime;
-            if (_targetReevalTimer <= 0f)
-            {
-                _targetReevalTimer = _enemy?.Model?.TargetReevalInterval ?? 1.5f;
-                var best = _enemy?.Aggro?.GetHighestAggroTarget();
-                if (best != null)
-                    SetChaseTarget(best.transform);
-            }
-        }
-        else
-        {
-            if (_enemy?.Aggro?.HasAnyAboveThreshold() == true)
-            {
-                var best = _enemy.Aggro.GetHighestAggroTarget();
-                if (best != null)
-                {
-                    _enemy.NotifyEnteringCombat(best.transform);
-                }
             }
         }
 
@@ -166,7 +152,11 @@ public class EnemyStateMachine : MonoBehaviour
     /// <summary>현재 상태 키로 상태 인스턴스 반환.</summary>
     public EnemyStateBase GetState(EnemyState key) => _states != null && _states.TryGetValue(key, out var s) ? s : null;
 
-    public void RequestPatrol() => ChangeState(EnemyState.Patrol);
+    public void RequestPatrol()
+    {
+        _enemy?.ClearCombatSquad();
+        ChangeState(EnemyState.Patrol);
+    }
     public void RequestIdle() => ChangeState(EnemyState.Idle);
     public void RequestChase() => ChangeState(EnemyState.Chase);
     public void RequestAttack() => ChangeState(EnemyState.Attack);

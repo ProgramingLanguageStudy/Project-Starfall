@@ -25,8 +25,8 @@ public class Enemy : MonoBehaviour
     [SerializeField] [Tooltip("탐지. 반경 내 Character 감지, 이벤트 발행")]
     private EnemyDetector _detector;
 
-    /// <summary>어그로 수치가 임계값 초과 시 발행. 팀이 구독해 나머지 멤버에게 전달.</summary>
-    public event Action<Transform> OnEnteringCombat;
+    /// <summary>전투 진입 시 발행. 팀이 구독해 나머지 멤버에게 전달. triggerCharacter→Squad.Player 해석.</summary>
+    public event Action<Character> OnEnteringCombat;
     /// <summary>소멸 직전 발행. 팀이 구독해 등록 해제.</summary>
     public event Action<Enemy> OnDestroyed;
 
@@ -43,7 +43,10 @@ public class Enemy : MonoBehaviour
     public EnemyStateMachine StateMachine => _stateMachine;
     public EnemyAggro Aggro => _aggro;
 
-    [SerializeField] [Tooltip("어그로 관리. 감지 이벤트 구독")]
+    /// <summary>전투 중 추적 대상의 Squad. 플레이어 도주 판단·OnPlayerChanged 구독용.</summary>
+    public Squad CombatSquad { get; private set; }
+
+    [SerializeField] [Tooltip("전투 관련 유틸. 플레이어 도주 판단 등")]
     private EnemyAggro _aggro;
 
     /// <summary>전투 진입/이탈 알림. StateMachine이 호출. CombatController에 등록/해제.</summary>
@@ -56,19 +59,56 @@ public class Enemy : MonoBehaviour
             combat?.UnregisterFromCombat(this);
     }
 
-    /// <summary>전투 진입 알림. StateMachine 등이 호출. 팀 구독자에게 전달.</summary>
-    public void NotifyEnteringCombat(Transform chaseTarget)
+    /// <summary>전투 진입 알림. Character(감지/공격) → Squad.Player 해석 후 타겟 설정. 팀 구독자에게 전달.</summary>
+    public void NotifyEnteringCombat(Character triggerCharacter)
     {
+        if (triggerCharacter == null) return;
+
+        var target = ResolveChaseTarget(triggerCharacter);
+        var squad = triggerCharacter.Squad;
+        SetChaseTargetAndSquad(target, squad);
+
         if (OnEnteringCombat != null)
-            OnEnteringCombat.Invoke(chaseTarget);
+            OnEnteringCombat.Invoke(triggerCharacter);
         else
-        {
-            SetChaseTarget(chaseTarget);
             StateMachine?.RequestChase();
+    }
+
+    /// <summary>Character→Squad.Player 해석. Squad 없으면 Character 그대로. EnemyTeam에서도 사용.</summary>
+    public static Transform ResolveChaseTarget(Character triggerCharacter)
+    {
+        var player = triggerCharacter.Squad?.Player;
+        var target = player != null ? player : triggerCharacter;
+        return target != null ? target.transform : null;
+    }
+
+    /// <summary>추적 목표 및 Squad 설정. OnPlayerChanged 구독.</summary>
+    public void SetChaseTargetAndSquad(Transform target, Squad squad)
+    {
+        ClearCombatSquad();
+        CombatSquad = squad;
+        _stateMachine?.SetChaseTarget(target);
+        if (squad != null)
+            squad.OnPlayerChanged += HandleSquadPlayerChanged;
+    }
+
+    private void HandleSquadPlayerChanged(Character newPlayer)
+    {
+        if (newPlayer == null) return;
+        _stateMachine?.SetChaseTarget(newPlayer.transform);
+    }
+
+    /// <summary>전투 이탈 시 호출. OnPlayerChanged 구독 해제.</summary>
+    public void ClearCombatSquad()
+    {
+        if (CombatSquad != null)
+        {
+            CombatSquad.OnPlayerChanged -= HandleSquadPlayerChanged;
+            CombatSquad = null;
         }
     }
 
-    /// <summary>Spawner·Team 등이 추적 목표 주입 시 호출.</summary>
+    /// <summary>직접 추적 목표만 설정 (Squad 없을 때).</summary>
     public void SetChaseTarget(Transform target)
     {
         _stateMachine?.SetChaseTarget(target);
@@ -104,8 +144,8 @@ public class Enemy : MonoBehaviour
         _model?.Initialize();
         _aggro?.Initialize(_model);
         _detector?.Initialize(_model);
-        if (_detector != null && _aggro != null)
-            _detector.OnCharacterDetected += _aggro.AddAggroFromDistance;
+        if (_detector != null)
+            _detector.OnCharacterDetected += HandleCharacterDetected;
 
         _healthBarView?.Initialize(_model);
         _mover?.Initialize(_agent);
@@ -122,8 +162,10 @@ public class Enemy : MonoBehaviour
         if (_model != null)
             _model.OnDeath -= HandleDeath;
 
-        if (_detector != null && _aggro != null)
-            _detector.OnCharacterDetected -= _aggro.AddAggroFromDistance;
+        if (_detector != null)
+            _detector.OnCharacterDetected -= HandleCharacterDetected;
+
+        ClearCombatSquad();
 
         var combat = FindFirstObjectByType<CombatController>();
         combat?.UnregisterFromCombat(this);
@@ -145,5 +187,20 @@ public class Enemy : MonoBehaviour
     private void DestroySelf()
     {
         Destroy(gameObject);
+    }
+
+    /// <summary>Detect로 Character 감지 시. 반경 내이면 전투 진입. (전투진입 트리거)</summary>
+    private void HandleCharacterDetected(Character ch, float distance)
+    {
+        if (ch == null || ch.Model == null || ch.Model.IsDead) return;
+        if (_stateMachine == null) return;
+
+        var key = _stateMachine.CurrentStateKey;
+        if (key != EnemyStateMachine.EnemyState.Patrol && key != EnemyStateMachine.EnemyState.Idle) return;
+
+        float detectRadius = _model != null ? _model.DetectionRadius : 10f;
+        if (distance > detectRadius) return;
+
+        NotifyEnteringCombat(ch);
     }
 }
