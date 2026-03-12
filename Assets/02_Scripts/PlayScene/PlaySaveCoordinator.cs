@@ -44,7 +44,7 @@ public class PlaySaveCoordinator : MonoBehaviour, ISaveHandler
     }
 
     /// <summary>세이브 실행. PlayScene 입력에서 Request.</summary>
-    public void RequestSave() => GameManager.Instance?.SaveManager?.Save();
+    public void RequestSave() => _ = GameManager.Instance?.SaveManager?.SaveAsync();
 
     public void Apply(SaveData data)
     {

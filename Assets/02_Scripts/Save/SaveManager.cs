@@ -1,39 +1,55 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Firebase.Auth;
+using Firebase.Extensions;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 /// <summary>
-/// 세이브 시점 제어 및 API 제공. ISaveHandler 등록·수집·적용, SaveSystem에서 I/O.
-/// - Play 진입 시: 로드 후 ApplySaveData.
-/// - Play 종료 시(에디터): 저장.
-/// - 앱/에디터 종료 시: 저장.
-/// GameManager가 보유. SaveSystem은 new로 생성해 보유.
+/// 세이브 시점 제어 및 API 제공. ISaveHandler 등록·수집·적용, Firestore I/O.
+/// - Play 진입 시: LoadAsync 후 ApplySaveData.
+/// - 앱 종료: Application.wantsToQuit으로 저장 완료 대기.
+/// - 5분 주기 자동 저장.
+/// - 씬 전환(Play→Intro) 시 저장.
 /// </summary>
 public class SaveManager : MonoBehaviour
 {
-    [SerializeField] private int _defaultSlot = 0;
+    private const float PeriodicSaveIntervalSec = 300f; // 5분
 
     private readonly List<ISaveHandler> _handlers = new List<ISaveHandler>();
-    private SaveSystem _saveSystem;
-    private SaveSystem SaveSystem => _saveSystem ??= new SaveSystem();
+    private FirestoreSaveBackend _backend;
+    private Coroutine _periodicSaveCoroutine;
+    private bool _isQuittingAfterSave;
 
-    /// <summary>세이브/로드에 참여할 핸들러 등록. 각 시스템은 OnEnable에서 호출.</summary>
+    private FirestoreSaveBackend Backend
+    {
+        get
+        {
+            var user = FirebaseAuth.DefaultInstance?.CurrentUser;
+            if (user == null) return null;
+            return _backend ??= new FirestoreSaveBackend(user.UserId);
+        }
+    }
+
+    /// <summary>세이브/로드에 참여할 핸들러 등록.</summary>
     public void Register(ISaveHandler handler)
     {
         if (handler == null || _handlers.Contains(handler)) return;
         _handlers.Add(handler);
     }
 
-    /// <summary>등록 해제. 각 시스템은 OnDisable에서 호출.</summary>
+    /// <summary>등록 해제.</summary>
     public void Unregister(ISaveHandler handler)
     {
         if (handler == null) return;
         _handlers.Remove(handler);
     }
 
-    /// <summary>등록된 핸들러들로부터 SaveData 수집. 저장 직전에 사용.</summary>
+    /// <summary>등록된 핸들러들로부터 SaveData 수집.</summary>
     public SaveData GatherSaveData()
     {
         var data = new SaveData();
@@ -42,7 +58,7 @@ public class SaveManager : MonoBehaviour
         return data;
     }
 
-    /// <summary>로드한 SaveData를 등록된 핸들러들에게 적용. 로드 직후에 사용.</summary>
+    /// <summary>로드한 SaveData를 핸들러들에게 적용.</summary>
     public void ApplySaveData(SaveData data)
     {
         if (data == null) return;
@@ -50,64 +66,145 @@ public class SaveManager : MonoBehaviour
             _handlers[i].Apply(data);
     }
 
-    private void OnApplicationQuit()
-    {
-        Save();
-    }
-
-#if UNITY_EDITOR
     private void OnEnable()
     {
+        Application.wantsToQuit += OnWantsToQuit;
+#if UNITY_EDITOR
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+#endif
     }
 
     private void OnDisable()
     {
+        Application.wantsToQuit -= OnWantsToQuit;
+#if UNITY_EDITOR
         EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+#endif
+        StopPeriodicSave();
     }
 
+    private bool OnWantsToQuit()
+    {
+        if (_isQuittingAfterSave) return true;
+        if (Backend == null) return true; // 로그인 안 됨, 저장할 것 없음
+
+        var task = SaveAsyncInternal();
+        StartCoroutine(QuitAfterSave(task));
+        return false; // 저장 완료까지 종료 보류
+    }
+
+    private IEnumerator QuitAfterSave(Task<bool> saveTask)
+    {
+        var timeout = 5f;
+        var elapsed = 0f;
+        while (!saveTask.IsCompleted && elapsed < timeout)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        if (!saveTask.IsCompleted)
+            Debug.LogWarning("[SaveManager] Save timeout on quit.");
+
+        _isQuittingAfterSave = true;
+#if UNITY_EDITOR
+        EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+
+#if UNITY_EDITOR
     private void OnPlayModeStateChanged(PlayModeStateChange state)
     {
         if (state == PlayModeStateChange.ExitingPlayMode)
-            Save();
+        {
+            // 베스트 에포트 (완료 보장 어려움)
+            _ = SaveAsyncInternal();
+        }
     }
 #endif
 
-    /// <summary>현재 게임 상태를 수집 후 저장. 외부 API.</summary>
-    public void Save()
+    /// <summary>5분 주기 저장 시작. Play 진입 시 호출 권장.</summary>
+    public void StartPeriodicSave()
     {
-        var data = GatherSaveData();
-        if (data == null) return;
-
-        if (SaveSystem.Save(_defaultSlot, data))
-            Debug.Log("[SaveManager] Saved to slot " + _defaultSlot);
-        else
-            Debug.LogWarning("[SaveManager] Save failed.");
+        StopPeriodicSave();
+        _periodicSaveCoroutine = StartCoroutine(PeriodicSaveRoutine());
     }
 
-    /// <summary>슬롯에서 로드. 적용 없이 SaveData만 반환. PlayScene에서 스폰 위치 등에 사용.</summary>
-    public SaveData Load()
+    /// <summary>주기 저장 중지.</summary>
+    public void StopPeriodicSave()
     {
-        return SaveSystem.Load(_defaultSlot);
-    }
-
-    /// <summary>세이브 파일 삭제. 디버그/테스트용. 삭제 성공 시 true.</summary>
-    public bool TryDeleteSave()
-    {
-        return SaveSystem.Delete(_defaultSlot);
-    }
-
-    /// <summary>슬롯에서 로드 후 핸들러들에게 적용. 외부 API. PlayScene.Awake에서 호출.</summary>
-    public void LoadAndApply()
-    {
-        var data = SaveSystem.Load(_defaultSlot);
-        if (data == null)
+        if (_periodicSaveCoroutine != null)
         {
-            Debug.Log("[SaveManager] No save in slot " + _defaultSlot + ", skip load.");
-            return;
+            StopCoroutine(_periodicSaveCoroutine);
+            _periodicSaveCoroutine = null;
+        }
+    }
+
+    private IEnumerator PeriodicSaveRoutine()
+    {
+        var wait = new WaitForSecondsRealtime(PeriodicSaveIntervalSec);
+        while (true)
+        {
+            yield return wait;
+            _ = SaveAsyncInternal();
+        }
+    }
+
+    /// <summary>비동기 저장. 로그인 안 됐으면 스킵.</summary>
+    public Task<bool> SaveAsync()
+    {
+        return SaveAsyncInternal();
+    }
+
+    private Task<bool> SaveAsyncInternal()
+    {
+        var backend = Backend;
+        if (backend == null)
+        {
+            Debug.Log("[SaveManager] Not logged in, skip save.");
+            return Task.FromResult(false);
         }
 
-        ApplySaveData(data);
-        Debug.Log("[SaveManager] Loaded from slot " + _defaultSlot);
+        var data = GatherSaveData();
+        if (data == null) return Task.FromResult(false);
+
+        return backend.SaveAsync(data)
+            .ContinueWithOnMainThread(task =>
+            {
+                var success = !task.IsFaulted && task.Result;
+                if (success)
+                    Debug.Log("[SaveManager] Saved to Firestore.");
+                return success;
+            });
+    }
+
+    /// <summary>비동기 로드. 로그인 안 됐으면 null.</summary>
+    public Task<SaveData> LoadAsync()
+    {
+        var backend = Backend;
+        if (backend == null)
+        {
+            Debug.Log("[SaveManager] Not logged in, skip load.");
+            return Task.FromResult<SaveData>(null);
+        }
+
+        return backend.LoadAsync()
+            .ContinueWithOnMainThread(task =>
+            {
+                var data = task.IsFaulted ? null : task.Result;
+                if (data != null)
+                    Debug.Log("[SaveManager] Loaded from Firestore.");
+                return data;
+            });
+    }
+
+    /// <summary>세이브 삭제. 디버그/테스트용.</summary>
+    public Task<bool> TryDeleteSaveAsync()
+    {
+        var backend = Backend;
+        if (backend == null) return Task.FromResult(false);
+        return backend.DeleteAsync();
     }
 }

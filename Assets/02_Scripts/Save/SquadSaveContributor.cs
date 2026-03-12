@@ -72,10 +72,9 @@ public class SquadSaveContributor : SaveContributorBehaviour
         }
         var playerChar = _squadController.PlayerCharacter ?? _squadController.DefaultPlayer;
 
-        // 2. 플레이어 위치 적용
+        // 2. 플레이어 회전 적용 (위치는 Initialize 시 spawnPos로 이미 반영됨)
         if (playerChar != null)
         {
-            playerChar.Teleport(data.squad.playerPosition);
             playerChar.transform.eulerAngles = new Vector3(0f, data.squad.playerRotationY, 0f);
         }
 

@@ -12,7 +12,7 @@ public class GameManager : Singleton<GameManager>
     [SerializeField] private CurrencyManager _currencyManager;
     [SerializeField] private GlobalSaveCoordinator _globalSaveCoordinator;
 
-    /// <summary>세이브 시점·API. ISaveHandler 등록·수집·적용, SaveSystem I/O.</summary>
+    /// <summary>세이브 시점·API. ISaveHandler 등록·수집·적용, Firestore I/O.</summary>
     public SaveManager SaveManager => GetOrCreate(ref _saveManager, "SaveManager");
     /// <summary>게임 데이터 preload·관리.</summary>
     public DataManager DataManager => GetOrCreate(ref _dataManager, "DataManager");

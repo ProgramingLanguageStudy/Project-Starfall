@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using Unity.Cinemachine;
 
@@ -63,8 +64,21 @@ public class PlayScene : MonoBehaviour
             _questPresenter,
             _inventoryPresenter?.Model);
 
-        // 세이브 선로드 → 스폰 위치 결정 → 스폰 (세이브 있으면 멤버 목록 기준으로 동료 포함 스폰)
-        _pendingSaveData = gm?.SaveManager?.Load();
+        if (_settingsView != null)
+            _settingsView.Initialize();
+
+        if (_cinemachineCamera != null)
+            _cinemachineCamera.gameObject.SetActive(false);
+
+        StartCoroutine(InitAfterLoadRoutine(gm));
+    }
+
+    private IEnumerator InitAfterLoadRoutine(GameManager gm)
+    {
+        var loadTask = gm?.SaveManager?.LoadAsync() ?? System.Threading.Tasks.Task.FromResult<SaveData>(null);
+        yield return new WaitUntil(() => loadTask.IsCompleted);
+
+        _pendingSaveData = loadTask.Result;
         var spawnPos = _pendingSaveData?.squad != null ? (Vector3?)_pendingSaveData.squad.playerPosition : null;
 
         _squadController.Initialize(spawnPos, _combatController, _pendingSaveData?.squad);
@@ -82,37 +96,30 @@ public class PlayScene : MonoBehaviour
             _questController.Initialize(_questPresenter.System, _inventoryPresenter.Model, _flagSystem, _squadController);
 
         if (_mapController != null)
-        {
             _mapController.Initialize(_portalController, player, _squadController);
-        }
 
         if (_portalController != null)
-        {
             _portalController.Initialize(_mapController.MapView, _flagSystem);
-        }
 
-        if (_settingsView != null)
-        {
-            _settingsView.Initialize();
-        }
-    }
-
-    private void Start()
-    {
-        // Apply는 Start에서. Awake 순서 미보장으로 Inventory.Initialize 전에 Apply될 수 있음.
         if (_pendingSaveData != null && GameManager.Instance?.SaveManager != null)
         {
             GameManager.Instance.SaveManager.ApplySaveData(_pendingSaveData);
             _pendingSaveData = null;
         }
+
+        HandlePlayerChanged(_squadController.PlayerCharacter);
+
+        if (_cinemachineCamera != null)
+            _cinemachineCamera.gameObject.SetActive(true);
     }
 
     private void OnEnable()
     {
         if (_inputHandler == null || _squadController == null) return;
 
+        GameManager.Instance?.SaveManager?.StartPeriodicSave();
+
         _squadController.OnPlayerChanged += HandlePlayerChanged;
-        HandlePlayerChanged(_squadController.PlayerCharacter);
 
         _inputHandler.OnInteractPerformed += HandleInteract;
         _inputHandler.OnInventoryPerformed += HandleInventoryKey;
@@ -128,6 +135,7 @@ public class PlayScene : MonoBehaviour
 
     private void OnDisable()
     {
+        GameManager.Instance?.SaveManager?.StopPeriodicSave();
         PlaySceneEventHub.Clear();
 
         if (_hpModelSubscribed != null)
@@ -230,9 +238,8 @@ public class PlayScene : MonoBehaviour
     /// <summary>플레이어 변경 시 chase/follow/인벤토리/체력바/카메라 등 갱신.</summary>
     private void HandlePlayerChanged(Character newPlayer)
     {
-        var chaseTarget = newPlayer != null ? newPlayer.transform : _squadController?.transform;
-        if (chaseTarget != null && _cinemachineCamera != null)
-            _cinemachineCamera.Follow = chaseTarget;
+        if (newPlayer != null && _cinemachineCamera != null)
+            _cinemachineCamera.Follow = newPlayer.transform;
         _inventoryPresenter?.SetPlayerCharacter(newPlayer);
 
         if (_hpModelSubscribed != null)
