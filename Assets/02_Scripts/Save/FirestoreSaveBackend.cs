@@ -9,7 +9,7 @@ using UnityEngine;
 /// <summary>
 /// Firestore 기반 세이브 백엔드. users/{userId}/save/save_slot0 문서에 JSON 저장.
 /// </summary>
-public class FirestoreSaveBackend
+public class FirestoreSaveBackend : ISaveBackend
 {
     private const string CollectionUsers = "users";
     private const string CollectionSave = "save";

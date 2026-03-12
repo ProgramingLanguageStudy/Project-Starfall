@@ -10,28 +10,37 @@ using UnityEditor;
 #endif
 
 /// <summary>
-/// 세이브 시점 제어 및 API 제공. ISaveHandler 등록·수집·적용, Firestore I/O.
+/// 세이브 시점 제어 및 API 제공. ISaveHandler 등록·수집·적용.
+/// 백엔드: 로그인 시 Firestore, 미로그인/에러 시 로컬 파일(Application.persistentDataPath).
 /// - Play 진입 시: LoadAsync 후 ApplySaveData.
 /// - 앱 종료: Application.wantsToQuit으로 저장 완료 대기.
 /// - 5분 주기 자동 저장.
-/// - 씬 전환(Play→Intro) 시 저장.
 /// </summary>
 public class SaveManager : MonoBehaviour
 {
     private const float PeriodicSaveIntervalSec = 300f; // 5분
 
     private readonly List<ISaveHandler> _handlers = new List<ISaveHandler>();
-    private FirestoreSaveBackend _backend;
+    private FirestoreSaveBackend _firestoreBackend;
+    private static readonly LocalSaveBackend _localBackend = new LocalSaveBackend();
     private Coroutine _periodicSaveCoroutine;
     private bool _isQuittingAfterSave;
 
-    private FirestoreSaveBackend Backend
+    private ISaveBackend Backend
     {
         get
         {
-            var user = FirebaseAuth.DefaultInstance?.CurrentUser;
-            if (user == null) return null;
-            return _backend ??= new FirestoreSaveBackend(user.UserId);
+            try
+            {
+                var user = FirebaseAuth.DefaultInstance?.CurrentUser;
+                if (user != null)
+                    return _firestoreBackend ??= new FirestoreSaveBackend(user.UserId);
+            }
+            catch (System.Exception e)
+            {
+                Debug.Log("[SaveManager] Firebase not ready, using local save: " + e.Message);
+            }
+            return _localBackend;
         }
     }
 
@@ -86,7 +95,6 @@ public class SaveManager : MonoBehaviour
     private bool OnWantsToQuit()
     {
         if (_isQuittingAfterSave) return true;
-        if (Backend == null) return true; // 로그인 안 됨, 저장할 것 없음
 
         var task = SaveAsyncInternal();
         StartCoroutine(QuitAfterSave(task));
@@ -152,7 +160,7 @@ public class SaveManager : MonoBehaviour
         }
     }
 
-    /// <summary>비동기 저장. 로그인 안 됐으면 스킵.</summary>
+    /// <summary>비동기 저장. 로그인 시 Firestore, 아니면 로컬.</summary>
     public Task<bool> SaveAsync()
     {
         return SaveAsyncInternal();
@@ -161,41 +169,32 @@ public class SaveManager : MonoBehaviour
     private Task<bool> SaveAsyncInternal()
     {
         var backend = Backend;
-        if (backend == null)
-        {
-            Debug.Log("[SaveManager] Not logged in, skip save.");
-            return Task.FromResult(false);
-        }
-
         var data = GatherSaveData();
         if (data == null) return Task.FromResult(false);
 
+        var isLocal = backend is LocalSaveBackend;
         return backend.SaveAsync(data)
             .ContinueWithOnMainThread(task =>
             {
                 var success = !task.IsFaulted && task.Result;
                 if (success)
-                    Debug.Log("[SaveManager] Saved to Firestore.");
+                    Debug.Log("[SaveManager] Saved to " + (isLocal ? "local" : "Firestore") + ".");
                 return success;
             });
     }
 
-    /// <summary>비동기 로드. 로그인 안 됐으면 null.</summary>
+    /// <summary>비동기 로드. 없으면 null(신규 플레이).</summary>
     public Task<SaveData> LoadAsync()
     {
         var backend = Backend;
-        if (backend == null)
-        {
-            Debug.Log("[SaveManager] Not logged in, skip load.");
-            return Task.FromResult<SaveData>(null);
-        }
+        var isLocal = backend is LocalSaveBackend;
 
         return backend.LoadAsync()
             .ContinueWithOnMainThread(task =>
             {
                 var data = task.IsFaulted ? null : task.Result;
                 if (data != null)
-                    Debug.Log("[SaveManager] Loaded from Firestore.");
+                    Debug.Log("[SaveManager] Loaded from " + (isLocal ? "local" : "Firestore") + ".");
                 return data;
             });
     }
@@ -203,8 +202,6 @@ public class SaveManager : MonoBehaviour
     /// <summary>세이브 삭제. 디버그/테스트용.</summary>
     public Task<bool> TryDeleteSaveAsync()
     {
-        var backend = Backend;
-        if (backend == null) return Task.FromResult(false);
-        return backend.DeleteAsync();
+        return Backend.DeleteAsync();
     }
 }
