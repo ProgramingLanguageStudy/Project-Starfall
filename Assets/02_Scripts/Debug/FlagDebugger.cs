@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text;
 using UnityEngine;
 
@@ -58,7 +59,14 @@ public class FlagDebugger : MonoBehaviour
             return;
         }
 
-        if (gm.SaveManager.TryDeleteSave())
+        StartCoroutine(DeleteSaveFileRoutine(gm));
+    }
+
+    private IEnumerator DeleteSaveFileRoutine(GameManager gm)
+    {
+        var task = gm.SaveManager.TryDeleteSaveAsync();
+        yield return new WaitUntil(() => task.IsCompleted);
+        if (task.Result)
             Debug.Log("[FlagDebugger] 세이브 파일 삭제 완료. 다음 플레이 시 새 게임으로 시작됩니다.");
         else
             Debug.Log("[FlagDebugger] 삭제할 세이브 파일이 없습니다.");

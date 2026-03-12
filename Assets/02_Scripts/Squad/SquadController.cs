@@ -45,7 +45,10 @@ public class SquadController : MonoBehaviour
         _combatController = combatController;
 
         var root = _squadRoot != null ? _squadRoot : transform;
-        var basePos = spawnPositionOverride ?? (_spawnPoint != null ? _spawnPoint.position : transform.position);
+        var defaultPos = _spawnPoint != null ? _spawnPoint.position : transform.position;
+        var basePos = spawnPositionOverride.HasValue && spawnPositionOverride.Value != Vector3.zero
+            ? spawnPositionOverride.Value
+            : defaultPos;
 
         if (squadSaveData != null && squadSaveData.members != null && squadSaveData.members.Count > 0)
             SpawnFromSaveData(basePos, root, squadSaveData);
