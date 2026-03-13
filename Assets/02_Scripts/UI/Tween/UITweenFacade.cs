@@ -3,73 +3,108 @@ using UnityEngine;
 using DG.Tweening;
 
 /// <summary>
-/// UI 등장/퇴장 퍼사드. 자기(및 자식)의 IUITweenBase를 찾아 PlayEnter/PlayExit로 일괄 재생.
-/// controlActive가 true면 SetActive도 담당. Tween 없으면 즉시 SetActive만 수행.
+/// UI 등장/퇴장 퍼사드. 프리셋(Panel/Toast) 또는 커스텀 수치로 Scale+Alpha 연출.
+/// controlActive면 SetActive도 담당.
 /// </summary>
+[RequireComponent(typeof(RectTransform))]
+[RequireComponent(typeof(CanvasGroup))]
 public class UITweenFacade : MonoBehaviour
 {
-    [Header("Auto")]
-    [SerializeField] bool playEnterOnStart;
-
     [Header("Visibility")]
     [Tooltip("true면 등장/퇴장 시 SetActive도 제어. false면 연출만.")]
     [SerializeField] bool controlActive = true;
 
-    IUITweenBase[] _tweens;
+    [Header("Preset")]
+    [Tooltip("체크 시 Role 기본 프리셋 사용. 해제 시 아래 커스텀 수치 사용.")]
+    [SerializeField] bool useDefaultPreset = true;
+    [SerializeField] UIRole role = UIRole.Panel;
+
+    [Header("Custom (Use Default 체크 해제 시 적용)")]
+    [SerializeField] float customDuration = 0.25f;
+    [SerializeField] Ease customEase = Ease.OutQuad;
+    [SerializeField] Vector3 customScaleFrom = new Vector3(0.9f, 0.9f, 1f);
+    [SerializeField] Vector3 customScaleTo = Vector3.one;
+    [SerializeField] float customAlphaFrom = 0f;
+    [SerializeField] float customAlphaTo = 1f;
+
+    RectTransform _rect;
+    CanvasGroup _canvasGroup;
 
     void Awake()
     {
-        RefreshTweens();
+        EnsureCached();
     }
 
-    void Start()
+    /// <summary>비활성 오브젝트는 Awake가 늦게 호출될 수 있음. PlayEnter/Exit 전 보장.</summary>
+    void EnsureCached()
     {
-        if (playEnterOnStart)
-            PlayEnter();
+        if (_rect == null)
+        {
+            _rect = GetComponent<RectTransform>();
+            _canvasGroup = GetComponent<CanvasGroup>();
+        }
     }
 
-    /// <summary>수집 후 재생 전에 호출 가능. Runtime에 자식이 바뀌면 재호출.</summary>
-    public void RefreshTweens()
+    UIPresetData GetActivePreset()
     {
-        _tweens = GetComponentsInChildren<IUITweenBase>(true);
+        if (useDefaultPreset)
+        {
+            return role switch
+            {
+                UIRole.Title => TitlePreset.Data,
+                UIRole.Panel => PanelPreset.Data,
+                UIRole.Toast => ToastPreset.Data,
+                _ => PanelPreset.Data
+            };
+        }
+        return new UIPresetData
+        {
+            Duration = customDuration,
+            Ease = customEase,
+            ScaleFrom = customScaleFrom,
+            ScaleTo = customScaleTo,
+            AlphaFrom = customAlphaFrom,
+            AlphaTo = customAlphaTo
+        };
     }
 
-    /// <summary>등장. controlActive면 SetActive(true) 후 연출. Tween 없으면 SetActive만.</summary>
-    public void PlayEnter()
+    /// <summary>등장. controlActive면 SetActive(true) 후 연출.</summary>
+    /// <param name="onComplete">연출 완료 후 호출. Title은 등장+Punch 후 호출.</param>
+    public void PlayEnter(Action onComplete = null)
     {
+        EnsureCached();
         if (controlActive)
             gameObject.SetActive(true);
 
-        if (_tweens == null || _tweens.Length == 0)
-            return;
+        var p = GetActivePreset();
+        _rect.localScale = p.ScaleFrom;
+        _canvasGroup.alpha = p.AlphaFrom;
 
         var seq = DOTween.Sequence();
-        foreach (var t in _tweens)
+        seq.Join(_rect.DOScale(p.ScaleTo, p.Duration).SetEase(p.Ease));
+        seq.Join(_canvasGroup.DOFade(p.AlphaTo, p.Duration).SetEase(p.Ease));
+
+        if (useDefaultPreset && role == UIRole.Title)
         {
-            if (t != null)
-                seq.Join(t.PlayForward());
+            seq.Append(_rect.DOPunchScale(Vector3.one * TitlePreset.PunchStrength, TitlePreset.PunchDuration, 4, 0.5f));
         }
+
+        seq.OnComplete(() => onComplete?.Invoke());
         seq.Play();
     }
 
-    /// <summary>퇴장. 연출 후 controlActive면 SetActive(false). Tween 없으면 즉시 SetActive(false).</summary>
-    /// <param name="onComplete">퇴장 완료 후 호출 (연출 있으면 연출 끝난 뒤, 없으면 즉시).</param>
+    /// <summary>퇴장. 연출 후 controlActive면 SetActive(false).</summary>
+    /// <param name="onComplete">퇴장 완료 후 호출.</param>
     public void PlayExit(Action onComplete = null)
     {
-        if (_tweens == null || _tweens.Length == 0)
-        {
-            if (controlActive)
-                gameObject.SetActive(false);
-            onComplete?.Invoke();
-            return;
-        }
+        EnsureCached();
+        var p = GetActivePreset();
+        _rect.localScale = p.ScaleTo;
+        _canvasGroup.alpha = p.AlphaTo;
 
         var seq = DOTween.Sequence();
-        foreach (var t in _tweens)
-        {
-            if (t != null)
-                seq.Join(t.PlayReverse());
-        }
+        seq.Join(_rect.DOScale(p.ScaleFrom, p.Duration).SetEase(p.Ease));
+        seq.Join(_canvasGroup.DOFade(p.AlphaFrom, p.Duration).SetEase(p.Ease));
         seq.OnComplete(() =>
         {
             if (controlActive)
