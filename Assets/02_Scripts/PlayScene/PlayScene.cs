@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using Unity.Cinemachine;
@@ -40,6 +41,9 @@ public class PlayScene : MonoBehaviour
 
     private CharacterModel _hpModelSubscribed;
     private SaveData _pendingSaveData;
+
+    /// <summary>씬 초기화 완료 시 발생. SceneLoadManager가 로딩 UI 숨김용으로 구독.</summary>
+    public static event Action OnSceneReady;
 
     private void Awake()
     {
@@ -115,6 +119,8 @@ public class PlayScene : MonoBehaviour
 
         if (_cinemachineCamera != null)
             _cinemachineCamera.gameObject.SetActive(true);
+
+        OnSceneReady?.Invoke();
     }
 
     private void OnEnable()

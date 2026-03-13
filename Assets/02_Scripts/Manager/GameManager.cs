@@ -9,13 +9,19 @@ public class GameManager : Singleton<GameManager>
     [Header("Managers (선택: 인스펙터 할당. 없으면 런타임 생성)")]
     [SerializeField] private SaveManager _saveManager;
     [SerializeField] private DataManager _dataManager;
+    [SerializeField] private ResourceManager _resourceManager;
     [SerializeField] private CurrencyManager _currencyManager;
     [SerializeField] private GlobalSaveCoordinator _globalSaveCoordinator;
+    [SerializeField] private SceneLoadManager _sceneLoadManager;
 
     /// <summary>세이브 시점·API. ISaveHandler 등록·수집·적용, Firestore I/O.</summary>
     public SaveManager SaveManager => GetOrCreate(ref _saveManager, "SaveManager");
     /// <summary>게임 데이터 preload·관리.</summary>
     public DataManager DataManager => GetOrCreate(ref _dataManager, "DataManager");
+    /// <summary>프리팹 등 Addressables 로드.</summary>
+    public ResourceManager ResourceManager => GetOrCreate(ref _resourceManager, "ResourceManager");
+    /// <summary>씬 전환 로딩 (DataManager, ResourceManager, Play).</summary>
+    public SceneLoadManager SceneLoadManager => GetOrCreate(ref _sceneLoadManager, "SceneLoadManager");
     /// <summary>계정 귀속 재화(골드) 관리.</summary>
     public CurrencyManager CurrencyManager => GetOrCreate(ref _currencyManager, "CurrencyManager");
     /// <summary>계정 귀속 데이터(골드 등) 세이브 조율.</summary>
@@ -27,8 +33,10 @@ public class GameManager : Singleton<GameManager>
         DontDestroyOnLoad(gameObject);
         var _ = SaveManager;
         var __ = DataManager;
-        var ___ = CurrencyManager;
-        var ____ = GlobalSaveCoordinator;
+        var ___ = ResourceManager;
+        var ____ = CurrencyManager;
+        var _____ = GlobalSaveCoordinator;
+        var ______ = SceneLoadManager;
     }
 
     /// <summary>매니저가 없으면 자식 오브젝트에서 찾거나, 없으면 생성해서 붙임.</summary>
