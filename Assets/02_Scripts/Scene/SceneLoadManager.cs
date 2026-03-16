@@ -9,51 +9,94 @@ using UnityEngine.SceneManagement;
 public class SceneLoadManager : MonoBehaviour
 {
     [SerializeField] private SceneTransitionLoadingView _loadingView;
-    [SerializeField] [Tooltip("ResourceManager Preload에 쓸 라벨")]
-    private string _prefabLabel = "Prefab";
+
+    #region Lifecycle
+
+    private void Start()
+    {
+        IntroScene.OnSceneReady += HandleIntroSceneReady;
+    }
 
     private void OnDestroy()
     {
-        PlayScene.OnSceneReady -= HandleSceneReady;
+        PlayScene.OnSceneReady -= HandlePlaySceneReady;
+        IntroScene.OnSceneReady -= HandleIntroSceneReady;
     }
 
-    /// <summary>씬 로드 (DataManager, ResourceManager, Play 씬). 로딩 UI는 OnSceneReady 후 숨김.</summary>
+    private void HandleIntroSceneReady()
+    {
+        _loadingView?.Hide();
+    }
+
+    #endregion
+
+    #region Load (백그라운드)
+
+    /// <summary>Boot에서 호출. DM·RM을 백그라운드로 로드. Intro 진입 후에도 계속 진행.</summary>
+    public void BeginLoad()
+    {
+        StartCoroutine(LoadRoutine());
+    }
+
+    private IEnumerator LoadRoutine()
+    {
+        var gm = GameManager.Instance;
+        var dm = gm?.DataManager;
+        var rm = gm?.ResourceManager;
+        if (dm != null)
+            yield return dm.LoadAsync(null);
+        if (rm != null)
+            yield return rm.LoadAsync(null);
+    }
+
+    #endregion
+
+    /// <summary>Boot→Intro 시 전환 뷰를 켜서 화면 가림. Intro 준비 시 OnSceneReady로 자동 Hide.</summary>
+    public void ShowTransitionView()
+    {
+        _loadingView?.Show(false);
+    }
+
+    #region Load Play
+
+    /// <summary>씬 로드 (Data·Resource 준비 + Play 씬). 로딩 UI는 OnSceneReady 후 숨김. 이미 Boot에서 로드된 항목은 스킵.</summary>
     public void LoadPlayScene()
     {
-        StartCoroutine(LoadPlaySceneRoutine());
+        StartCoroutine(LoadPlayRoutine());
     }
 
-    private IEnumerator LoadPlaySceneRoutine()
+    private IEnumerator LoadPlayRoutine()
     {
-        _loadingView?.Show();
+        _loadingView?.Show(true);
         _loadingView?.UpdateProgress(0f, "준비중...");
 
         var gm = GameManager.Instance;
         var dm = gm?.DataManager;
         var rm = gm?.ResourceManager;
 
-        if (dm != null)
+        if (dm != null && !dm.IsLoaded)
         {
-            yield return dm.InitializeAsync((progress, status) =>
+            yield return dm.LoadAsync((progress, status) =>
             {
                 _loadingView?.UpdateProgress(progress * 0.5f, status);
             });
         }
         else
         {
+            _loadingView?.UpdateProgress(0.5f, "Data 준비됨");
             yield return null;
         }
 
-        _loadingView?.UpdateProgress(0.5f, "ResourceManager 로드중...");
+        _loadingView?.UpdateProgress(0.5f, rm != null && rm.IsLoaded() ? "Resource 준비됨" : "Resource 로드중...");
 
-        if (rm != null)
+        if (rm != null && !rm.IsLoaded())
         {
-            yield return rm.PreloadByLabelAsync(_prefabLabel, (progress, status) =>
+            yield return rm.LoadAsync((progress, status) =>
             {
                 _loadingView?.UpdateProgress(0.5f + progress * 0.5f, status);
             });
         }
-        else
+        else if (rm == null)
         {
             _loadingView?.UpdateProgress(1f, "ResourceManager 없음");
             yield return null;
@@ -69,13 +112,15 @@ public class SceneLoadManager : MonoBehaviour
         _loadingView?.UpdateProgress(1f, "로드 완료");
         yield return new WaitForSeconds(0.3f);
 
-        PlayScene.OnSceneReady += HandleSceneReady;
+        PlayScene.OnSceneReady += HandlePlaySceneReady;
         loadOp.allowSceneActivation = true;
     }
 
-    private void HandleSceneReady()
+    private void HandlePlaySceneReady()
     {
-        PlayScene.OnSceneReady -= HandleSceneReady;
+        PlayScene.OnSceneReady -= HandlePlaySceneReady;
         _loadingView?.Hide();
     }
+
+    #endregion
 }

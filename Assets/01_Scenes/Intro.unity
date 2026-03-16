@@ -1512,14 +1512,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac355c6e51a8df64b8ce7308a79dd3f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _backgroundImage: {fileID: 0}
+  _backgroundImage: {fileID: 1660059533}
   _titleView: {fileID: 1096951136}
   _loginView: {fileID: 165325213}
   _errorView: {fileID: 2102363432}
   _mainView: {fileID: 1098854549}
   _loadingView: {fileID: 1158095514}
-  _transitionDuration: 1.2
-  _transitionScaleEnd: 1.2
+  _transitionDuration: 2
+  _transitionScaleEnd: 3
 --- !u!114 &542088126
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5316,7 +5316,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneLoadManager
   _loadingView: {fileID: 0}
-  _prefabLabel: Prefab
 --- !u!114 &1953237249
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5821,6 +5820,8 @@ GameObject:
   - component: {fileID: 2328355875206295041}
   - component: {fileID: 7789171227133865303}
   - component: {fileID: 1085420319647748987}
+  - component: {fileID: 7789171227133865305}
+  - component: {fileID: 7789171227133865304}
   m_Layer: 5
   m_Name: GameStartButton
   m_TagString: Untagged
@@ -6060,6 +6061,43 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &7789171227133865304
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313897535691643960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d80a68a3b01ae9e47b48e03a9921b2a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIIdlePulse
+  _usePreset: 1
+  _useGlowPreset: 1
+  _custom:
+    ScaleMin: 1
+    ScaleMax: 1.06
+    Duration: 0.9
+    Ease: 4
+    OutlineAlphaMin: 0
+    OutlineAlphaMax: 0
+  _outline: {fileID: 7789171227133865305}
+--- !u!114 &7789171227133865305
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 313897535691643960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
+  m_EffectColor: {r: 0, g: 0, b: 0, a: 0.5}
+  m_EffectDistance: {x: 1, y: -1}
+  m_UseGraphicAlpha: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

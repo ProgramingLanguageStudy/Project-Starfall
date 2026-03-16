@@ -17,6 +17,10 @@ public class CharacterData : ScriptableObject
     [Tooltip("스폰용 프리팹. 씬 배치 캐릭터도 세이브·로드 시 이 프리팹 기준 인스턴스 제어")]
     public GameObject prefab;
 
+    [Header("UI")]
+    [Tooltip("분대 프로필 등에 사용할 초상화 아이콘")]
+    public Sprite portrait;
+
     [Header("생존")]
     [Tooltip("최대 체력")]
     public int maxHp = 100;

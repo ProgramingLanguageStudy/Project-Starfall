@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Unity.Cinemachine;
 
@@ -81,15 +82,18 @@ public class PlayScene : MonoBehaviour
     {
         // DataManager 미초기화 시 선로드 (Play 씬 직접 진입 대응)
         if (gm?.DataManager != null && !gm.DataManager.IsLoaded)
-            gm.DataManager.Initialize();
+            gm.DataManager.Load();
 
         var loadTask = gm?.SaveManager?.LoadAsync() ?? System.Threading.Tasks.Task.FromResult<SaveData>(null);
         yield return new WaitUntil(() => loadTask.IsCompleted);
 
         _pendingSaveData = loadTask.Result;
-        var spawnPos = _pendingSaveData?.squad != null ? (Vector3?)_pendingSaveData.squad.playerPosition : null;
 
-        _squadController.Initialize(spawnPos, _combatController, _pendingSaveData?.squad);
+        // 분대 컨트롤러는 CombatController 등 의존성만 먼저 주입.
+        _squadController.Initialize(_combatController);
+
+        // 분대 프로필 UI 바인딩 (슬롯 고정, 빈 칸 유지)
+        _playSceneView?.BindSquad(_squadController.Characters);
 
         _npcController?.Initialize();
 
@@ -130,6 +134,7 @@ public class PlayScene : MonoBehaviour
         GameManager.Instance?.SaveManager?.StartPeriodicSave();
 
         _squadController.OnPlayerChanged += HandlePlayerChanged;
+        _squadController.OnMembersChanged += RefreshSquadProfileView;
 
         _inputHandler.OnInteractPerformed += HandleInteract;
         _inputHandler.OnInventoryPerformed += HandleInventoryKey;
@@ -154,7 +159,10 @@ public class PlayScene : MonoBehaviour
             _hpModelSubscribed = null;
         }
         if (_squadController != null)
+        {
             _squadController.OnPlayerChanged -= HandlePlayerChanged;
+            _squadController.OnMembersChanged -= RefreshSquadProfileView;
+        }
         if (_inputHandler == null) return;
 
         _inputHandler.OnInteractPerformed -= HandleInteract;
@@ -261,10 +269,28 @@ public class PlayScene : MonoBehaviour
             _hpModelSubscribed.OnHpChanged += OnHpChanged;
             _playSceneView?.RefreshHealth(_hpModelSubscribed.CurrentHp, _hpModelSubscribed.MaxHp);
         }
+
+        // 분대 프로필 선택 강조 (슬롯 인덱스 기준)
+        if (_squadController != null && _playSceneView != null)
+        {
+            int slot = newPlayer != null ? _squadController.Squad.GetSlotOf(newPlayer) : -1;
+            _playSceneView.SetSelectedProfileIndex(slot);
+        }
     }
 
     private void OnHpChanged(int currentHp, int maxHp)
     {
         _playSceneView?.RefreshHealth(currentHp, maxHp);
+    }
+
+    /// <summary>분대원 추가/제거 시 프로필 슬롯 다시 바인딩. 이벤트로 받은 슬롯 배열로 뷰 설정.</summary>
+    private void RefreshSquadProfileView(IReadOnlyList<Character> slots)
+    {
+        if (_playSceneView == null) return;
+        _playSceneView.BindSquad(slots);
+        int slot = _squadController.PlayerCharacter != null
+            ? _squadController.Squad.GetSlotOf(_squadController.PlayerCharacter)
+            : -1;
+        _playSceneView.SetSelectedProfileIndex(slot);
     }
 }

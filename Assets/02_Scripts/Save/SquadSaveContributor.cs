@@ -36,13 +36,16 @@ public class SquadSaveContributor : SaveContributorBehaviour
             }
         }
 
-        foreach (var c in _squadController.Characters)
+        var slots = _squadController.Characters;
+        for (int slot = 0; slot < Squad.SlotCount; slot++)
         {
+            var c = slot < slots.Count ? slots[slot] : null;
             if (c == null || c.Model?.Data == null) continue;
             var m = new CharacterMemberData();
             var id = c.Model.Data.characterId;
             m.characterId = !string.IsNullOrEmpty(id) ? id : c.Model.Data.displayName;
             m.currentHp = c.Model.CurrentHp;
+            m.slotIndex = slot;
             data.squad.members.Add(m);
         }
     }
@@ -52,50 +55,7 @@ public class SquadSaveContributor : SaveContributorBehaviour
         if (data?.squad == null) return;
         if (_squadController == null) return;
 
-        // 1. 조종 대상 전환
-        Character targetPlayer = null;
-        if (!string.IsNullOrEmpty(data.squad.currentPlayerId))
-        {
-            foreach (var c in _squadController.Characters)
-            {
-                if (c?.Model?.Data == null) continue;
-                var id = c.Model.Data.characterId;
-                var name = c.Model.Data.displayName;
-                if (data.squad.currentPlayerId == id || data.squad.currentPlayerId == name)
-                {
-                    targetPlayer = c;
-                    break;
-                }
-            }
-            if (targetPlayer != null && targetPlayer != _squadController.PlayerCharacter)
-                _squadController.SetPlayerCharacter(targetPlayer);
-        }
-        var playerChar = _squadController.PlayerCharacter ?? _squadController.DefaultPlayer;
-
-        // 2. 플레이어 회전 적용 (위치는 Initialize 시 spawnPos로 이미 반영됨)
-        if (playerChar != null)
-        {
-            playerChar.transform.eulerAngles = new Vector3(0f, data.squad.playerRotationY, 0f);
-        }
-
-        // 3. 동료들을 플레이어 주위로 재배치
-        _squadController.RepositionCompanionsAround(playerChar != null ? playerChar.transform : null);
-
-        // 4. 멤버별 체력 적용
-        foreach (var m in data.squad.members)
-        {
-            if (string.IsNullOrEmpty(m.characterId)) continue;
-            foreach (var c in _squadController.Characters)
-            {
-                if (c?.Model?.Data == null) continue;
-                var id = c.Model.Data.characterId;
-                var name = c.Model.Data.displayName;
-                if (m.characterId == id || m.characterId == name)
-                {
-                    c.Model.SetCurrentHpForLoad(m.currentHp);
-                    break;
-                }
-            }
-        }
+        // SquadController가 세이브 데이터 전체를 적용하도록 위임.
+        _squadController.ApplySaveData(data.squad);
     }
 }

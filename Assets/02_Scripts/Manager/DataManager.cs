@@ -25,16 +25,18 @@ public class DataManager : MonoBehaviour
 
     public bool IsLoaded { get; private set; }
 
-    /// <summary>동기 초기화. Data 라벨로 일괄 로드 후 타입별 분류.</summary>
-    public void Initialize()
+    #region Load
+
+    /// <summary>동기 로드. Data 라벨로 일괄 로드 후 타입별 분류.</summary>
+    public void Load()
     {
         if (IsLoaded) return;
         LoadAllByLabel();
         IsLoaded = true;
     }
 
-    /// <summary>비동기 초기화. LoadAssetsAsync 일괄 로드 후 타입별 분류. 진행률 콜백 지원.</summary>
-    public IEnumerator InitializeAsync(Action<float, string> onProgress = null)
+    /// <summary>비동기 로드. 진행률 콜백 지원. 이미 로드됐으면 스킵.</summary>
+    public IEnumerator LoadAsync(Action<float, string> onProgress = null)
     {
         if (IsLoaded) yield break;
 
@@ -59,7 +61,7 @@ public class DataManager : MonoBehaviour
         }
 
         IsLoaded = true;
-        onProgress?.Invoke(1f, "DataManager 로드 완료");
+        onProgress?.Invoke(1f, "Data 로드 완료");
     }
 
     private void LoadAllByLabel()
@@ -81,6 +83,10 @@ public class DataManager : MonoBehaviour
 
         IsLoaded = true;
     }
+
+    #endregion
+
+    #region Cache (내부)
 
     private void ClearCaches()
     {
@@ -154,6 +160,10 @@ public class DataManager : MonoBehaviour
         }
     }
 
+    #endregion
+
+    #region Query
+
     public CharacterData GetCharacterData(string characterId)
     {
         if (string.IsNullOrEmpty(characterId)) return null;
@@ -182,4 +192,6 @@ public class DataManager : MonoBehaviour
         if (!IsLoaded) LoadAllByLabel();
         return _dialoguesByNpcId.TryGetValue(npcId, out var list) ? list : Array.Empty<DialogueData>();
     }
+
+    #endregion
 }

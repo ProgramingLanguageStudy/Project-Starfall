@@ -8,4 +8,6 @@ public class CharacterMemberData
 {
     public string characterId = "";
     public int currentHp;
+    /// <summary>UI 슬롯 인덱스 (0~3). 로드 시 해당 슬롯에 배치.</summary>
+    public int slotIndex;
 }

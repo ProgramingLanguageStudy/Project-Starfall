@@ -194,8 +194,16 @@ public class SaveManager : MonoBehaviour
             {
                 var data = task.IsFaulted ? null : task.Result;
                 if (data != null)
+                {
                     Debug.Log("[SaveManager] Loaded from " + (isLocal ? "local" : "Firestore") + ".");
-                return data;
+                    return data;
+                }
+
+                // 저장 데이터가 전혀 없을 때: 디폴트 SaveData 생성 (로컬 신규 플레이용).
+                // 기본 분대: Celeste 한 명, 슬롯 0, 위치 (63, 3, 63), 회전 0.
+                var defaultData = CreateDefaultSaveData();
+                Debug.Log("[SaveManager] No save found. Using default SaveData (local).");
+                return defaultData;
             });
     }
 
@@ -203,5 +211,27 @@ public class SaveManager : MonoBehaviour
     public Task<bool> TryDeleteSaveAsync()
     {
         return Backend.DeleteAsync();
+    }
+
+    /// <summary>저장 데이터가 없을 때 사용할 디폴트 SaveData 생성.</summary>
+    private SaveData CreateDefaultSaveData()
+    {
+        var data = new SaveData();
+
+        // Squad 기본값: Celeste 한 명, 플레이어 = Celeste, 슬롯 0, 위치 (63,3,63)
+        data.squad.currentPlayerId = "Celeste";
+        data.squad.playerPosition = new Vector3(63f, 3f, 63f);
+        data.squad.playerRotationY = 0f;
+
+        var member = new CharacterMemberData
+        {
+            characterId = "Celeste",
+            currentHp = 100,    // HP는 로드 후 CharacterModel 기본값/로직에 맡김
+            slotIndex = 0
+        };
+        data.squad.members.Add(member);
+
+        // 다른 섹션(flags, quests, inventory, gold)은 SaveData 생성자 기본값 사용
+        return data;
     }
 }

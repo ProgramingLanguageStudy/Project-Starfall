@@ -8,6 +8,9 @@ public class IntroScene : MonoBehaviour
 
     private IntroAuthService _authService;
 
+    /// <summary>씬 첫 프레임 표시 후 발생. Boot→Intro 시 전환 뷰 숨김에 사용.</summary>
+    public static event Action OnSceneReady;
+
     private void Start()
     {
         _authService = new IntroAuthService();
@@ -37,7 +40,11 @@ public class IntroScene : MonoBehaviour
         var authHasUser = false;
         var authError = (string)null;
 
+        OnSceneReady?.Invoke();
         _introSceneView.ShowTitle(() => titleDone = true);
+        yield return new WaitUntil(() => titleDone);
+        yield return null;
+        
         StartCoroutine(_authService.InitializeAsync(
             (p, s) => _introSceneView.UpdateProgress(p, s),
             (success, hasUser, errorMessage) =>
@@ -47,8 +54,6 @@ public class IntroScene : MonoBehaviour
                 authHasUser = hasUser;
                 authError = errorMessage;
             }));
-
-        yield return new WaitUntil(() => titleDone);
 
         void ApplyAuthResult()
         {

@@ -15,6 +15,7 @@ MonoBehaviour:
   displayName: Celeste
   characterId: celeste
   prefab: {fileID: 1088137518137199013, guid: b8e48d3a0df71aa41b349d48cb028611, type: 3}
+  portrait: {fileID: 21300000, guid: 0ae65192ecfcbfe4ca16627988079628, type: 3}
   maxHp: 100
   moveSpeed: 6
   attackPower: 10

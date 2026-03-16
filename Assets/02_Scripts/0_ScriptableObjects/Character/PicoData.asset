@@ -15,6 +15,7 @@ MonoBehaviour:
   displayName: Pico
   characterId: pico
   prefab: {fileID: 2584634390335461423, guid: 3934ac8e6541df64ba4a13fe3ebd7804, type: 3}
+  portrait: {fileID: 21300000, guid: fdf18418c0edf83478ba6e6147be059f, type: 3}
   maxHp: 100
   moveSpeed: 6
   attackPower: 10
