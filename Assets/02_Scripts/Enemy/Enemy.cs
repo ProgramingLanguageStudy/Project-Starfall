@@ -4,37 +4,28 @@ using UnityEngine.AI;
 
 /// <summary>
 /// Enemy = Model 보유 컨테이너. 전투 판단·상태 전환은 StateMachine. 팀 전투 공유는 OnEnteringCombat.
+/// Character처럼 RequireComponent + GetComponent 방식.
 /// </summary>
 [RequireComponent(typeof(EnemyModel)), RequireComponent(typeof(EnemyAnimator)), RequireComponent(typeof(EnemyMover)),
- RequireComponent(typeof(EnemyAggro)), RequireComponent(typeof(EnemyDetector))]
+ RequireComponent(typeof(EnemyAggro)), RequireComponent(typeof(EnemyDetector)),
+ RequireComponent(typeof(EnemyStateMachine)), RequireComponent(typeof(EnemyAttacker))]
 public class Enemy : MonoBehaviour
 {
-    [Header("----- 부품 (인스펙터에서 연결) -----")]
-    [SerializeField] [Tooltip("스탯·체력. Data 기반. 전투/체력바에서 참조")]
     private EnemyModel _model;
-    [SerializeField] [Tooltip("이동 제어. 속도·정지·목표 설정")]
     private EnemyMover _mover;
-    [SerializeField] [Tooltip("애니메이션 제어. Idle/Patrol/Chase/Attack/Dead 트리거")]
     private EnemyAnimator _enemyAnimator;
-    [SerializeField] [Tooltip("공격. HitboxController 히트/데미지. 있으면 Start 시 Model 주입")]
     private EnemyAttacker _attacker;
-    [SerializeField] [Tooltip("상태머신. 있으면 Start 시 자기 자신 주입")]
     private EnemyStateMachine _stateMachine;
-    [SerializeField] [Tooltip("머리 위 체력바. 자식 등에서 연결, Start 시 Model 주입")]
-    private WorldHealthBarView _healthBarView;
-    [SerializeField] [Tooltip("탐지. 반경 내 Character 감지, 이벤트 발행")]
+    private EnemyAggro _aggro;
     private EnemyDetector _detector;
+    private WorldHealthBarView _healthBarView;
+    private NavMeshAgent _agent;
+    private Animator _animator;
 
     /// <summary>전투 진입 시 발행. 팀이 구독해 나머지 멤버에게 전달. triggerCharacter→Squad.Player 해석.</summary>
     public event Action<Character> OnEnteringCombat;
     /// <summary>소멸 직전 발행. 팀이 구독해 등록 해제.</summary>
     public event Action<Enemy> OnDestroyed;
-
-    [Header("----- 주입용 참조 -----")]
-    [SerializeField] [Tooltip("NavMesh 이동. Mover 초기화 시 주입")]
-    private NavMeshAgent _agent;
-    [SerializeField] [Tooltip("Unity Animator. EnemyAnimator 초기화 시 주입")]
-    private Animator _animator;
 
     public EnemyModel Model => _model;
     public EnemyMover Mover => _mover;
@@ -45,9 +36,6 @@ public class Enemy : MonoBehaviour
 
     /// <summary>전투 중 추적 대상의 Squad. 플레이어 도주 판단·OnPlayerChanged 구독용.</summary>
     public Squad CombatSquad { get; private set; }
-
-    [SerializeField] [Tooltip("전투 관련 유틸. 플레이어 도주 판단 등")]
-    private EnemyAggro _aggro;
 
     /// <summary>전투 진입/이탈 알림. StateMachine이 호출. CombatController에 등록/해제.</summary>
     public void NotifyCombatStateChanged(bool inCombat)
@@ -114,7 +102,18 @@ public class Enemy : MonoBehaviour
         _stateMachine?.SetChaseTarget(target);
     }
 
-    private void Awake()
+    private void Update()
+    {
+        // 모델이 죽어있는데 상태가 Dead가 아니라면 강제로 전환
+        if (_model != null && _model.IsDead && _stateMachine != null && _stateMachine.CurrentStateKey != EnemyStateMachine.EnemyState.Dead)
+        {
+            _stateMachine.ChangeState(EnemyStateMachine.EnemyState.Dead);
+            return;
+        }
+    }
+
+    /// <summary>Spawner가 스폰 시 호출. 풀링 시 재사용 전에도 호출.</summary>
+    public void Initialize()
     {
         if (_model == null) _model = GetComponent<EnemyModel>();
         if (_aggro == null) _aggro = GetComponent<EnemyAggro>();
@@ -125,22 +124,8 @@ public class Enemy : MonoBehaviour
         if (_mover == null) _mover = GetComponent<EnemyMover>();
         if (_attacker == null) _attacker = GetComponent<EnemyAttacker>();
         if (_enemyAnimator == null) _enemyAnimator = GetComponent<EnemyAnimator>();
-        if (_animator == null) _animator = GetComponent<Animator>();
-    }
+        if (_animator == null) _animator = GetComponentInChildren<Animator>();
 
-    private void Update()
-    {
-        // 모델이 죽어있는데 상태가 Dead가 아니라면 강제로 전환
-        if (_model != null && _model.IsDead && _stateMachine.CurrentStateKey != EnemyStateMachine.EnemyState.Dead)
-        {
-            _stateMachine.ChangeState(EnemyStateMachine.EnemyState.Dead);
-            return;
-        }
-    }
-
-    /// <summary>Spawner가 스폰 시 호출. 풀링 시 재사용 전에도 호출.</summary>
-    public void Initialize()
-    {
         _model?.Initialize();
         _aggro?.Initialize(_model);
         _detector?.Initialize(_model);

@@ -278,6 +278,8 @@ SkinnedMeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -299,9 +301,11 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
@@ -530,7 +534,6 @@ MonoBehaviour:
   _animator: {fileID: 7689840444072217521}
   _aggro: {fileID: 8077997873504499615}
   _destroyDelay: 3
-  _dropPrefab: {fileID: 5455539541645617507, guid: fcf67d2efae723143b00e005a436e2a6, type: 3}
 --- !u!114 &4079789302513656771
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1407,9 +1410,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7752823330792974670}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.5010109, y: -0.49898714, z: -0.50101084, w: 0.49898708}
-  m_LocalPosition: {x: 0.000000007482031, y: 0.02546679, z: -0.003076944}
-  m_LocalScale: {x: 2.5400002, y: 2.54, z: 2.54}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5386504120116450409}

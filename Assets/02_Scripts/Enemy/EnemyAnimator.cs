@@ -2,8 +2,8 @@ using UnityEngine;
 
 /// <summary>
 /// Enemy Animator 래퍼. 상태 전환 시 AnimatorParams 트리거(Idle, Patrol, Chase, Attack, Dead)로 애니 재생.
+/// Animator는 자식(모델링)에 둠. Character와 동일 구조.
 /// </summary>
-[RequireComponent(typeof(Animator))]
 public class EnemyAnimator : MonoBehaviour
 {
     private Animator _animator;
