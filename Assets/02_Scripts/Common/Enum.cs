@@ -19,3 +19,17 @@ public enum DialogueType
     Common,
     Affection,
 }
+
+/// <summary>EffectManager.Play용. RM Effect/ 경로와 매핑.</summary>
+public enum EffectType
+{
+    Hit,         // 타격 이펙트
+    AttackSlash, // 공격 스윙
+}
+
+/// <summary>SoundManager.Play용.</summary>
+public enum SoundType
+{
+    Hit,
+    Attack,
+}

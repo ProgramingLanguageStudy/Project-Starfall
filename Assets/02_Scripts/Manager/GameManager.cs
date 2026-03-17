@@ -13,6 +13,9 @@ public class GameManager : Singleton<GameManager>
     [SerializeField] private CurrencyManager _currencyManager;
     [SerializeField] private GlobalSaveCoordinator _globalSaveCoordinator;
     [SerializeField] private SceneLoadManager _sceneLoadManager;
+    [SerializeField] private PoolManager _poolManager;
+    [SerializeField] private EffectManager _effectManager;
+    [SerializeField] private SoundManager _soundManager;
 
     /// <summary>세이브 시점·API. ISaveHandler 등록·수집·적용, Firestore I/O.</summary>
     public SaveManager SaveManager => GetOrCreate(ref _saveManager, "SaveManager");
@@ -26,6 +29,12 @@ public class GameManager : Singleton<GameManager>
     public CurrencyManager CurrencyManager => GetOrCreate(ref _currencyManager, "CurrencyManager");
     /// <summary>계정 귀속 데이터(골드 등) 세이브 조율.</summary>
     public GlobalSaveCoordinator GlobalSaveCoordinator => GetOrCreate(ref _globalSaveCoordinator, "GlobalSaveCoordinator");
+    /// <summary>오브젝트 풀링. 프리팹별 Pool 보유.</summary>
+    public PoolManager PoolManager => GetOrCreate(ref _poolManager, "PoolManager");
+    /// <summary>이펙트 재생. Play, ShowDamageNumber. RM+Pool 연동.</summary>
+    public EffectManager EffectManager => GetOrCreate(ref _effectManager, "EffectManager");
+    /// <summary>사운드 재생.</summary>
+    public SoundManager SoundManager => GetOrCreate(ref _soundManager, "SoundManager");
 
     protected override void Awake()
     {
@@ -37,6 +46,9 @@ public class GameManager : Singleton<GameManager>
         var ____ = CurrencyManager;
         var _____ = GlobalSaveCoordinator;
         var ______ = SceneLoadManager;
+        var _______ = PoolManager;
+        var ________ = EffectManager;
+        var _________ = SoundManager;
     }
 
     /// <summary>매니저가 없으면 자식 오브젝트에서 찾거나, 없으면 생성해서 붙임.</summary>
