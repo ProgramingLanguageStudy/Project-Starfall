@@ -103,6 +103,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -146,8 +147,10 @@ GameObject:
   m_Component:
   - component: {fileID: 4567433022883710643}
   - component: {fileID: 5022452638102068616}
+  - component: {fileID: 5845568750011040698}
+  - component: {fileID: 5242162311420226119}
   m_Layer: 0
-  m_Name: ItemPickupSlot
+  m_Name: PickUpEntry
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -182,13 +185,47 @@ MonoBehaviour:
   m_GameObject: {fileID: 934814091460291725}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6963d5a152cd4e64f9adc24c9b71f17a, type: 3}
+  m_Script: {fileID: 11500000, guid: 43769b380324a374abe24b988abd6a32, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickupLogEntry
   _icon: {fileID: 3626372494754395911}
   _descText: {fileID: 1267485418087845539}
+  _uiFacade: {fileID: 5242162311420226119}
   _displayDuration: 2.5
   _fadeOutDuration: 0.3
+--- !u!225 &5845568750011040698
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 934814091460291725}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
+--- !u!114 &5242162311420226119
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 934814091460291725}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 701be1b5eede9e74f93b5141a7d65f4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UITweenFacade
+  controlActive: 1
+  useDefaultPreset: 1
+  role: 1
+  customDuration: 0.25
+  customEase: 6
+  customScaleFrom: {x: 0.9, y: 0.9, z: 1}
+  customScaleTo: {x: 1, y: 1, z: 1}
+  customAlphaFrom: 0
+  customAlphaTo: 1
 --- !u!1 &5172780342980538854
 GameObject:
   m_ObjectHideFlags: 0
