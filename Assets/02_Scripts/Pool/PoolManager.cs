@@ -39,4 +39,11 @@ public class PoolManager : MonoBehaviour
         var pool = GetPool(prefab);
         pool?.Push(instance);
     }
+
+    /// <summary>모든 풀에서 파괴된 오브젝트 참조 제거. 씬 전환·플레이 종료 시 호출 권장.</summary>
+    public void RemoveDestroyedFromAllPools()
+    {
+        foreach (var pool in _poolMap.Values)
+            pool.RemoveDestroyed();
+    }
 }

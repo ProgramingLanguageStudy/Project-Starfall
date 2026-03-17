@@ -35,11 +35,14 @@ public class Pool
 
     public GameObject Pop()
     {
-        if (_pool.Count > 0)
+        while (_pool.Count > 0)
         {
             var go = _pool.Pop();
-            go.SetActive(true);
-            return go;
+            if (go != null)
+            {
+                go.SetActive(true);
+                return go;
+            }
         }
 
         var newGo = Object.Instantiate(_prefab, _parent);
@@ -55,5 +58,17 @@ public class Pool
         go.transform.SetParent(_parent);
         go.SetActive(false);
         _pool.Push(go);
+    }
+
+    /// <summary>풀에 남아 있는 파괴된 오브젝트 제거. 씬 전환 시 PoolManager에서 호출 권장.</summary>
+    public void RemoveDestroyed()
+    {
+        var list = new List<GameObject>(_pool);
+        _pool.Clear();
+        foreach (var go in list)
+        {
+            if (go != null)
+                _pool.Push(go);
+        }
     }
 }

@@ -39,6 +39,8 @@ public class PlayScene : MonoBehaviour
     [SerializeField] MapController _mapController;
     [SerializeField] PortalController _portalController;
     [SerializeField] SettingsView _settingsView;
+    [SerializeField] [Tooltip("상호작용 힌트, 픽업 로그 등 잠깐 뜨는 오버레이 UI")]
+    private PlaySceneOverlayController _overlayController;
 
     private CharacterModel _hpModelSubscribed;
     private SaveData _pendingSaveData;
@@ -71,6 +73,8 @@ public class PlayScene : MonoBehaviour
 
         if (_settingsView != null)
             _settingsView.Initialize();
+        _playSceneView?.Initialize();
+        _overlayController?.Initialize();
 
         if (_cinemachineCamera != null)
             _cinemachineCamera.gameObject.SetActive(false);
@@ -91,9 +95,6 @@ public class PlayScene : MonoBehaviour
 
         // 분대 컨트롤러는 CombatController 등 의존성만 먼저 주입.
         _squadController.Initialize(_combatController);
-
-        // 분대 프로필 UI 바인딩 (슬롯 고정, 빈 칸 유지)
-        _playSceneView?.BindSquad(_squadController.Characters);
 
         _npcController?.Initialize();
 
@@ -119,6 +120,8 @@ public class PlayScene : MonoBehaviour
             _pendingSaveData = null;
         }
 
+        // ApplySaveData 후 분대가 채워지므로 프로필 바인딩·선택 강조 갱신 (SetSlots는 OnMembersChanged 미호출)
+        RefreshSquadProfileView(_squadController.Characters);
         HandlePlayerChanged(_squadController.PlayerCharacter);
 
         if (_cinemachineCamera != null)
@@ -151,6 +154,7 @@ public class PlayScene : MonoBehaviour
     private void OnDisable()
     {
         GameManager.Instance?.SaveManager?.StopPeriodicSave();
+        GameManager.Instance?.PoolManager?.RemoveDestroyedFromAllPools();
         PlaySceneEventHub.Clear();
 
         if (_hpModelSubscribed != null)
@@ -287,7 +291,7 @@ public class PlayScene : MonoBehaviour
     private void RefreshSquadProfileView(IReadOnlyList<Character> slots)
     {
         if (_playSceneView == null) return;
-        _playSceneView.BindSquad(slots);
+        _playSceneView.RefreshSquadProfiles(slots);
         int slot = _squadController.PlayerCharacter != null
             ? _squadController.Squad.GetSlotOf(_squadController.PlayerCharacter)
             : -1;
