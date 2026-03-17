@@ -38,6 +38,11 @@ public class EnemyModel : MonoBehaviour, IDamageable, IAttackPowerSource
         Debug.Log($"[EnemyModel] {gameObject.name} TakeDamage {amount} (방어후 {reduced}) → HP {_currentHp}/{MaxHp}");
         OnHpChanged?.Invoke(_currentHp, MaxHp);
         OnDamaged?.Invoke(attacker);
+        if (reduced > 0)
+        {
+            var hitPos = transform.position + Vector3.up * 1.5f;
+            PlaySceneEventHub.OnDamageDealt?.Invoke(reduced, this, hitPos, attacker);
+        }
         if (wasAlive && _currentHp <= 0)
             OnDeath?.Invoke();
     }

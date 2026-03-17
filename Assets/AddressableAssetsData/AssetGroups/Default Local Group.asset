@@ -75,11 +75,21 @@ MonoBehaviour:
     m_SerializedLabels:
     - Prefab
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d39227540c2f6874b8622fd93446bbdd
+    m_Address: Assets/00_Prefabs/Weapon
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: df42eea3fb8c80c4fa54d9395e361ea9
     m_Address: Assets/00_Prefabs/Item
     m_ReadOnly: 0
     m_SerializedLabels:
     - Prefab
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e9c98a081a08dad47a5890ab7e39c7ce
+    m_Address: Assets/00_Prefabs/Effect
+    m_ReadOnly: 0
+    m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: fecc18a75f82380489d3a1c0ca5e2429
     m_Address: Assets/02_Scripts/0_ScriptableObjects/Portal

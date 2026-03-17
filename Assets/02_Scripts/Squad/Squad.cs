@@ -99,13 +99,16 @@ public class Squad
     /// </summary>
     public void SetPlayerCharacter(Character c)
     {
-        if (c == null || c == _player) return;
-        if (GetSlotOf(c) < 0) return;
+        if (c == null || GetSlotOf(c) < 0) return;
 
-        _player = c;
-        OnPlayerChanged?.Invoke(_player);
+        // 플레이어가 바뀐 경우에만 필드·이벤트 갱신
+        if (c != _player)
+        {
+            _player = c;
+            OnPlayerChanged?.Invoke(_player);
+        }
 
-        // 현재 플레이어 기준으로 각 캐릭터를 Player/Companion 모드로 전환
+        // 항상 역할 전환 적용 (최초 로드 시 c == _player여도 SetAsPlayer/SetAsCompanion 필요)
         foreach (var member in GetSlots())
         {
             if (member == null) continue;

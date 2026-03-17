@@ -179,22 +179,35 @@ public class ResourceManager : MonoBehaviour
             return cached;
 
         var address = BuildAddress(category, name);
-        var handle = Addressables.LoadAssetAsync<GameObject>(address);
-        var prefab = handle.WaitForCompletion();
-        if (prefab != null)
+        try
         {
-            if (!_prefabCache.ContainsKey(category))
-                _prefabCache[category] = new Dictionary<string, GameObject>(StringComparer.OrdinalIgnoreCase);
-            _prefabCache[category][name] = prefab;
-            _handles.Add(handle);
+            var handle = Addressables.LoadAssetAsync<GameObject>(address);
+            var prefab = handle.WaitForCompletion();
+            if (prefab != null)
+            {
+                if (!_prefabCache.ContainsKey(category))
+                    _prefabCache[category] = new Dictionary<string, GameObject>(StringComparer.OrdinalIgnoreCase);
+                _prefabCache[category][name] = prefab;
+                _handles.Add(handle);
+                return prefab;
+            }
         }
-        return prefab;
+        catch (InvalidKeyException ex)
+        {
+            Debug.LogError($"[ResourceManager] 주소 없음: {address}. {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[ResourceManager] 로드 실패: {address}. {ex.Message}");
+        }
+        return null;
     }
 
     private string BuildAddress(string category, string name)
     {
         var prefix = string.IsNullOrEmpty(_prefabPathPrefix) ? "Assets/00_Prefabs" : _prefabPathPrefix.TrimEnd('/');
-        return $"{prefix}/{category}/{name}";
+        var nameWithExt = name.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase) ? name : name + ".prefab";
+        return $"{prefix}/{category}/{nameWithExt}";
     }
 
     #endregion

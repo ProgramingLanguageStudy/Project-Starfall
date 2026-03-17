@@ -21,7 +21,7 @@ MonoBehaviour:
   - itemData: {fileID: 0}
     amount: 0
     probability: 0
-  maxHp: 50
+  maxHp: 5000
   attackPower: 5
   defense: 0
   patrolSpeed: 1.5

@@ -89,6 +89,11 @@ public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, II
         int reduced = Mathf.Max(0, amount - Defense);
         _currentHp = Mathf.Max(0, _currentHp - reduced);
         OnHpChanged?.Invoke(_currentHp, MaxHp);
+        if (reduced > 0)
+        {
+            var hitPos = transform.position + Vector3.up * 1.5f;
+            PlaySceneEventHub.OnDamageDealt?.Invoke(reduced, this, hitPos, attacker);
+        }
         if (wasAlive && _currentHp <= 0)
             OnDeath?.Invoke();
     }

@@ -10,12 +10,19 @@ public class InventoryPresenter : MonoBehaviour
     [SerializeField] private InventoryView _view;
 
     private Character _playerCharacter;
+    private float _lastToggleTime = float.MinValue;
+    private const float ToggleCooldown = 0.15f;
 
     /// <summary>QuestController 등에서 Gather 퀘스트 완료 시 아이템 차감용.</summary>
     public Inventory Model => _model;
 
-    /// <summary>인벤토리 토글. PlayScene 입력에서 Request.</summary>
-    public void RequestToggleInventory() => _view?.ToggleInventory();
+    /// <summary>인벤토리 토글. PlayScene 입력에서 Request. 연속 호출 방지용 쿨다운 적용.</summary>
+    public void RequestToggleInventory()
+    {
+        if (Time.unscaledTime - _lastToggleTime < ToggleCooldown) return;
+        _lastToggleTime = Time.unscaledTime;
+        _view?.ToggleInventory();
+    }
 
     /// <summary>PlayScene에서 주입. 플레이어 변경 시 호출.</summary>
     public void SetPlayerCharacter(Character character)
