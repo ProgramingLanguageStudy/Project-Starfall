@@ -89,7 +89,7 @@ public class ItemZoneSpawner : MonoBehaviour
             float y = terrain.SampleHeight(new Vector3(x, 0f, z));
             var pos = new Vector3(x, terrain.transform.position.y + y, z);
 
-            var go = Instantiate(prefab, pos, Quaternion.identity);
+            var go = Instantiate(prefab, pos, Quaternion.identity, transform);
             var itemObj = go.GetComponent<ItemObject>();
             if (itemObj != null)
                 itemObj.Initialize(_itemData, 1);

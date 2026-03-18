@@ -30,6 +30,10 @@ public class LocalSaveBackend : ISaveBackend
         {
             try
             {
+                var dir = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+
                 var json = JsonUtility.ToJson(data);
                 File.WriteAllText(path, json);
                 return true;

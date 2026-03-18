@@ -32,8 +32,10 @@ public class PlaySaveCoordinator : MonoBehaviour, ISaveHandler
 
     private void OnDisable()
     {
-        if (GameManager.Instance?.SaveManager != null)
-            GameManager.Instance.SaveManager.Unregister(this);
+        var sm = GameManager.Instance?.SaveManager;
+        if (sm == null) return;
+        sm.SaveBeforeUnload(); // Unregister 전에 저장 (빈 squad 방지)
+        sm.Unregister(this);
     }
 
     public void Gather(SaveData data)

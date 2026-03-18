@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Firebase.Auth;
 using Firebase.Extensions;
@@ -21,7 +22,7 @@ public class SaveManager : MonoBehaviour
     private const float PeriodicSaveIntervalSec = 300f; // 5분
 
     [Header("로컬 세이브 (Boot 미경유 시)")]
-    [SerializeField] [Tooltip("에디터 Play 시에만 사용. 빌드에서는 항상 persistentDataPath. 예: 프로젝트/SaveData")]
+    [SerializeField] [Tooltip("에디터 Play 시에만 사용. 비면 프로젝트/SaveData. 빌드에서는 항상 persistentDataPath")]
     private string _localSaveFolder = "";
 
     private readonly List<ISaveHandler> _handlers = new List<ISaveHandler>();
@@ -41,10 +42,17 @@ public class SaveManager : MonoBehaviour
         if (!string.IsNullOrWhiteSpace(_localSaveFolder))
             LocalSaveBackend.CustomBasePath = _localSaveFolder.Trim();
         else
-            LocalSaveBackend.CustomBasePath = null;
+            LocalSaveBackend.CustomBasePath = GetDefaultSaveFolder();
 #else
         LocalSaveBackend.CustomBasePath = null; // 빌드에서는 항상 persistentDataPath
 #endif
+    }
+
+    /// <summary>에디터용 기본 경로. 프로젝트 루트/SaveData</summary>
+    private static string GetDefaultSaveFolder()
+    {
+        var projectRoot = Path.GetDirectoryName(Application.dataPath);
+        return Path.Combine(projectRoot ?? "", "SaveData");
     }
     private Coroutine _periodicSaveCoroutine;
     private bool _isQuittingAfterSave;
@@ -198,6 +206,14 @@ public class SaveManager : MonoBehaviour
     public Task<bool> SaveAsync()
     {
         return SaveAsyncInternal();
+    }
+
+    /// <summary>씬 언로드 전 호출. Unregister 직전에 호출해 현재 핸들러로 Gather 후 저장. Play→Boot 전환 시 빈 squad 저장 방지.</summary>
+    public void SaveBeforeUnload()
+    {
+        var data = GatherSaveData();
+        if (data != null)
+            _ = Backend.SaveAsync(data);
     }
 
     private Task<bool> SaveAsyncInternal()
