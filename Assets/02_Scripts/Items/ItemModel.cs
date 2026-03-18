@@ -5,7 +5,7 @@ public class ItemModel
 {
     public ItemData Data { get; }
 
-    public string ItemId => Data != null ? Data.ItemId : string.Empty;
+    public string Id => Data != null ? Data.Id : string.Empty;
     public string ItemName => Data != null ? Data.ItemName : string.Empty;
     public Sprite Icon => Data != null ? Data.Icon : null;
     public string Description => Data != null ? Data.Description : string.Empty;

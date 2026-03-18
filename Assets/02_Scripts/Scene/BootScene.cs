@@ -8,6 +8,8 @@ public class BootScene : MonoBehaviour
 {
     private void Start()
     {
+        SaveManager.MarkBootCompleted();
+
         var gm = GameManager.Instance;
         gm.SceneLoadManager.ShowTransitionView();
         gm.SceneLoadManager.BeginLoad();

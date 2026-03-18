@@ -38,7 +38,7 @@ public class QuestDebugger : MonoBehaviour
         var sb = new StringBuilder();
         sb.AppendLine("[QuestDebugger] 진행 중 퀘스트:");
         foreach (var q in quests)
-            sb.AppendLine($"  {q.QuestId} ({q.CurrentAmount}/{q.TargetAmount}) - {q.Title}");
+            sb.AppendLine($"  {q.Id} ({q.CurrentAmount}/{q.TargetAmount}) - {q.Title}");
         Debug.Log(sb.ToString());
     }
 
@@ -71,8 +71,8 @@ public class QuestDebugger : MonoBehaviour
         var quests = qs.GetActiveQuests();
         foreach (var q in quests)
         {
-            fs.SetFlag(GameStateKeys.QuestAccepted(q.QuestId), 0);
-            fs.SetFlag(GameStateKeys.QuestObjectivesDone(q.QuestId), 0);
+            fs.SetFlag(GameStateKeys.QuestAccepted(q.Id), 0);
+            fs.SetFlag(GameStateKeys.QuestObjectivesDone(q.Id), 0);
         }
         qs.ClearAllQuests();
         Debug.Log("[QuestDebugger] 진행 중 퀘스트 전체 제거 완료.");

@@ -31,7 +31,7 @@ public class QuestSaveContributor : SaveContributorBehaviour
         data.quests.entries.Clear();
         foreach (var quest in presenter.System.GetActiveQuests())
         {
-            if (quest == null || string.IsNullOrEmpty(quest.QuestId)) continue;
+            if (quest == null || string.IsNullOrEmpty(quest.Id)) continue;
 
             int amountToSave = quest.CurrentAmount;
             if (quest.QuestType == QuestType.Gather)
@@ -39,7 +39,7 @@ public class QuestSaveContributor : SaveContributorBehaviour
 
             data.quests.entries.Add(new QuestProgressEntry
             {
-                questId = quest.QuestId,
+                id = quest.Id,
                 targetId = quest.TargetId ?? "",
                 currentAmount = amountToSave
             });
@@ -56,14 +56,14 @@ public class QuestSaveContributor : SaveContributorBehaviour
 
         foreach (var entry in data.quests.entries)
         {
-            if (string.IsNullOrEmpty(entry.questId)) continue;
-            if (presenter.System.HasQuest(entry.questId)) continue;
+            if (string.IsNullOrEmpty(entry.id)) continue;
+            if (presenter.System.HasQuest(entry.id)) continue;
 
-            var questData = Resources.Load<QuestData>($"Quests/{entry.questId}");
+            var questData = GameManager.Instance?.DataManager?.Get<QuestData>(entry.id);
             if (questData == null) continue;
 
             presenter.System.AcceptQuest(questData);
-            fm.SetFlag(GameStateKeys.QuestAccepted(entry.questId), 1);
+            fm.SetFlag(GameStateKeys.QuestAccepted(entry.id), 1);
 
             int amount;
             if (questData.QuestType == QuestType.Gather && _inventory != null && !string.IsNullOrEmpty(entry.targetId))
@@ -72,10 +72,10 @@ public class QuestSaveContributor : SaveContributorBehaviour
                 amount = entry.currentAmount;
 
             if (!string.IsNullOrEmpty(entry.targetId))
-                presenter.System.SetTaskProgress(entry.questId, entry.targetId, amount);
+                presenter.System.SetTaskProgress(entry.id, entry.targetId, amount);
 
             if (amount >= questData.TargetAmount)
-                fm.SetFlag(GameStateKeys.QuestObjectivesDone(entry.questId), 1);
+                fm.SetFlag(GameStateKeys.QuestObjectivesDone(entry.id), 1);
         }
     }
 }

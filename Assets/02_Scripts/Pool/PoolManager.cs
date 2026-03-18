@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// 풀 관리. 프리팹별 Pool 보유. Play 씬 또는 GameManager 하위에 배치.
-/// Resources.Load 미사용 — 프리팹 참조 직접 전달. 추후 ResourceManager 연동 시 교체.
+/// 프리팹은 ResourceManager 등에서 로드 후 참조 전달.
 /// </summary>
 public class PoolManager : MonoBehaviour
 {

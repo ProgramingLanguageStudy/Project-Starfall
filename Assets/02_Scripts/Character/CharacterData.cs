@@ -5,17 +5,15 @@ using UnityEngine;
 /// SO로 생성 후 CharacterModel 등에 할당. 저장·로드·스폰 시 모두 이 데이터 사용.
 /// </summary>
 [CreateAssetMenu(fileName = "CharacterData", menuName = "Character/Data")]
-public class CharacterData : ScriptableObject
+public class CharacterData : BaseData
 {
+    public override string Id => _id;
+
     [Header("식별")]
+    [Tooltip("세이브·해금·RM 프리팹 경로용. character_xxx 형식. 프리팹 파일명과 일치해야 함 (Character/character_celeste.prefab)")]
+    [SerializeField] private string _id = "";
     [Tooltip("UI·디버그용 표시 이름")]
     public string displayName = "캐릭터";
-    [Tooltip("세이브·해금 등용 고유 ID")]
-    public string characterId = "";
-
-    [Header("프리팹")]
-    [Tooltip("스폰용 프리팹. 씬 배치 캐릭터도 세이브·로드 시 이 프리팹 기준 인스턴스 제어")]
-    public GameObject prefab;
 
     [Header("UI")]
     [Tooltip("분대 프로필 등에 사용할 초상화 아이콘")]

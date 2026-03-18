@@ -13,6 +13,6 @@ public class InventorySaveData
 public class InventorySlotEntry
 {
     public int index;
-    public string itemId;
+    public string id;
     public int count;
 }

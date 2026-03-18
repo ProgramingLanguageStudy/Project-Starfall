@@ -55,7 +55,7 @@ public class QuestController : MonoBehaviour
             if (quest.IsCompleted || quest.QuestType != QuestType.Gather) continue;
             if (quest.TargetId != itemId) continue;
 
-            _questSystem.SetTaskProgress(quest.QuestId, itemId, totalCount);
+            _questSystem.SetTaskProgress(quest.Id, itemId, totalCount);
         }
     }
 
@@ -76,14 +76,14 @@ public class QuestController : MonoBehaviour
             var count = _inventory.GetTotalCount(quest.TargetId);
             if (count > 0)
             {
-                _questSystem.SetTaskProgress(quest.QuestId, quest.TargetId, count);
+                _questSystem.SetTaskProgress(quest.Id, quest.TargetId, count);
                 return;
             }
         }
 
         if (!quest.IsCompleted) return;
 
-        _flagSystem?.SetFlag(GameStateKeys.QuestObjectivesDone(quest.QuestId), 1);
+        _flagSystem?.SetFlag(GameStateKeys.QuestObjectivesDone(quest.Id), 1);
     }
 
     private void HandleQuestCompleted(QuestData data)
@@ -116,9 +116,9 @@ public class QuestController : MonoBehaviour
 
         foreach (var reward in data.RewardItems)
         {
-            if (string.IsNullOrEmpty(reward.itemId) || reward.amount <= 0) continue;
+            if (string.IsNullOrEmpty(reward.id) || reward.amount <= 0) continue;
 
-            var itemData = dm.GetItemData(reward.itemId);
+            var itemData = dm.Get<ItemData>(reward.id);
             if (itemData == null) continue;
 
             _inventory.AddItem(itemData, reward.amount);
@@ -137,21 +137,21 @@ public class QuestController : MonoBehaviour
         var dm = GameManager.Instance?.DataManager;
         if (dm == null) return;
 
-        var characterData = dm.GetCharacterData(characterId);
-        if (characterData == null || characterData.prefab == null)
+        var characterData = dm.Get<CharacterData>(characterId);
+        if (characterData == null)
         {
             Debug.LogWarning($"[QuestController] CharacterData 없음: {characterId}. Resources/Characters 확인.");
             return;
         }
 
-        _squadController.AddCompanion(characterData);
+        _squadController.AddCompanion(characterId);
     }
 
     private void ApplyQuestCompletedFlag(QuestData data)
     {
-        if (string.IsNullOrEmpty(data.QuestId)) return;
+        if (string.IsNullOrEmpty(data.Id)) return;
 
-        _flagSystem?.SetFlag(GameStateKeys.QuestCompleted(data.QuestId), 1);
+        _flagSystem?.SetFlag(GameStateKeys.QuestCompleted(data.Id), 1);
     }
 
     private void DeductGatherItems(QuestData data)
@@ -170,7 +170,7 @@ public class QuestController : MonoBehaviour
         if (string.IsNullOrEmpty(questId) || _questSystem == null) return;
 
         var dm = GameManager.Instance?.DataManager;
-        var questData = dm?.GetQuestData(questId);
+        var questData = dm?.Get<QuestData>(questId);
         if (questData == null)
         {
             Debug.LogWarning($"[QuestController] QuestData not found: {questId}");

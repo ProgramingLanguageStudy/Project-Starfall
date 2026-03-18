@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bfb51a6792633b418706756853c58c4, type: 3}
+  m_Name: sapphi_quest_in_progress
+  m_EditorClassIdentifier: 
+  category: 2
+  npcId: npc_sapphi
+  speakerDisplayName: Sapphi
+  priority: 15
+  requiredFlagsOn:
+  - quest_sapphi_recruit_accepted
+  requiredFlagsOff:
+  - quest_sapphi_recruit_objectives_done
+  flagsToModify: []
+  questId: 
+  questDialogueType: 2
+  lines:
+  - "\uC751? \uC544\uC9C1 \uC0AC\uACFC\uB97C \uBABB \uCC3E\uC740 \uAC70\uC57C?"
+  - "\uC124\uB9C8 \uB0B4 \uB370\uBDD4 \uBB34\uB300\uAC00 \uB2A6\uC5B4\uC9C0\uB294
+    \uAC74 \uC544\uB2C8\uACA0\uC9C0?"
+  - "\uBE68\uAC1B\uACE0 \uC608\uC05C \uC0AC\uACFC\uB85C \uBD80\uD0C1\uD574!"

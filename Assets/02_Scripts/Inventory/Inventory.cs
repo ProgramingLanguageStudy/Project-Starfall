@@ -41,12 +41,12 @@ public class Inventory : MonoBehaviour
         foreach (var entry in saveData.slots)
         {
             if (entry.index < 0 || entry.index >= _inventorySize) continue;
-            if (string.IsNullOrEmpty(entry.itemId) || entry.count <= 0) continue;
+            if (string.IsNullOrEmpty(entry.id) || entry.count <= 0) continue;
 
-            var itemData = GameManager.Instance?.DataManager?.GetItemData(entry.itemId);
+            var itemData = GameManager.Instance?.DataManager?.Get<ItemData>(entry.id);
             if (itemData == null)
             {
-                Debug.LogWarning($"[Inventory] LoadFromSave: ItemData not found for '{entry.itemId}'. Add to Resources/Items.");
+                Debug.LogWarning($"[Inventory] LoadFromSave: ItemData not found for '{entry.id}'. Add to Resources/Items.");
                 continue;
             }
 
@@ -58,8 +58,8 @@ public class Inventory : MonoBehaviour
         var notifiedIds = new HashSet<string>();
         foreach (var entry in saveData.slots)
         {
-            if (!string.IsNullOrEmpty(entry.itemId) && notifiedIds.Add(entry.itemId))
-                NotifyItemChangedWithId(entry.itemId);
+            if (!string.IsNullOrEmpty(entry.id) && notifiedIds.Add(entry.id))
+                NotifyItemChangedWithId(entry.id);
         }
     }
 
@@ -72,7 +72,7 @@ public class Inventory : MonoBehaviour
         int total = 0;
         foreach (var slot in _slots)
         {
-            if (slot.Item != null && slot.Item.ItemId == itemId)
+            if (slot.Item != null && slot.Item.Id == itemId)
                 total += slot.Count;
         }
         return total;
@@ -85,7 +85,7 @@ public class Inventory : MonoBehaviour
         {
             foreach (var slot in _slots)
             {
-                if (slot.Item != null && slot.Item.ItemId == itemData.ItemId && slot.Count < itemData.MaxStack)
+                if (slot.Item != null && slot.Item.Id == itemData.Id && slot.Count < itemData.MaxStack)
                 {
                     int canAdd = itemData.MaxStack - slot.Count;
                     int amountToAdd = Mathf.Min(amount, canAdd);
@@ -94,7 +94,7 @@ public class Inventory : MonoBehaviour
                     OnSlotChanged?.Invoke(slot);
                     if (amount <= 0)
                     {
-                        NotifyItemChangedWithId(itemData.ItemId);
+                        NotifyItemChangedWithId(itemData.Id);
                         return;
                     }
                 }
@@ -115,7 +115,7 @@ public class Inventory : MonoBehaviour
             amount -= amountToPut;
             OnSlotChanged?.Invoke(_slots[emptySlotIndex]);
         }
-        NotifyItemChangedWithId(itemData.ItemId);
+        NotifyItemChangedWithId(itemData.Id);
     }
 
     public bool RemoveItem(string itemId, int amount)
@@ -126,7 +126,7 @@ public class Inventory : MonoBehaviour
         foreach (var slot in _slots)
         {
             if (remaining <= 0) break;
-            if (slot.Item == null || slot.Item.ItemId != itemId) continue;
+            if (slot.Item == null || slot.Item.Id != itemId) continue;
             int toRemove = Mathf.Min(slot.Count, remaining);
             slot.Count -= toRemove;
             remaining -= toRemove;
@@ -148,7 +148,7 @@ public class Inventory : MonoBehaviour
 
         if (slot.Item.Data is ConsumableItemData consumable)
             consumable.ApplyTo(_itemUser);
-        RemoveItem(slot.Item.ItemId, 1);
+        RemoveItem(slot.Item.Id, 1);
         return true;
     }
 
@@ -159,7 +159,7 @@ public class Inventory : MonoBehaviour
         ItemSlotModel slotA = _slots[indexA];
         ItemSlotModel slotB = _slots[indexB];
 
-        if (slotA.Item != null && slotB.Item != null && slotA.Item.ItemId == slotB.Item.ItemId && slotA.Item.IsStackable)
+        if (slotA.Item != null && slotB.Item != null && slotA.Item.Id == slotB.Item.Id && slotA.Item.IsStackable)
         {
             int maxStack = slotB.Item.MaxStack;
             int canAdd = maxStack - slotB.Count;
@@ -179,9 +179,9 @@ public class Inventory : MonoBehaviour
         OnSlotChanged?.Invoke(_slots[indexA]);
         OnSlotChanged?.Invoke(_slots[indexB]);
         if (_slots[indexA].Item != null)
-            NotifyItemChangedWithId(_slots[indexA].Item.ItemId);
+            NotifyItemChangedWithId(_slots[indexA].Item.Id);
         if (_slots[indexB].Item != null && _slots[indexB].Item != _slots[indexA].Item)
-            NotifyItemChangedWithId(_slots[indexB].Item.ItemId);
+            NotifyItemChangedWithId(_slots[indexB].Item.Id);
     }
 
     // ── Unity ──────────────────────────────────────────────────

@@ -88,6 +88,10 @@ public class PlayScene : MonoBehaviour
         if (gm?.DataManager != null && !gm.DataManager.IsLoaded)
             gm.DataManager.Load();
 
+        // ResourceManager 미로드 시 폴백 (Boot 경유 없이 Play 직접 진입 대응)
+        if (gm?.ResourceManager != null && !gm.ResourceManager.IsLoaded())
+            yield return gm.ResourceManager.LoadAsync(null);
+
         var loadTask = gm?.SaveManager?.LoadAsync() ?? System.Threading.Tasks.Task.FromResult<SaveData>(null);
         yield return new WaitUntil(() => loadTask.IsCompleted);
 

@@ -80,11 +80,11 @@ public class SquadDebugger : MonoBehaviour
         Debug.Log("[SquadDebugger] 플레이어를 텔레포트했습니다.");
     }
 
-    /// <summary>동료 소환. characterData를 플레이어 주변에 스폰.</summary>
-    public void SpawnCompanion(CharacterData characterData)
+    /// <summary>동료 소환. characterId를 플레이어 주변에 스폰.</summary>
+    public void SpawnCompanion(string characterId)
     {
         var sc = GetSquadController();
-        if (sc == null || characterData == null) return;
+        if (sc == null || string.IsNullOrEmpty(characterId)) return;
         var player = sc.PlayerCharacter;
         if (player == null)
         {
@@ -92,9 +92,9 @@ public class SquadDebugger : MonoBehaviour
             return;
         }
 
-        var c = sc.AddCompanion(characterData);
+        var c = sc.AddCompanion(characterId);
         if (c != null)
-            Debug.Log($"[SquadDebugger] 동료 소환: {characterData.displayName}");
+            Debug.Log($"[SquadDebugger] 동료 소환: {characterId}");
         else
             Debug.LogWarning("[SquadDebugger] 동료 소환 실패.");
     }

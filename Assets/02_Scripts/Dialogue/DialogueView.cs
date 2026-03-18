@@ -82,7 +82,7 @@ public class DialogueView : MonoBehaviour
         var title = "퀘스트";
         if (!string.IsNullOrEmpty(d.questId))
         {
-            var questData = Resources.Load<QuestData>($"Quests/{d.questId}");
+            var questData = GameManager.Instance?.DataManager?.Get<QuestData>(d.questId);
             if (!string.IsNullOrEmpty(questData?.Title)) title = questData.Title;
         }
         var status = d.questDialogueType switch

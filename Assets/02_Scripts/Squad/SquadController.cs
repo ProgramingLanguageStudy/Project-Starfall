@@ -12,8 +12,8 @@ public class SquadController : MonoBehaviour
     #region Inspector
 
     [Header("참조")]
-    [SerializeField] [Tooltip("Character 생성/삭제. 풀링 등")]
-    private PooledSquadCharacterFactory _factory;
+    [SerializeField] [Tooltip("Character 생성/삭제. InstantiateSquadCharacterFactory 또는 PooledSquadCharacterFactory")]
+    private MonoBehaviour _factoryObject;
     [SerializeField] [Tooltip("스폰된 분대 부모. 비면 this")]
     private Transform _squadRoot;
     [SerializeField] [Tooltip("세이브 없을 때 기본 스폰 위치")]
@@ -63,23 +63,21 @@ public class SquadController : MonoBehaviour
 
     #endregion
 
-    #region Unity Lifecycle
-
-    private void Awake()
-    {
-        _factoryInterface = _factory != null ? _factory : GetComponent<PooledSquadCharacterFactory>();
-        _squad.OnPlayerChanged += c => OnPlayerChanged?.Invoke(c);
-        _squad.OnMembersChanged += slots => OnMembersChanged?.Invoke(slots);
-    }
-
-    #endregion
-
     #region Public API
 
-    /// <summary>분대 컨트롤러 초기화. 컴포넌트·의존성 주입만 수행.</summary>
+    /// <summary>분대 컨트롤러 초기화. 팩토리·이벤트·의존성 주입. PlayScene에서 호출.</summary>
     public void Initialize(CombatController combatController = null)
     {
         _combatController = combatController;
+
+        if (_factoryInterface == null)
+        {
+            _factoryInterface = (_factoryObject as ISquadCharacterFactory)
+                ?? (ISquadCharacterFactory)GetComponent<InstantiateSquadCharacterFactory>()
+                ?? GetComponent<PooledSquadCharacterFactory>();
+            _squad.OnPlayerChanged += c => OnPlayerChanged?.Invoke(c);
+            _squad.OnMembersChanged += slots => OnMembersChanged?.Invoke(slots);
+        }
     }
 
     /// <summary>세이브 데이터 기반으로 분대 슬롯·플레이어·상태를 복원.</summary>
@@ -99,21 +97,21 @@ public class SquadController : MonoBehaviour
         Character targetPlayer = null;
         foreach (var m in squadSaveData.members)
         {
-            if (string.IsNullOrEmpty(m.characterId)) continue;
+            if (string.IsNullOrEmpty(m.id)) continue;
             if (m.slotIndex < 0 || m.slotIndex >= Squad.SlotCount) continue;
 
-            var data = dm.GetCharacterData(m.characterId);
-            if (data == null || data.prefab == null) continue;
+            var data = dm.Get<CharacterData>(m.id);
+            if (data == null) continue;
 
             var pos = basePos + GetSpawnOffset(m.slotIndex);
-            var c = CreateCharacter(data, pos, root);
+            var c = CreateCharacter(m.id, pos, root);
             if (c == null) continue;
 
             c.Model?.SetCurrentHpForLoad(m.currentHp);
             slots[m.slotIndex] = c;
 
             if (!string.IsNullOrEmpty(squadSaveData.currentPlayerId) &&
-                (m.characterId == squadSaveData.currentPlayerId || c.Model?.Data?.displayName == squadSaveData.currentPlayerId))
+                (m.id == squadSaveData.currentPlayerId || c.Model?.Data?.displayName == squadSaveData.currentPlayerId))
                 targetPlayer = c;
         }
 
@@ -130,10 +128,10 @@ public class SquadController : MonoBehaviour
         }
     }
 
-    private Character CreateCharacter(CharacterData data, Vector3 position, Transform parent)
+    private Character CreateCharacter(string characterId, Vector3 position, Transform parent)
     {
         if (_factoryInterface == null) return null;
-        return _factoryInterface.Create(data, position, parent, _combatController, _squad, _spawnRadius);
+        return _factoryInterface.Create(characterId, position, parent, _combatController, _squad, _spawnRadius);
     }
 
     public void SetPlayerCharacter(Character character)
@@ -188,9 +186,9 @@ public class SquadController : MonoBehaviour
         RepositionCompanionsAround(PlayerCharacter.transform);
     }
 
-    public Character AddCompanion(CharacterData data)
+    public Character AddCompanion(string characterId)
     {
-        if (data == null || data.prefab == null) return null;
+        if (string.IsNullOrEmpty(characterId)) return null;
         if (_factoryInterface == null) return null;
 
         var followTarget = PlayerCharacter != null ? PlayerCharacter.transform : transform;
@@ -203,7 +201,7 @@ public class SquadController : MonoBehaviour
         }
         var pos = followTarget.position + GetSpawnOffset(memberCount);
 
-        var created = CreateCharacter(data, pos, root);
+        var created = CreateCharacter(characterId, pos, root);
         if (created == null) return null;
 
         _squad.AddMember(created);

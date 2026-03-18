@@ -31,7 +31,7 @@ public class InventorySaveContributor : SaveContributorBehaviour
             data.inventory.slots.Add(new InventorySlotEntry
             {
                 index = i,
-                itemId = slot.Item.ItemId,
+                id = slot.Item.Id,
                 count = slot.Count
             });
         }

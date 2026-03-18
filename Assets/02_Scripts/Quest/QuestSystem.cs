@@ -31,7 +31,7 @@ public class QuestSystem : MonoBehaviour
     /// <summary>수락 시 등, 현재 진행도를 한 번에 설정할 때 (예: 인벤토리 개수 동기화).</summary>
     public void SetTaskProgress(string questId, string targetId, int amount)
     {
-        var quest = _activeQuests.FirstOrDefault(q => q.QuestId == questId && q.TargetId == targetId);
+        var quest = _activeQuests.FirstOrDefault(q => q.Id == questId && q.TargetId == targetId);
         if (quest == null) return;
         quest.CurrentAmount = Math.Min(amount, quest.TargetAmount);
         OnQuestUpdated?.Invoke(quest);
@@ -47,7 +47,7 @@ public class QuestSystem : MonoBehaviour
     /// <summary>퀘스트 완료: OnQuestCompleted 발행 후 목록에서 제거. 아이템 차감·플래그는 조율에서 처리 후 호출.</summary>
     public bool CompleteQuest(string questId)
     {
-        var quest = _activeQuests.FirstOrDefault(q => q.QuestId == questId);
+        var quest = _activeQuests.FirstOrDefault(q => q.Id == questId);
         if (quest == null) return false;
         var data = quest.Data;
         _activeQuests.Remove(quest);
@@ -61,7 +61,7 @@ public class QuestSystem : MonoBehaviour
     /// <summary>진행 중인 퀘스트 중 questId와 일치하는 것 반환. 없으면 null.</summary>
     public QuestModel GetQuestById(string questId)
     {
-        return _activeQuests.FirstOrDefault(q => q.QuestId == questId);
+        return _activeQuests.FirstOrDefault(q => q.Id == questId);
     }
 
     /// <summary>해당 퀘스트가 현재 수락되어 진행 중인지.</summary>
@@ -70,7 +70,7 @@ public class QuestSystem : MonoBehaviour
     /// <summary>디버그용. 퀘스트를 목록에서 제거. OnQuestCompleted 발행 안 함. 플래그 동기화는 호출부에서.</summary>
     public bool RemoveQuest(string questId)
     {
-        var quest = _activeQuests.FirstOrDefault(q => q.QuestId == questId);
+        var quest = _activeQuests.FirstOrDefault(q => q.Id == questId);
         if (quest == null) return false;
         _activeQuests.Remove(quest);
         OnQuestUpdated?.Invoke(quest);

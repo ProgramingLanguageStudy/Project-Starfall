@@ -4,25 +4,32 @@ using System.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
-/// 로컬 파일 기반 세이브 백엔드. Application.persistentDataPath/save_0.json 사용.
-/// Firebase 미초기화·미로그인 시 폴백으로 사용.
+/// 로컬 파일 기반 세이브 백엔드.
+/// CustomBasePath 설정 시 해당 폴더 사용, 비면 persistentDataPath 사용.
 /// </summary>
 public class LocalSaveBackend : ISaveBackend
 {
     private const string FileName = "save_0.json";
 
-    private static string GetSavePath() => Path.Combine(Application.persistentDataPath, FileName);
+    /// <summary>지정 시 이 경로에 저장. 비면 persistentDataPath. 예: 프로젝트/SaveData</summary>
+    public static string CustomBasePath { get; set; }
+
+    private static string GetSavePath()
+    {
+        var basePath = !string.IsNullOrEmpty(CustomBasePath) ? CustomBasePath : Application.persistentDataPath;
+        return Path.Combine(basePath, FileName);
+    }
 
     /// <summary>비동기 저장. 파일 없으면 생성.</summary>
     public Task<bool> SaveAsync(SaveData data)
     {
         if (data == null) return Task.FromResult(false);
 
+        var path = GetSavePath(); // persistentDataPath는 메인 스레드에서만 호출 가능
         return Task.Run(() =>
         {
             try
             {
-                var path = GetSavePath();
                 var json = JsonUtility.ToJson(data);
                 File.WriteAllText(path, json);
                 return true;
@@ -38,11 +45,11 @@ public class LocalSaveBackend : ISaveBackend
     /// <summary>비동기 로드. 파일 없으면 null.</summary>
     public Task<SaveData> LoadAsync()
     {
+        var path = GetSavePath(); // persistentDataPath는 메인 스레드에서만 호출 가능
         return Task.Run(() =>
         {
             try
             {
-                var path = GetSavePath();
                 if (!File.Exists(path)) return (SaveData)null;
 
                 var json = File.ReadAllText(path);
@@ -61,11 +68,11 @@ public class LocalSaveBackend : ISaveBackend
     /// <summary>로컬 세이브 파일 삭제.</summary>
     public Task<bool> DeleteAsync()
     {
+        var path = GetSavePath(); // persistentDataPath는 메인 스레드에서만 호출 가능
         return Task.Run(() =>
         {
             try
             {
-                var path = GetSavePath();
                 if (!File.Exists(path)) return true;
                 File.Delete(path);
                 return true;

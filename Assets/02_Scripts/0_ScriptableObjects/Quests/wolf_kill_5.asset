@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb793668accb08349ab5ea515c49f0f9, type: 3}
   m_Name: wolf_kill_5
   m_EditorClassIdentifier: 
-  QuestId: wolf_kill_5
+  _id: quest_wolf_kill_5
   Title: "\uCD0C\uC7A5\uB2D8\uC758 \uAC71\uC815"
   Description: "\uB291\uB300 5\uB9C8\uB9AC\uB97C \uCC98\uCE58\uD55C \uD6C4 \uCD0C\uC7A5\uB2D8\uAED8
     \uC54C\uB824\uB4DC\uB9AC\uC790."

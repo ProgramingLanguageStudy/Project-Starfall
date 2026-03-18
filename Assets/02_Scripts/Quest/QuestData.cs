@@ -1,17 +1,18 @@
 using System;
 using UnityEngine;
-
 [Serializable]
 public struct QuestRewardItem
 {
-    public string itemId;
+    public string id;
     public int amount;
 }
 
 [CreateAssetMenu(fileName = "NewQuest", menuName = "Quest/QuestData")]
-public class QuestData : ScriptableObject
+public class QuestData : BaseData
 {
-    public string QuestId;
+    public override string Id => _id;
+
+    [SerializeField] private string _id;
     /// <summary>퀘스트 제목 (UI 헤더용).</summary>
     public string Title;
     /// <summary>목표 설명 (UI용, 예: 버섯 3개 수집).</summary>

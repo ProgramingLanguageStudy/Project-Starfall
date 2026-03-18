@@ -109,9 +109,9 @@ public class SquadDebuggerEditor : Editor
         {
             if (data == null) continue;
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(data.displayName ?? data.characterId);
+            EditorGUILayout.LabelField(data.displayName ?? data.Id);
             if (GUILayout.Button("소환", GUILayout.Width(50)))
-                debugger.SpawnCompanion(data);
+                debugger.SpawnCompanion(data.Id);
             EditorGUILayout.EndHorizontal();
         }
 

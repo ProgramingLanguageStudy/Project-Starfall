@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bfb51a6792633b418706756853c58c4, type: 3}
+  m_Name: sapphi_quest_accept
+  m_EditorClassIdentifier: 
+  category: 2
+  npcId: npc_sapphi
+  speakerDisplayName: Sapphi
+  priority: 10
+  requiredFlagsOn:
+  - first_talk_npc_sapphi
+  requiredFlagsOff:
+  - quest_sapphi_recruit_accepted
+  - quest_sapphi_recruit_completed
+  flagsToModify: []
+  questId: quest_sapphi_recruit
+  questDialogueType: 1
+  lines:
+  - "\uC557, \uAC70\uAE30 \uB2F9\uC2E0! \uB0B4 \uD2B9\uBCC4\uD55C \uC624\uB77C\uC5D0
+    \uC774\uB04C\uB824 \uC628 \uAC70\uC57C?"
+  - "\uC88B\uC544, \uD2B9\uBCC4\uD788 \uB0B4 \uD300\uC6D0\uC73C\uB85C \uC601\uC785\uB420
+    \uAE30\uD68C\uB97C \uC904\uAC8C!"
+  - "\uB300\uC2E0, \uB0B4 \uB208\uBD80\uC2E0 \uD53C\uBD80\uB97C \uC704\uD574 '\uC544\uCE68
+    \uC0AC\uACFC' \uD558\uB098\uB9CC \uAD6C\uD574\uB2E4 \uC904\uB798? \uC13C\uD130\uC758
+    \uCEE8\uB514\uC158 \uAD00\uB9AC\uB294 \uD544\uC218\uAC70\uB4E0!"

@@ -20,9 +20,32 @@ public class SaveManager : MonoBehaviour
 {
     private const float PeriodicSaveIntervalSec = 300f; // 5분
 
+    [Header("로컬 세이브 (Boot 미경유 시)")]
+    [SerializeField] [Tooltip("에디터 Play 시에만 사용. 빌드에서는 항상 persistentDataPath. 예: 프로젝트/SaveData")]
+    private string _localSaveFolder = "";
+
     private readonly List<ISaveHandler> _handlers = new List<ISaveHandler>();
     private FirestoreSaveBackend _firestoreBackend;
     private static readonly LocalSaveBackend _localBackend = new LocalSaveBackend();
+
+    /// <summary>Boot 씬 경유 여부. Play 직접 진입 시 false → 로컬 사용.</summary>
+    private static bool _bootCompleted;
+    private static bool _backendLogged;
+
+    /// <summary>Boot 씬에서 호출. Boot 경유 시 Firestore 사용 가능.</summary>
+    public static void MarkBootCompleted() => _bootCompleted = true;
+
+    private void Awake()
+    {
+#if UNITY_EDITOR
+        if (!string.IsNullOrWhiteSpace(_localSaveFolder))
+            LocalSaveBackend.CustomBasePath = _localSaveFolder.Trim();
+        else
+            LocalSaveBackend.CustomBasePath = null;
+#else
+        LocalSaveBackend.CustomBasePath = null; // 빌드에서는 항상 persistentDataPath
+#endif
+    }
     private Coroutine _periodicSaveCoroutine;
     private bool _isQuittingAfterSave;
 
@@ -30,16 +53,27 @@ public class SaveManager : MonoBehaviour
     {
         get
         {
+            // Play 직접 진입(Boot 미경유) 시 로컬만 사용. Firebase Auth 유지와 무관.
+            if (!_bootCompleted)
+            {
+                if (!_backendLogged) { _backendLogged = true; Debug.Log("[SaveManager] Boot 미경유 → 로컬"); }
+                return _localBackend;
+            }
+
             try
             {
                 var user = FirebaseAuth.DefaultInstance?.CurrentUser;
                 if (user != null)
+                {
+                    if (!_backendLogged) { _backendLogged = true; Debug.Log("[SaveManager] Boot 경유 + 로그인 → Firestore"); }
                     return _firestoreBackend ??= new FirestoreSaveBackend(user.UserId);
+                }
             }
             catch (System.Exception e)
             {
                 Debug.Log("[SaveManager] Firebase not ready, using local save: " + e.Message);
             }
+            if (!_backendLogged) { _backendLogged = true; Debug.Log("[SaveManager] Boot 경유 + 미로그인 → 로컬"); }
             return _localBackend;
         }
     }
@@ -195,6 +229,12 @@ public class SaveManager : MonoBehaviour
                 var data = task.IsFaulted ? null : task.Result;
                 if (data != null)
                 {
+                    // 분대원이 비어 있으면 손상/구버전 데이터. 기본값으로 복구 (악순환 방지)
+                    if (data.squad?.members == null || data.squad.members.Count == 0)
+                    {
+                        Debug.Log("[SaveManager] Loaded data has empty squad. Migrating to default.");
+                        data.squad = CreateDefaultSaveData().squad;
+                    }
                     Debug.Log("[SaveManager] Loaded from " + (isLocal ? "local" : "Firestore") + ".");
                     return data;
                 }
@@ -218,14 +258,14 @@ public class SaveManager : MonoBehaviour
     {
         var data = new SaveData();
 
-        // Squad 기본값: Celeste 한 명, 플레이어 = Celeste, 슬롯 0, 위치 (63,3,63)
-        data.squad.currentPlayerId = "Celeste";
+        // Squad 기본값: character_celeste 한 명
+        data.squad.currentPlayerId = "character_celeste";
         data.squad.playerPosition = new Vector3(63f, 3f, 63f);
         data.squad.playerRotationY = 0f;
 
         var member = new CharacterMemberData
         {
-            characterId = "Celeste",
+            id = "character_celeste",
             currentHp = 100,    // HP는 로드 후 CharacterModel 기본값/로직에 맡김
             slotIndex = 0
         };

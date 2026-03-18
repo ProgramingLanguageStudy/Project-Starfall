@@ -5,7 +5,7 @@ public class QuestModel
 
     public QuestData Data => _data;
 
-    public string QuestId => _data.QuestId;
+    public string Id => _data.Id;
     public string Title => _data.Title;
     public string Description => _data.Description;
     public QuestType QuestType => _data.QuestType;

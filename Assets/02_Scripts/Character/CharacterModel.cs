@@ -8,7 +8,7 @@ using UnityEngine;
 /// </summary>
 public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, IItemUser
 {
-    [SerializeField] private CharacterData _data;
+    private CharacterData _data;
 
     private CharacterBaseStats _baseStats;
     private StatModifier _modifier;

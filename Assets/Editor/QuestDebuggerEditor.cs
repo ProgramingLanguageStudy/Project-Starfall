@@ -68,7 +68,7 @@ public class QuestDebuggerEditor : Editor
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField($"{q.Title} ({q.CurrentAmount}/{q.TargetAmount})");
                 if (GUILayout.Button("삭제", GUILayout.Width(50)))
-                    debugger.RemoveQuest(q.QuestId);
+                    debugger.RemoveQuest(q.Id);
                 EditorGUILayout.EndHorizontal();
             }
             EditorGUI.indentLevel--;

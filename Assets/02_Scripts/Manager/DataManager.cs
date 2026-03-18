@@ -3,25 +3,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.ResourceManagement.AsyncOperations;
 
 /// <summary>
-/// SO 데이터 로드·캐시. Addressables "Data" 라벨로 일괄 로드 후 타입별 분류.
+/// SO 데이터 로드·캐시. Addressables "Data" 라벨로 일괄 로드.
+/// BaseData: 단일 캐시 "Category/Id". DialogueData: npcId별 목록 유지.
 /// </summary>
 public class DataManager : MonoBehaviour
 {
-    [Header("경로")]
-    [SerializeField] [Tooltip("SO 경로 앞부분. 주소 = prefix/category/name")]
-    private string _soPathPrefix = "Assets/02_Scripts/0_ScriptableObjects";
-
     [Header("라벨")]
     [SerializeField] [Tooltip("모든 SO에 부여한 라벨")]
     private string _dataLabel = "Data";
 
-    private Dictionary<string, List<DialogueData>> _dialoguesByNpcId = new Dictionary<string, List<DialogueData>>(StringComparer.OrdinalIgnoreCase);
-    private Dictionary<string, ItemData> _itemsById = new Dictionary<string, ItemData>(StringComparer.OrdinalIgnoreCase);
-    private Dictionary<string, CharacterData> _charactersById = new Dictionary<string, CharacterData>(StringComparer.OrdinalIgnoreCase);
-    private Dictionary<string, QuestData> _questsById = new Dictionary<string, QuestData>(StringComparer.OrdinalIgnoreCase);
+    /// <summary>"Category/Id" → SO. BaseData 상속 타입만.</summary>
+    private Dictionary<string, ScriptableObject> _cache =
+        new Dictionary<string, ScriptableObject>(StringComparer.OrdinalIgnoreCase);
+
+    private Dictionary<string, List<DialogueData>> _dialoguesByNpcId =
+        new Dictionary<string, List<DialogueData>>(StringComparer.OrdinalIgnoreCase);
 
     public bool IsLoaded { get; private set; }
 
@@ -90,38 +88,19 @@ public class DataManager : MonoBehaviour
 
     private void ClearCaches()
     {
+        _cache.Clear();
         _dialoguesByNpcId.Clear();
-        _itemsById.Clear();
-        _charactersById.Clear();
-        _questsById.Clear();
     }
 
     private void CacheByType(ScriptableObject so)
     {
-        if (so is CharacterData cd)
-        {
-            if (!string.IsNullOrEmpty(cd.characterId))
-                _charactersById[cd.characterId] = cd;
-            return;
-        }
+        // BaseData: 단일 캐시
+        if (so is BaseData bd && !string.IsNullOrEmpty(bd.Id))
+            _cache[$"{bd.Category}/{bd.Id}"] = so;
 
-        if (so is ItemData id)
+        // DialogueData: npcId별 목록 (1:N)
+        if (so is DialogueData dd && !string.IsNullOrEmpty(dd.npcId))
         {
-            if (!string.IsNullOrEmpty(id.ItemId))
-                _itemsById[id.ItemId] = id;
-            return;
-        }
-
-        if (so is QuestData qd)
-        {
-            if (!string.IsNullOrEmpty(qd.QuestId))
-                _questsById[qd.QuestId] = qd;
-            return;
-        }
-
-        if (so is DialogueData dd)
-        {
-            if (string.IsNullOrEmpty(dd.npcId)) return;
             if (!_dialoguesByNpcId.TryGetValue(dd.npcId, out var list))
             {
                 list = new List<DialogueData>();
@@ -131,59 +110,20 @@ public class DataManager : MonoBehaviour
         }
     }
 
-    private string BuildAddress(string category, string name)
-    {
-        var prefix = string.IsNullOrEmpty(_soPathPrefix) ? "Assets/02_Scripts/0_ScriptableObjects" : _soPathPrefix.TrimEnd('/');
-        return $"{prefix}/{category}/{name}";
-    }
-
-    private T LoadAndCache<T>(string category, string name, Dictionary<string, T> cache, Func<T, string> getCacheKey) where T : ScriptableObject
-    {
-        if (string.IsNullOrEmpty(name) || cache == null) return null;
-
-        try
-        {
-            var address = BuildAddress(category, name);
-            var handle = Addressables.LoadAssetAsync<T>(address);
-            var asset = handle.WaitForCompletion();
-            if (asset == null) return null;
-
-            var cacheKey = getCacheKey != null ? getCacheKey(asset) : name;
-            if (!string.IsNullOrEmpty(cacheKey))
-                cache[cacheKey] = asset;
-            return asset;
-        }
-        catch (Exception e)
-        {
-            Debug.LogWarning($"[DataManager] LoadAndCache failed ({category}/{name}): {e.Message}");
-            return null;
-        }
-    }
-
     #endregion
 
     #region Query
 
-    public CharacterData GetCharacterData(string characterId)
+    /// <summary>제네릭 조회. Load 완료 후 캐시에서 반환.</summary>
+    public T Get<T>(string id) where T : BaseData
     {
-        if (string.IsNullOrEmpty(characterId)) return null;
-        if (_charactersById.TryGetValue(characterId, out var cached)) return cached;
-        var name = characterId.EndsWith("Data", StringComparison.OrdinalIgnoreCase) ? characterId : characterId + "Data";
-        return LoadAndCache("Character", name, _charactersById, a => a.characterId);
-    }
+        if (string.IsNullOrEmpty(id)) return null;
 
-    public ItemData GetItemData(string itemId)
-    {
-        if (string.IsNullOrEmpty(itemId)) return null;
-        if (_itemsById.TryGetValue(itemId, out var cached)) return cached;
-        return LoadAndCache("Items", itemId, _itemsById, a => a.ItemId);
-    }
+        var key = $"{typeof(T).Name}/{id}";
+        if (typeof(T) == typeof(ItemData) || typeof(T).IsSubclassOf(typeof(ItemData)))
+            key = $"ItemData/{id}";
 
-    public QuestData GetQuestData(string questId)
-    {
-        if (string.IsNullOrEmpty(questId)) return null;
-        if (_questsById.TryGetValue(questId, out var cached)) return cached;
-        return LoadAndCache("Quests", questId, _questsById, a => a.QuestId);
+        return _cache.TryGetValue(key, out var cached) ? cached as T : null;
     }
 
     public IReadOnlyList<DialogueData> GetDialoguesForNpc(string npcId)

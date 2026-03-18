@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f07afdb1a9e1252459bcfd3dcf672960, type: 3}
   m_Name: pico_recruit
   m_EditorClassIdentifier: 
-  QuestId: pico_recruit
+  _id: quest_pico_recruit
   Title: "Pico \uC601\uC785\uD558\uAE30"
   Description: "\uBC84\uC12F 1\uAC1C\uB97C \uBAA8\uC544\uC11C Pico\uC5D0\uAC8C \uAC00\uC838\uB2E4\uC8FC\uC790."
   QuestType: 3
@@ -20,4 +20,4 @@ MonoBehaviour:
   TargetAmount: 1
   RewardGold: 0
   RewardItems: []
-  recruitCharacterId: pico
+  recruitCharacterId: character_pico

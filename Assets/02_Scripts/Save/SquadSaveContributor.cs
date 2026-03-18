@@ -31,7 +31,7 @@ public class SquadSaveContributor : SaveContributorBehaviour
             data.squad.playerRotationY = current.transform.eulerAngles.y;
             if (current.Model?.Data != null)
             {
-                var id = current.Model.Data.characterId;
+                var id = current.Model.Data.Id;
                 data.squad.currentPlayerId = !string.IsNullOrEmpty(id) ? id : current.Model.Data.displayName;
             }
         }
@@ -42,8 +42,8 @@ public class SquadSaveContributor : SaveContributorBehaviour
             var c = slot < slots.Count ? slots[slot] : null;
             if (c == null || c.Model?.Data == null) continue;
             var m = new CharacterMemberData();
-            var id = c.Model.Data.characterId;
-            m.characterId = !string.IsNullOrEmpty(id) ? id : c.Model.Data.displayName;
+            var id = c.Model.Data.Id;
+            m.id = !string.IsNullOrEmpty(id) ? id : c.Model.Data.displayName;
             m.currentHp = c.Model.CurrentHp;
             m.slotIndex = slot;
             data.squad.members.Add(m);
