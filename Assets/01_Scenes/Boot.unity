@@ -351,7 +351,6 @@ GameObject:
   - component: {fileID: 664850981}
   - component: {fileID: 664850980}
   - component: {fileID: 664850979}
-  - component: {fileID: 664850978}
   - component: {fileID: 664850977}
   m_Layer: 0
   m_Name: GameManager
@@ -392,8 +391,10 @@ MonoBehaviour:
   _dataManager: {fileID: 664850981}
   _resourceManager: {fileID: 664850980}
   _currencyManager: {fileID: 664850979}
-  _globalSaveCoordinator: {fileID: 664850978}
   _sceneLoadManager: {fileID: 664850977}
+  _poolManager: {fileID: 0}
+  _effectManager: {fileID: 0}
+  _soundManager: {fileID: 0}
 --- !u!114 &664850977
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -407,18 +408,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneLoadManager
   _loadingView: {fileID: 814837863}
---- !u!114 &664850978
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 664850974}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: caec32710bd02ca4194c7f555ce083fd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GlobalSaveCoordinator
 --- !u!114 &664850979
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -457,7 +446,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03fe5427b5f192c409ca5f2f938cc99c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DataManager
-  _soPathPrefix: Assets/02_Scripts/0_ScriptableObjects
   _dataLabel: Data
 --- !u!114 &664850982
 MonoBehaviour:
@@ -471,6 +459,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bf247ceda99ec4b43b6e60527854baaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SaveManager
+  _localSaveFolder: 
 --- !u!1 &814837858
 GameObject:
   m_ObjectHideFlags: 0

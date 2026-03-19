@@ -4174,15 +4174,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d9095a8ee4490b4784cfe38a3824389, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _firebaseAuthManager: {fileID: 0}
   _saveManager: {fileID: 241714263}
   _dataManager: {fileID: 241714262}
   _resourceManager: {fileID: 0}
   _currencyManager: {fileID: 241714265}
-  _globalSaveCoordinator: {fileID: 241714264}
   _sceneLoadManager: {fileID: 0}
   _poolManager: {fileID: 0}
   _effectManager: {fileID: 0}
   _soundManager: {fileID: 0}
+  _uiManager: {fileID: 0}
 --- !u!4 &241714261
 Transform:
   m_ObjectHideFlags: 0
