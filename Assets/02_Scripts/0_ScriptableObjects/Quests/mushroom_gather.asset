@@ -19,5 +19,7 @@ MonoBehaviour:
   QuestType: 0
   TargetId: item_mushroom
   TargetAmount: 1
-  RewardGold: 0
-  RewardItems: []
+  RewardGold: 50
+  RewardItems:
+  - id: item_sprintpotion
+    amount: 1

@@ -17,7 +17,7 @@ MonoBehaviour:
   speakerDisplayName: "\uCD0C\uC7A5"
   priority: 10
   requiredFlagsOn:
-  - first_talk_chief
+  - first_talk_npc_chief
   requiredFlagsOff:
   - quest_mushroom_gather_accepted
   - quest_mushroom_gather_completed
