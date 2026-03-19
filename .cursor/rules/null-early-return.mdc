@@ -1,0 +1,26 @@
+---
+description: null 체크 시 early return + 로그. 에러 추적 용이.
+globs: "**/*.cs"
+alwaysApply: true
+---
+
+# Null 처리 패턴
+
+- `?.` 또는 `if (x != null)` 후 조용히 넘어가는 대신, **null이면 로그 후 return** 한다.
+- 이유: 조용한 실패는 에러 추적이 어려움. 개발·테스트 시 원인 파악을 위해 명시적으로 처리.
+
+## 적용 예
+
+```csharp
+// 비권장: 조용히 무시됨
+GameManager.Instance?.CurrencyManager?.AddGold(amount);
+
+// 권장: null이면 로그 후 return
+var cm = GameManager.Instance?.CurrencyManager;
+if (cm == null)
+{
+    Debug.LogError("[QuestController] CurrencyManager is null.");
+    return;
+}
+cm.AddGold(amount);
+```
