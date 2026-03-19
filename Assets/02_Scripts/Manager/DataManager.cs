@@ -7,13 +7,10 @@ using UnityEngine.AddressableAssets;
 /// <summary>
 /// SO 데이터 로드·캐시. Addressables "Data" 라벨로 일괄 로드.
 /// BaseData: 단일 캐시 "Category/Id". DialogueData: npcId별 목록 유지.
+/// Handle 미보관, Result(SO)만 캐시. Release 없음. SO는 게임 내내 유지(앱 종료 시 OS 정리).
 /// </summary>
 public class DataManager : MonoBehaviour
 {
-    [Header("라벨")]
-    [SerializeField] [Tooltip("모든 SO에 부여한 라벨")]
-    private string _dataLabel = "Data";
-
     /// <summary>"Category/Id" → SO. BaseData 상속 타입만.</summary>
     private Dictionary<string, ScriptableObject> _cache =
         new Dictionary<string, ScriptableObject>(StringComparer.OrdinalIgnoreCase);
@@ -25,21 +22,13 @@ public class DataManager : MonoBehaviour
 
     #region Load
 
-    /// <summary>동기 로드. Data 라벨로 일괄 로드 후 타입별 분류.</summary>
-    public void Load()
-    {
-        if (IsLoaded) return;
-        LoadAllByLabel();
-        IsLoaded = true;
-    }
-
     /// <summary>비동기 로드. 진행률 콜백 지원. 이미 로드됐으면 스킵.</summary>
     public IEnumerator LoadAsync(Action<float, string> onProgress = null)
     {
         if (IsLoaded) yield break;
 
         onProgress?.Invoke(0f, "DataManager 로드중...");
-        var handle = Addressables.LoadAssetsAsync<ScriptableObject>(_dataLabel, null);
+        var handle = Addressables.LoadAssetsAsync<ScriptableObject>(AddressableConfig.DataLabel, null);
 
         while (!handle.IsDone)
         {
@@ -60,26 +49,6 @@ public class DataManager : MonoBehaviour
 
         IsLoaded = true;
         onProgress?.Invoke(1f, "Data 로드 완료");
-    }
-
-    private void LoadAllByLabel()
-    {
-        if (IsLoaded) return;
-
-        var handle = Addressables.LoadAssetsAsync<ScriptableObject>(_dataLabel, null);
-        var list = handle.WaitForCompletion();
-
-        ClearCaches();
-        if (list != null)
-        {
-            foreach (var so in list)
-            {
-                if (so != null)
-                    CacheByType(so);
-            }
-        }
-
-        IsLoaded = true;
     }
 
     #endregion
@@ -129,7 +98,7 @@ public class DataManager : MonoBehaviour
     public IReadOnlyList<DialogueData> GetDialoguesForNpc(string npcId)
     {
         if (string.IsNullOrEmpty(npcId)) return Array.Empty<DialogueData>();
-        if (!IsLoaded) LoadAllByLabel();
+        if (!IsLoaded) return Array.Empty<DialogueData>();
         return _dialoguesByNpcId.TryGetValue(npcId, out var list) ? list : Array.Empty<DialogueData>();
     }
 

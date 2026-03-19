@@ -1,11 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// 골드 세이브/로드. GlobalSaveCoordinator 하위. CurrencyManager와 같은 GameObject에 두거나 Initialize로 주입.
+/// 골드 세이브/로드. CurrencyManager와 같은 GameObject에 두고 SaveManager에 직접 등록.
 /// </summary>
 public class CurrencySaveContributor : SaveContributorBehaviour
 {
-    public override int SaveOrder => 0;
+    public override int SaveOrder => 4; // Play Contributor(0~3) 이후
 
     private CurrencyManager _currencyManager;
 
@@ -18,6 +18,18 @@ public class CurrencySaveContributor : SaveContributorBehaviour
     {
         if (_currencyManager == null)
             _currencyManager = GetComponent<CurrencyManager>();
+    }
+
+    private void OnEnable()
+    {
+        if (GameManager.Instance?.SaveManager != null)
+            GameManager.Instance.SaveManager.Register(this);
+    }
+
+    private void OnDisable()
+    {
+        if (GameManager.Instance?.SaveManager != null)
+            GameManager.Instance.SaveManager.Unregister(this);
     }
 
     public override void Gather(SaveData data)

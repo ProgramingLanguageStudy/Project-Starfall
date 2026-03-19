@@ -8,117 +8,82 @@ using UnityEngine.ResourceManagement.ResourceLocations;
 
 /// <summary>
 /// 프리팹 로드 담당. Addressables 사용.
-/// 경로(prefix 제외)를 키로, Handle을 값으로 캐시. Release: 씬 전환·게임 종료 시 Release() 호출 권장.
+/// 경로(prefix 제외)를 키로, Handle을 값으로 캐시. Handle 보관으로 개별/전체 Release 가능.
+/// 씬 전환·게임 종료 시 Release() 호출 권장.
 /// </summary>
 public class ResourceManager : MonoBehaviour
 {
-    [Header("경로")]
-    [SerializeField] [Tooltip("프리팹 경로 앞부분. 주소 = prefix/category/name.prefab")]
-    private string _prefabPathPrefix = "Assets/00_Prefabs";
-
-    [Header("라벨")]
-    [SerializeField] [Tooltip("기본 로드용 Addressables 라벨")]
-    private string _defaultLoadLabel = "Prefab";
-
     /// <summary>경로(prefix 제외, 확장자 제외) → Handle. 예: "UI/CharacterProfile"</summary>
     private readonly Dictionary<string, AsyncOperationHandle<GameObject>> _cache =
         new Dictionary<string, AsyncOperationHandle<GameObject>>(StringComparer.OrdinalIgnoreCase);
 
-    private readonly HashSet<string> _loadedLabels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private bool _isLoaded;
 
     #region Load
 
-    /// <summary>해당 라벨 로드 완료 여부. Boot 백그라운드 로드 후 Intro→Play 시 스킵에 사용.</summary>
-    public bool IsLoaded(string label) =>
-        !string.IsNullOrEmpty(label) && _loadedLabels.Contains(label);
+    /// <summary>프리팹 로드 완료 여부. Boot 백그라운드 로드 후 Intro→Play 시 스킵에 사용.</summary>
+    public bool IsLoaded() => _isLoaded;
 
-    /// <summary>기본 라벨(_defaultLoadLabel) 로드 완료 여부.</summary>
-    public bool IsLoaded() => IsLoaded(_defaultLoadLabel);
-
-    /// <summary>기본 라벨(_defaultLoadLabel)로 프리팹 로드(비동기).</summary>
-    public IEnumerator LoadAsync(Action<float, string> onProgress = null) =>
-        LoadAsync(_defaultLoadLabel, onProgress);
-
-    /// <summary>라벨로 프리팹 로드(비동기). 진행률 콜백 지원. 이미 로드된 라벨이면 스킵.</summary>
-    public IEnumerator LoadAsync(string label, Action<float, string> onProgress = null)
+    /// <summary>라벨로 프리팹 로드(비동기). 진행률 콜백 지원. 이미 로드됐으면 스킵.</summary>
+    public IEnumerator LoadAsync(Action<float, string> onProgress = null)
     {
-        if (string.IsNullOrEmpty(label)) yield break;
-        if (_loadedLabels.Contains(label)) yield break;
+        if (_isLoaded) yield break;
 
+        // 1) 라벨로 위치 목록 조회 (에셋 주소들. 아직 로드 안 됨)
         onProgress?.Invoke(0f, "ResourceManager 위치 조회중...");
-        // 라벨로 위치 목록 조회 (에셋 본체 아직 로드 안 함)
-        var locHandle = Addressables.LoadResourceLocationsAsync(label, typeof(GameObject));
+        var locHandle = Addressables.LoadResourceLocationsAsync(AddressableConfig.PrefabLabel, typeof(GameObject));
         yield return locHandle;
 
         var locations = locHandle.Result;
+        Addressables.Release(locHandle); // 위치 조회 Handle은 결과만 쓰고 해제
+
         if (locations == null || locations.Count == 0)
         {
-            Addressables.Release(locHandle);
+            _isLoaded = true;
             yield break;
         }
 
-        var prefix = GetPrefix();
-        var toLoad = new List<IResourceLocation>();
-        // prefix 경로에 해당하는 location만 필터
-        foreach (var loc in locations)
+        // 2) 각 위치별로 프리팹 로드 → Handle 캐시 (Release 시 해제됨)
+        for (int i = 0; i < locations.Count; i++)
         {
-            var address = loc.PrimaryKey as string;
-            if (string.IsNullOrEmpty(address) || !address.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
-            toLoad.Add(loc);
-        }
-        // locHandle은 위치 목록용. 프리팹 Handle과 별개. 사용 끝났으므로 해제
-        Addressables.Release(locHandle);
+            var loc = locations[i];
+            var pct = (float)(i + 1) / locations.Count;
+            onProgress?.Invoke(pct, $"ResourceManager 로드중... ({i + 1}/{locations.Count})");
 
-        if (toLoad.Count == 0) yield break;
-
-        for (int i = 0; i < toLoad.Count; i++)
-        {
-            var loc = toLoad[i];
-            var pct = (float)(i + 1) / toLoad.Count;
-            onProgress?.Invoke(pct, $"ResourceManager 로드중... ({i + 1}/{toLoad.Count})");
-
-            // 실제 프리팹 로드
             var loadHandle = Addressables.LoadAssetAsync<GameObject>(loc);
             yield return loadHandle;
 
             if (loadHandle.Result == null) continue;
 
+            // 3) 주소에서 캐시 키 추출 후 저장 (GetPrefab 조회용)
             var address = loc.PrimaryKey as string;
             var key = GetCacheKeyFromAddress(address);
-            // 캐시에 없으면 Handle 저장 (Release는 나중에 Release()에서)
             if (!string.IsNullOrEmpty(key) && !_cache.ContainsKey(key))
                 _cache[key] = loadHandle;
         }
-        _loadedLabels.Add(label);
+        _isLoaded = true;
         onProgress?.Invoke(1f, "Resource 로드 완료");
     }
 
-    private string GetPrefix()
-    {
-        var prefix = string.IsNullOrEmpty(_prefabPathPrefix) ? "Assets/00_Prefabs" : _prefabPathPrefix.TrimEnd('/');
-        return prefix + "/";
-    }
-
-    /// <summary>전체 주소에서 캐시 키 추출. prefix 제외, 확장자 제외. 예: "UI/CharacterProfile"</summary>
+    /// <summary>주소에서 캐시 키 추출. 예: Assets/00_Prefabs/UI/CharacterProfile.prefab → UI/CharacterProfile</summary>
     private string GetCacheKeyFromAddress(string address)
     {
         if (string.IsNullOrEmpty(address)) return null;
 
-        var prefix = GetPrefix();
-        if (!address.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return null;
+        // 1) 경로 정규화: \ (실제로는 \\가 \임. 규칙임) → / 
+        // 끝의 / 제거 (Windows·에디터 혼용 대비)
+        var normalized = address.Replace('\\', '/').TrimEnd('/');
+        if (!normalized.StartsWith(AddressableConfig.PrefabPrefix))
+            return null;
 
-        // prefix 제외한 상대 경로
-        var relative = address.Substring(prefix.Length);
-        var parts = relative.Split('/');
-        if (parts.Length < 2) return null;
+        // 2) Prefix 제거(미리 정해둔 앞부분 경로) → suffix (예: UI/CharacterProfile.prefab)
+        var suffix = normalized.Substring(AddressableConfig.PrefabPrefix.Length);
+        if (string.IsNullOrEmpty(suffix)) return null;
 
-        var category = parts[0];
-        var nameRaw = parts[parts.Length - 1];
-        var dot = nameRaw.LastIndexOf('.');
-        var name = dot >= 0 ? nameRaw.Substring(0, dot) : nameRaw;
-        if (string.IsNullOrEmpty(category) || string.IsNullOrEmpty(name)) return null;
-
-        return $"{category}/{name}";
+        // 3) 확장자 제거(.prefab 제거) → 캐시 키 (예: UI/CharacterProfile)
+        var dot = suffix.LastIndexOf('.');
+        var key = dot >= 0 ? suffix.Substring(0, dot) : suffix;
+        return string.IsNullOrEmpty(key) ? null : key;
     }
 
     #endregion
@@ -135,31 +100,31 @@ public class ResourceManager : MonoBehaviour
                 Addressables.Release(kv.Value);
         }
         _cache.Clear();
-        _loadedLabels.Clear();
+        _isLoaded = false;
     }
 
     #endregion
 
     #region Query
 
-    /// <summary>경로(prefix 제외)로 프리팹 반환. 예: GetPrefab("UI/CharacterProfile")</summary>
+    /// <summary>경로(prefix 제외)로 프리팹 반환. 라벨 프리로드 후 캐시에서만 조회. 예: GetPrefab("UI/CharacterProfile")</summary>
     public GameObject GetPrefab(string path)
     {
         if (string.IsNullOrEmpty(path)) return null;
 
-        // .prefab 확장자 제거
+        // 호출자가 "UI/CharacterProfile.prefab"처럼 확장자까지 넣을 수 있으므로 제거 후 캐시 키로 사용
         var key = path.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase)
             ? path.Substring(0, path.Length - 7)
             : path;
 
-        // 캐시 있으면 Handle.Result로 에셋 반환
         if (_cache.TryGetValue(key, out var handle))
             return handle.Result;
 
-        return LoadAndCache(key);
+        Debug.LogError($"[ResourceManager] 캐시 없음: {key}. 라벨 프리로드에 포함됐는지 확인.");
+        return null;
     }
 
-    /// <summary>카테고리+이름으로 프리팹 반환. 캐시 없으면 로드 후 저장.</summary>
+    /// <summary>카테고리+이름으로 프리팹 반환. 캐시에서만 조회.</summary>
     public GameObject GetPrefab(string category, string name)
     {
         if (string.IsNullOrEmpty(category) || string.IsNullOrEmpty(name)) return null;
@@ -168,49 +133,8 @@ public class ResourceManager : MonoBehaviour
         if (_cache.TryGetValue(key, out var handle))
             return handle.Result;
 
-        return LoadAndCache(key, category, name);
-    }
-
-    private GameObject LoadAndCache(string key, string category = null, string name = null)
-    {
-        // category/name 있으면 BuildAddress, 없으면 key로 주소 생성
-        var address = !string.IsNullOrEmpty(category) && !string.IsNullOrEmpty(name)
-            ? BuildAddress(category, name)
-            : BuildAddressFromKey(key);
-
-        try
-        {
-            var handle = Addressables.LoadAssetAsync<GameObject>(address);
-            var prefab = handle.WaitForCompletion();
-            if (prefab != null)
-            {
-                // 캐시에 Handle 저장 (Release 시 해제됨)
-                _cache[key] = handle;
-                return prefab;
-            }
-        }
-        catch (InvalidKeyException ex)
-        {
-            Debug.LogError($"[ResourceManager] 주소 없음: {address}. {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"[ResourceManager] 로드 실패: {address}. {ex.Message}");
-        }
+        Debug.LogError($"[ResourceManager] 캐시 없음: {key}. 라벨 프리로드에 포함됐는지 확인.");
         return null;
-    }
-
-    private string BuildAddress(string category, string name)
-    {
-        var prefix = string.IsNullOrEmpty(_prefabPathPrefix) ? "Assets/00_Prefabs" : _prefabPathPrefix.TrimEnd('/');
-        var nameWithExt = name.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase) ? name : name + ".prefab";
-        return $"{prefix}/{category}/{nameWithExt}";
-    }
-
-    private string BuildAddressFromKey(string key)
-    {
-        var prefix = string.IsNullOrEmpty(_prefabPathPrefix) ? "Assets/00_Prefabs" : _prefabPathPrefix.TrimEnd('/');
-        return $"{prefix}/{key}.prefab";
     }
 
     #endregion

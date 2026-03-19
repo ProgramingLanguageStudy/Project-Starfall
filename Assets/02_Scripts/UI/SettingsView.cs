@@ -70,11 +70,9 @@ public class SettingsView : PanelViewBase
 
     private IEnumerator SaveThenLoadIntro()
     {
-        var task = GameManager.Instance?.SaveManager?.SaveAsync();
-        if (task != null)
-        {
-            yield return new WaitUntil(() => task.IsCompleted);
-        }
+        var sm = GameManager.Instance?.SaveManager;
+        if (sm != null)
+            yield return sm.SaveAsync(null);
         SceneManager.LoadScene("Intro");
     }
 

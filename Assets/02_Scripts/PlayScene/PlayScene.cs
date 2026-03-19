@@ -84,18 +84,15 @@ public class PlayScene : MonoBehaviour
 
     private IEnumerator InitAfterLoadRoutine(GameManager gm)
     {
-        // DataManager 미초기화 시 선로드 (Play 씬 직접 진입 대응)
+        // DataManager·ResourceManager 미로드 시 선로드 (Play 씬 직접 진입 대응)
         if (gm?.DataManager != null && !gm.DataManager.IsLoaded)
-            gm.DataManager.Load();
-
-        // ResourceManager 미로드 시 폴백 (Boot 경유 없이 Play 직접 진입 대응)
+            yield return gm.DataManager.LoadAsync(null);
         if (gm?.ResourceManager != null && !gm.ResourceManager.IsLoaded())
             yield return gm.ResourceManager.LoadAsync(null);
 
-        var loadTask = gm?.SaveManager?.LoadAsync() ?? System.Threading.Tasks.Task.FromResult<SaveData>(null);
-        yield return new WaitUntil(() => loadTask.IsCompleted);
-
-        _pendingSaveData = loadTask.Result;
+        if (gm?.SaveManager != null)
+            yield return gm.SaveManager.LoadAsync(null);
+        _pendingSaveData = gm?.SaveManager?.LoadedSaveData;
 
         // 분대 컨트롤러는 CombatController 등 의존성만 먼저 주입.
         _squadController.Initialize(_combatController);

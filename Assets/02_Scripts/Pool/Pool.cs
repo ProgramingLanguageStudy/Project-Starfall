@@ -25,9 +25,7 @@ public class Pool
         var go = Object.Instantiate(_prefab, _parent);
         go.SetActive(false);
 
-        var poolable = go.GetComponent<Poolable>();
-        if (poolable == null)
-            poolable = go.AddComponent<Poolable>();
+        var poolable = Util.GetOrAddComponent<Poolable>(go);
         poolable.SetPool(this);
 
         _pool.Push(go);
@@ -46,8 +44,7 @@ public class Pool
         }
 
         var newGo = Object.Instantiate(_prefab, _parent);
-        var p = newGo.GetComponent<Poolable>();
-        if (p == null) p = newGo.AddComponent<Poolable>();
+        var p = Util.GetOrAddComponent<Poolable>(newGo);
         p.SetPool(this);
         return newGo;
     }

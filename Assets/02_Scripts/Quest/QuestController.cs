@@ -13,6 +13,7 @@ public class QuestController : MonoBehaviour
     private FlagSystem _flagSystem;
 
     /// <summary>PlayScene 등에서 주입. SquadController는 영입 퀘스트용.</summary>
+    /// <remarks>OnEnable은 InitAfterLoadRoutine보다 먼저 실행되므로, Initialize에서 구독을 수행.</remarks>
     public void Initialize(QuestSystem questSystem, Inventory inventory, FlagSystem flagSystem, SquadController squadController = null)
     {
         _questSystem = questSystem;
@@ -20,10 +21,13 @@ public class QuestController : MonoBehaviour
             _inventory = inventory;
         _flagSystem = flagSystem;
         _squadController = squadController;
+
+        Subscribe();
     }
 
-    private void OnEnable()
+    private void Subscribe()
     {
+        Unsubscribe();
         if (_inventory != null)
             _inventory.OnItemChangedWithId += HandleItemChangedWithId;
         PlaySceneEventHub.OnEnemyKilled += HandleEnemyKilled;
@@ -34,7 +38,7 @@ public class QuestController : MonoBehaviour
         }
     }
 
-    private void OnDisable()
+    private void Unsubscribe()
     {
         if (_inventory != null)
             _inventory.OnItemChangedWithId -= HandleItemChangedWithId;
@@ -44,6 +48,17 @@ public class QuestController : MonoBehaviour
             _questSystem.OnQuestUpdated -= HandleQuestUpdated;
             _questSystem.OnQuestCompleted -= HandleQuestCompleted;
         }
+    }
+
+    private void OnEnable()
+    {
+        if (_inventory != null || _questSystem != null)
+            Subscribe();
+    }
+
+    private void OnDisable()
+    {
+        Unsubscribe();
     }
 
     private void HandleItemChangedWithId(string itemId, int totalCount)
@@ -104,11 +119,14 @@ public class QuestController : MonoBehaviour
         }
     }
 
-    /// <summary>퀘스트 완료 보상(골드, 아이템) 지급.</summary>
+    /// <summary>퀘스트 완료 보상(골드, 아이템) 지급. PickupLogView 연동을 위해 GameEvents 발행.</summary>
     private void ApplyQuestRewards(QuestData data)
     {
         if (data.RewardGold > 0)
+        {
             GameManager.Instance?.CurrencyManager?.AddGold(data.RewardGold);
+            GameEvents.OnGoldAcquired?.Invoke(data.RewardGold);
+        }
 
         if (data.RewardItems == null || data.RewardItems.Length == 0) return;
         var dm = GameManager.Instance?.DataManager;
@@ -122,6 +140,7 @@ public class QuestController : MonoBehaviour
             if (itemData == null) continue;
 
             _inventory.AddItem(itemData, reward.amount);
+            GameEvents.OnItemPickedUp?.Invoke(itemData, reward.amount);
         }
     }
 

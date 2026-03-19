@@ -1,12 +1,11 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Play 씬 세이브/로드 조율. ISaveHandler 구현, SaveManager에 등록.
+/// Play 씬 세이브 Contributor 초기화·등록·언로드. SaveManager에 Contributor 직접 등록.
 /// PlayScene에서 Initialize 호출 시 의존성 주입. 인스펙터에서 Contributor 할당.
 /// </summary>
-public class PlaySaveCoordinator : MonoBehaviour, ISaveHandler
+public class PlaySaveCoordinator : MonoBehaviour
 {
     [SerializeField] [Tooltip("세이브/로드에 참여할 Contributor. SaveOrder 순으로 처리")]
     private List<SaveContributorBehaviour> _contributors = new List<SaveContributorBehaviour>();
@@ -26,8 +25,12 @@ public class PlaySaveCoordinator : MonoBehaviour, ISaveHandler
 
     private void OnEnable()
     {
-        if (GameManager.Instance?.SaveManager != null)
-            GameManager.Instance.SaveManager.Register(this);
+        var sm = GameManager.Instance?.SaveManager;
+        if (sm == null || _contributors == null) return;
+        foreach (var c in _contributors)
+        {
+            if (c != null) sm.Register(c);
+        }
     }
 
     private void OnDisable()
@@ -35,23 +38,18 @@ public class PlaySaveCoordinator : MonoBehaviour, ISaveHandler
         var sm = GameManager.Instance?.SaveManager;
         if (sm == null) return;
         sm.SaveBeforeUnload(); // Unregister 전에 저장 (빈 squad 방지)
-        sm.Unregister(this);
-    }
-
-    public void Gather(SaveData data)
-    {
-        if (data == null || _contributors == null) return;
-        foreach (var c in _contributors.Where(x => x != null).OrderBy(x => x.SaveOrder))
-            c.Gather(data);
+        if (_contributors == null) return;
+        foreach (var c in _contributors)
+        {
+            if (c != null) sm.Unregister(c);
+        }
     }
 
     /// <summary>세이브 실행. PlayScene 입력에서 Request.</summary>
-    public void RequestSave() => _ = GameManager.Instance?.SaveManager?.SaveAsync();
-
-    public void Apply(SaveData data)
+    public void RequestSave()
     {
-        if (data == null || _contributors == null) return;
-        foreach (var c in _contributors.Where(x => x != null).OrderBy(x => x.SaveOrder))
-            c.Apply(data);
+        var sm = GameManager.Instance?.SaveManager;
+        if (sm != null)
+            sm.StartCoroutine(sm.SaveAsync(null));
     }
 }

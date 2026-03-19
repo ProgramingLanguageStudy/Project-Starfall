@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Firebase;
@@ -8,16 +9,18 @@ using UnityEngine;
 
 /// <summary>
 /// Firestore 기반 세이브 백엔드. users/{userId}/save/save_slot0 문서에 JSON 저장.
+/// Task API를 코루틴으로 래핑하여 제공.
 /// </summary>
 public class FirestoreSaveBackend : ISaveBackend
 {
-    private const string CollectionUsers = "users";
-    private const string CollectionSave = "save";
-    private const string DocumentSlot = "save_slot0";
-    private const string FieldData = "data";
+    #region Fields
 
     private readonly string _userId;
     private readonly FirebaseFirestore _db;
+
+    #endregion
+
+    #region Constructor
 
     public FirestoreSaveBackend(string userId)
     {
@@ -28,18 +31,49 @@ public class FirestoreSaveBackend : ISaveBackend
         _db = FirebaseFirestore.DefaultInstance;
     }
 
-    /// <summary>비동기 저장. 성공 시 true.</summary>
-    public Task<bool> SaveAsync(SaveData data)
+    #endregion
+
+    #region ISaveBackend
+
+    public IEnumerator LoadAsync(Action<SaveData> onComplete)
+    {
+        var task = LoadInternalAsync();
+        yield return task.WaitUntilComplete();
+        var data = task.IsFaulted ? null : task.Result;
+        onComplete?.Invoke(data);
+    }
+
+    public IEnumerator SaveAsync(SaveData data, Action<bool> onComplete)
+    {
+        var task = SaveInternalAsync(data);
+        yield return task.WaitUntilComplete();
+        var success = !task.IsFaulted && task.Result;
+        onComplete?.Invoke(success);
+    }
+
+    public IEnumerator DeleteAsync(Action<bool> onComplete)
+    {
+        var task = DeleteInternalAsync();
+        yield return task.WaitUntilComplete();
+        var success = !task.IsFaulted && task.Result;
+        onComplete?.Invoke(success);
+    }
+
+    #endregion
+
+    #region Private - Save
+
+    private Task<bool> SaveInternalAsync(SaveData data)
     {
         if (data == null) return Task.FromResult(false);
 
         var json = JsonUtility.ToJson(data);
-        var docRef = _db.Collection(CollectionUsers).Document(_userId)
-            .Collection(CollectionSave).Document(DocumentSlot);
+        var docRef = _db.Collection(SaveConstants.Firestore.CollectionUsers).Document(_userId)
+            .Collection(SaveConstants.Firestore.CollectionSave).Document(SaveConstants.Firestore.DocumentSlot);
 
         var dict = new Dictionary<string, object>
         {
-            [FieldData] = json
+            [SaveConstants.Firestore.FieldData] = json
         };
 
         return docRef.SetAsync(dict, SetOptions.MergeAll)
@@ -54,11 +88,14 @@ public class FirestoreSaveBackend : ISaveBackend
             });
     }
 
-    /// <summary>비동기 로드. 없거나 실패 시 null.</summary>
-    public Task<SaveData> LoadAsync()
+    #endregion
+
+    #region Private - Load
+
+    private Task<SaveData> LoadInternalAsync()
     {
-        var docRef = _db.Collection(CollectionUsers).Document(_userId)
-            .Collection(CollectionSave).Document(DocumentSlot);
+        var docRef = _db.Collection(SaveConstants.Firestore.CollectionUsers).Document(_userId)
+            .Collection(SaveConstants.Firestore.CollectionSave).Document(SaveConstants.Firestore.DocumentSlot);
 
         return docRef.GetSnapshotAsync()
             .ContinueWithOnMainThread(task =>
@@ -73,7 +110,7 @@ public class FirestoreSaveBackend : ISaveBackend
                 if (snapshot == null || !snapshot.Exists)
                     return (SaveData)null;
 
-                if (!snapshot.TryGetValue<string>(FieldData, out var json, ServerTimestampBehavior.None))
+                if (!snapshot.TryGetValue<string>(SaveConstants.Firestore.FieldData, out var json, ServerTimestampBehavior.None))
                     return (SaveData)null;
 
                 if (string.IsNullOrEmpty(json)) return (SaveData)null;
@@ -90,25 +127,14 @@ public class FirestoreSaveBackend : ISaveBackend
             });
     }
 
-    /// <summary>세이브 존재 여부.</summary>
-    public Task<bool> HasSaveAsync()
-    {
-        var docRef = _db.Collection(CollectionUsers).Document(_userId)
-            .Collection(CollectionSave).Document(DocumentSlot);
+    #endregion
 
-        return docRef.GetSnapshotAsync()
-            .ContinueWithOnMainThread(task =>
-            {
-                if (task.IsFaulted) return false;
-                return task.Result?.Exists ?? false;
-            });
-    }
+    #region Private - Delete
 
-    /// <summary>세이브 삭제. 디버그/테스트용.</summary>
-    public Task<bool> DeleteAsync()
+    private Task<bool> DeleteInternalAsync()
     {
-        var docRef = _db.Collection(CollectionUsers).Document(_userId)
-            .Collection(CollectionSave).Document(DocumentSlot);
+        var docRef = _db.Collection(SaveConstants.Firestore.CollectionUsers).Document(_userId)
+            .Collection(SaveConstants.Firestore.CollectionSave).Document(SaveConstants.Firestore.DocumentSlot);
 
         return docRef.DeleteAsync()
             .ContinueWithOnMainThread(task =>
@@ -121,4 +147,6 @@ public class FirestoreSaveBackend : ISaveBackend
                 return true;
             });
     }
+
+    #endregion
 }

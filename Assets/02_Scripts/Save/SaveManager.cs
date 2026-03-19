@@ -1,121 +1,42 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using Firebase.Auth;
-using Firebase.Extensions;
+using System.Linq;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 /// <summary>
-/// 세이브 시점 제어 및 API 제공. ISaveHandler 등록·수집·적용.
-/// 백엔드: 로그인 시 Firestore, 미로그인/에러 시 로컬 파일(Application.persistentDataPath).
-/// - Play 진입 시: LoadAsync 후 ApplySaveData.
-/// - 앱 종료: Application.wantsToQuit으로 저장 완료 대기.
-/// - 5분 주기 자동 저장.
+/// 세이브 시점 제어 및 API 제공. ISaveContributor 등록·수집·적용.
+/// ISaveBackend만 보유. 백엔드 선택은 SaveBackendProvider에서.
 /// </summary>
 public class SaveManager : MonoBehaviour
 {
-    private const float PeriodicSaveIntervalSec = 300f; // 5분
+    #region Fields
 
-    [Header("로컬 세이브 (Boot 미경유 시)")]
-    [SerializeField] [Tooltip("에디터 Play 시에만 사용. 비면 프로젝트/SaveData. 빌드에서는 항상 persistentDataPath")]
-    private string _localSaveFolder = "";
-
-    private readonly List<ISaveHandler> _handlers = new List<ISaveHandler>();
-    private FirestoreSaveBackend _firestoreBackend;
-    private static readonly LocalSaveBackend _localBackend = new LocalSaveBackend();
-
-    /// <summary>Boot 씬 경유 여부. Play 직접 진입 시 false → 로컬 사용.</summary>
-    private static bool _bootCompleted;
-    private static bool _backendLogged;
-
-    /// <summary>Boot 씬에서 호출. Boot 경유 시 Firestore 사용 가능.</summary>
-    public static void MarkBootCompleted() => _bootCompleted = true;
-
-    private void Awake()
-    {
-#if UNITY_EDITOR
-        if (!string.IsNullOrWhiteSpace(_localSaveFolder))
-            LocalSaveBackend.CustomBasePath = _localSaveFolder.Trim();
-        else
-            LocalSaveBackend.CustomBasePath = GetDefaultSaveFolder();
-#else
-        LocalSaveBackend.CustomBasePath = null; // 빌드에서는 항상 persistentDataPath
-#endif
-    }
-
-    /// <summary>에디터용 기본 경로. 프로젝트 루트/SaveData</summary>
-    private static string GetDefaultSaveFolder()
-    {
-        var projectRoot = Path.GetDirectoryName(Application.dataPath);
-        return Path.Combine(projectRoot ?? "", "SaveData");
-    }
+    private ISaveBackend _backend;
+    private SaveData _loadedSaveData;
+    private readonly List<ISaveContributor> _contributors = new List<ISaveContributor>();
     private Coroutine _periodicSaveCoroutine;
     private bool _isQuittingAfterSave;
 
-    private ISaveBackend Backend
-    {
-        get
-        {
-            // Play 직접 진입(Boot 미경유) 시 로컬만 사용. Firebase Auth 유지와 무관.
-            if (!_bootCompleted)
-            {
-                if (!_backendLogged) { _backendLogged = true; Debug.Log("[SaveManager] Boot 미경유 → 로컬"); }
-                return _localBackend;
-            }
+    #endregion
 
-            try
-            {
-                var user = FirebaseAuth.DefaultInstance?.CurrentUser;
-                if (user != null)
-                {
-                    if (!_backendLogged) { _backendLogged = true; Debug.Log("[SaveManager] Boot 경유 + 로그인 → Firestore"); }
-                    return _firestoreBackend ??= new FirestoreSaveBackend(user.UserId);
-                }
-            }
-            catch (System.Exception e)
-            {
-                Debug.Log("[SaveManager] Firebase not ready, using local save: " + e.Message);
-            }
-            if (!_backendLogged) { _backendLogged = true; Debug.Log("[SaveManager] Boot 경유 + 미로그인 → 로컬"); }
-            return _localBackend;
-        }
+    #region Public API
+
+    /// <summary>로드 완료된 SaveData. LoadAsync 완료 후 사용.</summary>
+    public SaveData LoadedSaveData => _loadedSaveData;
+
+    /// <summary>백엔드 주입. GameManager 등에서 SaveBackendProvider.CreateBackend()로 생성 후 호출.</summary>
+    public void SetBackend(ISaveBackend backend)
+    {
+        _backend = backend;
     }
 
-    /// <summary>세이브/로드에 참여할 핸들러 등록.</summary>
-    public void Register(ISaveHandler handler)
-    {
-        if (handler == null || _handlers.Contains(handler)) return;
-        _handlers.Add(handler);
-    }
+    #endregion
 
-    /// <summary>등록 해제.</summary>
-    public void Unregister(ISaveHandler handler)
-    {
-        if (handler == null) return;
-        _handlers.Remove(handler);
-    }
-
-    /// <summary>등록된 핸들러들로부터 SaveData 수집.</summary>
-    public SaveData GatherSaveData()
-    {
-        var data = new SaveData();
-        for (int i = 0; i < _handlers.Count; i++)
-            _handlers[i].Gather(data);
-        return data;
-    }
-
-    /// <summary>로드한 SaveData를 핸들러들에게 적용.</summary>
-    public void ApplySaveData(SaveData data)
-    {
-        if (data == null) return;
-        for (int i = 0; i < _handlers.Count; i++)
-            _handlers[i].Apply(data);
-    }
+    #region Unity Lifecycle
 
     private void OnEnable()
     {
@@ -134,26 +55,36 @@ public class SaveManager : MonoBehaviour
         StopPeriodicSave();
     }
 
+    #endregion
+
+    #region Quit / Play Mode - Save on Exit
+
+    /// <summary>
+    /// 앱 종료 시 호출. 빌드(창 닫기)·에디터 전체 종료 시에만 동작.
+    /// Play 모드 Stop 시에는 호출되지 않음 → OnPlayModeStateChanged 사용.
+    /// </summary>
     private bool OnWantsToQuit()
     {
         if (_isQuittingAfterSave) return true;
-
-        var task = SaveAsyncInternal();
-        StartCoroutine(QuitAfterSave(task));
-        return false; // 저장 완료까지 종료 보류
+        StartCoroutine(QuitAfterSaveRoutine());
+        return false;
     }
 
-    private IEnumerator QuitAfterSave(Task<bool> saveTask)
+    /// <summary>저장 완료 후 종료. wantsToQuit에서 false 반환 시 Unity가 재호출.</summary>
+    private IEnumerator QuitAfterSaveRoutine()
     {
-        var timeout = 5f;
+        var done = false;
+        var success = false;
+        StartCoroutine(SaveAsync(b => { done = true; success = b; }));
+
         var elapsed = 0f;
-        while (!saveTask.IsCompleted && elapsed < timeout)
+        while (!done && elapsed < SaveConfig.QuitSaveTimeoutSec)
         {
             elapsed += Time.unscaledDeltaTime;
             yield return null;
         }
 
-        if (!saveTask.IsCompleted)
+        if (!done)
             Debug.LogWarning("[SaveManager] Save timeout on quit.");
 
         _isQuittingAfterSave = true;
@@ -164,25 +95,58 @@ public class SaveManager : MonoBehaviour
 #endif
     }
 
+    /// <summary>
+    /// 에디터 전용. Play 모드 Stop 시 호출. wantsToQuit은 Play 모드 종료 시 호출되지 않으므로 별도 처리.
+    /// </summary>
 #if UNITY_EDITOR
     private void OnPlayModeStateChanged(PlayModeStateChange state)
     {
         if (state == PlayModeStateChange.ExitingPlayMode)
-        {
-            // 베스트 에포트 (완료 보장 어려움)
-            _ = SaveAsyncInternal();
-        }
+            StartCoroutine(SaveAsync(null));
     }
 #endif
 
-    /// <summary>5분 주기 저장 시작. Play 진입 시 호출 권장.</summary>
+    #endregion
+
+    #region ISaveContributor
+
+    public void Register(ISaveContributor contributor)
+    {
+        if (contributor == null || _contributors.Contains(contributor)) return;
+        _contributors.Add(contributor);
+    }
+
+    public void Unregister(ISaveContributor contributor)
+    {
+        if (contributor == null) return;
+        _contributors.Remove(contributor);
+    }
+
+    public SaveData GatherSaveData()
+    {
+        var data = new SaveData();
+        foreach (var c in _contributors.Where(x => x != null).OrderBy(x => x.SaveOrder))
+            c.Gather(data);
+        return data;
+    }
+
+    public void ApplySaveData(SaveData data)
+    {
+        if (data == null) return;
+        foreach (var c in _contributors.Where(x => x != null).OrderBy(x => x.SaveOrder))
+            c.Apply(data);
+    }
+
+    #endregion
+
+    #region Periodic Save
+
     public void StartPeriodicSave()
     {
         StopPeriodicSave();
         _periodicSaveCoroutine = StartCoroutine(PeriodicSaveRoutine());
     }
 
-    /// <summary>주기 저장 중지.</summary>
     public void StopPeriodicSave()
     {
         if (_periodicSaveCoroutine != null)
@@ -194,100 +158,103 @@ public class SaveManager : MonoBehaviour
 
     private IEnumerator PeriodicSaveRoutine()
     {
-        var wait = new WaitForSecondsRealtime(PeriodicSaveIntervalSec);
+        var wait = new WaitForSecondsRealtime(SaveConfig.PeriodicSaveIntervalSec);
         while (true)
         {
             yield return wait;
-            _ = SaveAsyncInternal();
+            StartCoroutine(SaveAsync(null));
         }
     }
 
-    /// <summary>비동기 저장. 로그인 시 Firestore, 아니면 로컬.</summary>
-    public Task<bool> SaveAsync()
+    #endregion
+
+    #region Save / Load / Delete
+
+    /// <summary>비동기 저장. onComplete(성공여부).</summary>
+    public IEnumerator SaveAsync(Action<bool> onComplete)
     {
-        return SaveAsyncInternal();
+        if (_backend == null) { onComplete?.Invoke(false); yield break; }
+
+        var data = GatherSaveData();
+        if (data == null) { onComplete?.Invoke(false); yield break; }
+
+        var success = false;
+        yield return _backend.SaveAsync(data, b => success = b);
+
+        if (success)
+            Debug.Log("[SaveManager] Saved.");
+        onComplete?.Invoke(success);
     }
 
-    /// <summary>씬 언로드 전 호출. Unregister 직전에 호출해 현재 핸들러로 Gather 후 저장. Play→Boot 전환 시 빈 squad 저장 방지.</summary>
+    /// <summary>씬 언로드 전 호출. Unregister 직전에.</summary>
     public void SaveBeforeUnload()
     {
         var data = GatherSaveData();
+        if (data != null && _backend != null)
+            StartCoroutine(_backend.SaveAsync(data, _ => { }));
+    }
+
+    /// <summary>비동기 로드. 완료 시 _loadedSaveData에 저장. 없으면 디폴트.</summary>
+    public IEnumerator LoadAsync(Action<float, string> onProgress = null)
+    {
+        if (_backend == null)
+        {
+            _loadedSaveData = CreateDefaultSaveData();
+            onProgress?.Invoke(1f, "Save 로드 완료");
+            yield break;
+        }
+
+        onProgress?.Invoke(0f, "Save 로드중...");
+        SaveData data = null;
+        yield return _backend.LoadAsync(d => data = d);
+
         if (data != null)
-            _ = Backend.SaveAsync(data);
-    }
-
-    private Task<bool> SaveAsyncInternal()
-    {
-        var backend = Backend;
-        var data = GatherSaveData();
-        if (data == null) return Task.FromResult(false);
-
-        var isLocal = backend is LocalSaveBackend;
-        return backend.SaveAsync(data)
-            .ContinueWithOnMainThread(task =>
+        {
+            if (data.squad?.members == null || data.squad.members.Count == 0)
             {
-                var success = !task.IsFaulted && task.Result;
-                if (success)
-                    Debug.Log("[SaveManager] Saved to " + (isLocal ? "local" : "Firestore") + ".");
-                return success;
-            });
-    }
+                Debug.Log("[SaveManager] Loaded data has empty squad. Migrating to default.");
+                data.squad = CreateDefaultSaveData().squad;
+            }
+            _loadedSaveData = data;
+            Debug.Log("[SaveManager] Loaded.");
+        }
+        else
+        {
+            _loadedSaveData = CreateDefaultSaveData();
+            Debug.Log("[SaveManager] No save found. Using default.");
+        }
 
-    /// <summary>비동기 로드. 없으면 null(신규 플레이).</summary>
-    public Task<SaveData> LoadAsync()
-    {
-        var backend = Backend;
-        var isLocal = backend is LocalSaveBackend;
-
-        return backend.LoadAsync()
-            .ContinueWithOnMainThread(task =>
-            {
-                var data = task.IsFaulted ? null : task.Result;
-                if (data != null)
-                {
-                    // 분대원이 비어 있으면 손상/구버전 데이터. 기본값으로 복구 (악순환 방지)
-                    if (data.squad?.members == null || data.squad.members.Count == 0)
-                    {
-                        Debug.Log("[SaveManager] Loaded data has empty squad. Migrating to default.");
-                        data.squad = CreateDefaultSaveData().squad;
-                    }
-                    Debug.Log("[SaveManager] Loaded from " + (isLocal ? "local" : "Firestore") + ".");
-                    return data;
-                }
-
-                // 저장 데이터가 전혀 없을 때: 디폴트 SaveData 생성 (로컬 신규 플레이용).
-                // 기본 분대: Celeste 한 명, 슬롯 0, 위치 (63, 3, 63), 회전 0.
-                var defaultData = CreateDefaultSaveData();
-                Debug.Log("[SaveManager] No save found. Using default SaveData (local).");
-                return defaultData;
-            });
+        onProgress?.Invoke(1f, "Save 로드 완료");
     }
 
     /// <summary>세이브 삭제. 디버그/테스트용.</summary>
-    public Task<bool> TryDeleteSaveAsync()
+    public IEnumerator TryDeleteSaveAsync(Action<bool> onComplete = null)
     {
-        return Backend.DeleteAsync();
+        if (_backend == null) { onComplete?.Invoke(false); yield break; }
+
+        var success = false;
+        yield return _backend.DeleteAsync(b => success = b);
+        onComplete?.Invoke(success);
     }
 
-    /// <summary>저장 데이터가 없을 때 사용할 디폴트 SaveData 생성.</summary>
+    #endregion
+
+    #region Private
+
     private SaveData CreateDefaultSaveData()
     {
         var data = new SaveData();
-
-        // Squad 기본값: character_celeste 한 명
         data.squad.currentPlayerId = "character_celeste";
         data.squad.playerPosition = new Vector3(63f, 3f, 63f);
         data.squad.playerRotationY = 0f;
-
-        var member = new CharacterMemberData
+        data.squad.members.Add(new CharacterMemberData
         {
             id = "character_celeste",
-            currentHp = 100,    // HP는 로드 후 CharacterModel 기본값/로직에 맡김
+            currentHp = 100,
             slotIndex = 0
-        };
-        data.squad.members.Add(member);
-
-        // 다른 섹션(flags, quests, inventory, gold)은 SaveData 생성자 기본값 사용
+        });
         return data;
     }
+
+    #endregion
 }

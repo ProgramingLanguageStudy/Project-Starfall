@@ -2,12 +2,19 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// 계정 귀속 재화(골드) 관리. GameManager 하위. 세이브/로드는 GlobalSaveCoordinator → CurrencySaveContributor.
+/// 계정 귀속 재화(골드) 관리. GameManager 하위. 세이브/로드는 CurrencySaveContributor가 SaveManager에 직접 등록.
 /// 접근: GameManager.Instance.CurrencyManager
 /// </summary>
 public class CurrencyManager : MonoBehaviour
 {
     private int _gold;
+
+    /// <summary>CurrencySaveContributor 등록·초기화. GameManager.Start에서 호출.</summary>
+    public void Initialize()
+    {
+        var contrib = Util.GetOrAddComponent<CurrencySaveContributor>(gameObject);
+        contrib.Initialize(this);
+    }
 
     /// <summary>현재 골드. UI 표시용.</summary>
     public int Gold => _gold;

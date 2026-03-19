@@ -6,6 +6,7 @@ public class IntroScene : MonoBehaviour
 {
     [SerializeField] IntroSceneView _introSceneView;
 
+    // Fire
     private IntroAuthService _authService;
 
     /// <summary>씬 첫 프레임 표시 후 발생. Boot→Intro 시 전환 뷰 숨김에 사용.</summary>
