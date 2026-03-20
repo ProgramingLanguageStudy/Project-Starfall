@@ -27,6 +27,7 @@ public class IntroSceneView : MonoBehaviour
     public event Action OnLogoutRequested;
     public event Action<string, string> OnLoginRequested;
     public event Action<string, string> OnSignUpRequested;
+    public event Action OnGuestPlayRequested;
 
     #endregion
 
@@ -44,6 +45,7 @@ public class IntroSceneView : MonoBehaviour
         _mainView.OnLogoutRequested += () => OnLogoutRequested?.Invoke();
         _loginView.OnLoginRequested += (e, p) => OnLoginRequested?.Invoke(e, p);
         _loginView.OnSignUpRequested += (e, p) => OnSignUpRequested?.Invoke(e, p);
+        _loginView.OnGuestPlayRequested += () => OnGuestPlayRequested?.Invoke();
     }
 
     #endregion
