@@ -47,7 +47,7 @@ public class InstantiateSquadCharacterFactory : MonoBehaviour, ISquadCharacterFa
         }
 
         var model = character.Model;
-        if (model != null && model.Data != data)
+        if (model != null)
             model.Initialize(data);
 
         character.Initialize(combatController, squad);

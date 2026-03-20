@@ -167,18 +167,12 @@ public class Character : MonoBehaviour, IInteractReceiver
     public void Initialize(CombatController combatController = null, Squad squad = null)
     {
         Squad = squad;
-        if (_model == null) _model = GetComponent<CharacterModel>();
-        if (_mover == null) _mover = GetComponent<CharacterMover>();
-        if (_followMover == null) _followMover = GetComponent<CharacterFollowMover>();
-        if (_characterAnimator == null) _characterAnimator = GetComponent<CharacterAnimator>();
-        if (_interactor == null) _interactor = GetComponent<CharacterInteractor>();
-        if (_attacker == null) _attacker = GetComponent<CharacterAttacker>();
-        if (_stateMachine == null) _stateMachine = GetComponent<CharacterStateMachine>();
-        if (_animatorEventBridge == null) _animatorEventBridge = GetComponentInChildren<AnimatorEventBridge>();
-        if (_characterController == null) _characterController = GetComponent<CharacterController>();
-        if (_navMeshAgent == null) _navMeshAgent = GetComponent<NavMeshAgent>();
-        if (_animator == null) _animator = GetComponentInChildren<Animator>();
-        if (_aiBrain == null) _aiBrain = GetComponent<AIBrain>();
+
+        if (_model == null)
+        {
+            Debug.LogError($"[Character] CharacterModel is null (Awake/cache). GameObject={gameObject.name}");
+            return;
+        }
 
         _aiBrain?.Initialize(this, combatController);
 
@@ -202,6 +196,22 @@ public class Character : MonoBehaviour, IInteractReceiver
     }
 
     // ── Unity ───────────────────────────────────────────────
+
+    private void Awake()
+    {
+        _model = GetComponent<CharacterModel>();
+        _mover = GetComponent<CharacterMover>();
+        _followMover = GetComponent<CharacterFollowMover>();
+        _characterAnimator = GetComponent<CharacterAnimator>();
+        _interactor = GetComponent<CharacterInteractor>();
+        _attacker = GetComponent<CharacterAttacker>();
+        _stateMachine = GetComponent<CharacterStateMachine>();
+        _animatorEventBridge = GetComponentInChildren<AnimatorEventBridge>();
+        _characterController = GetComponent<CharacterController>();
+        _navMeshAgent = GetComponent<NavMeshAgent>();
+        _animator = GetComponentInChildren<Animator>();
+        _aiBrain = GetComponent<AIBrain>();
+    }
 
     private void Update()
     {

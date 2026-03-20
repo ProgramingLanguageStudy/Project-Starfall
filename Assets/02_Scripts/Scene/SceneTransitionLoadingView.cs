@@ -4,26 +4,20 @@ using TMPro;
 using DG.Tweening;
 
 /// <summary>
-/// 씬 전환용 로딩 UI. 로딩바(퍼센트 시각화) + 상태 문구. DontDestroyOnLoad와 함께 사용.
+/// 씬 전환용 로딩 UI. Slider(0~1 정규화 진행률) + 상태 문구. DontDestroyOnLoad와 함께 사용.
 /// Show() 시 캔버스 sort order를 최상단으로 올려 새 씬 UI가 뒤에 그려지도록 함.
 /// </summary>
 public class SceneTransitionLoadingView : MonoBehaviour
 {
     [SerializeField] private GameObject _panel;
-    [SerializeField] [Tooltip("로딩바 배경+채우기+상태텍스트 전체 부모. 비면 Fill·Status만 개별 제어")]
-    private GameObject _loadingUIRoot;
-    [SerializeField] private Image _progressBarFill;
+    [SerializeField] [Tooltip("진행률 0~1을 Slider min~max에 매핑. 인스펙터에서 min/max(예: 0~1 또는 0~100) 설정")]
+    private Slider _progressSlider;
     [SerializeField] private TextMeshProUGUI _statusText;
     [SerializeField] [Min(0.01f)] private float _progressTweenDuration = 0.25f;
 
     private const int SortOrderTop = 32767;
 
-    /// <summary>
-    /// 전환 뷰 표시.
-    /// 기본값(showLoadingUI = true)은 로딩바+텍스트까지 보이고,
-    /// false 면 화면 가리기용 마스크만 보이도록 한다.
-    /// </summary>
-    public void Show(bool showLoadingUI = true)
+    public void Show()
     {
         var canvas = GetComponentInParent<Canvas>();
         if (canvas != null)
@@ -31,15 +25,16 @@ public class SceneTransitionLoadingView : MonoBehaviour
         if (_panel != null)
             _panel.SetActive(true);
 
-        SetLoadingUIVisible(showLoadingUI);
-
-        if (showLoadingUI && _progressBarFill != null)
+        if (_progressSlider != null)
         {
-            _progressBarFill.DOKill();
-            _progressBarFill.fillAmount = 0f;
+            _progressSlider.gameObject.SetActive(true);
+            _progressSlider.DOKill();
+            _progressSlider.value = _progressSlider.minValue;
         }
-        if (showLoadingUI)
-            SetStatus(string.Empty);
+        if (_statusText != null)
+            _statusText.gameObject.SetActive(true);
+
+        SetStatus(string.Empty);
     }
 
     public void Hide()
@@ -48,42 +43,29 @@ public class SceneTransitionLoadingView : MonoBehaviour
             _panel.SetActive(false);
     }
 
-    /// <summary>상태 문구만 표시(퍼센트 숫자 없음). 예: "준비 중...", "완료"</summary>
+    /// <summary>상태 문구만 표시. 예: "준비 중...", "완료"</summary>
     public void SetStatus(string status)
     {
         if (_statusText != null)
             _statusText.text = status ?? string.Empty;
     }
 
-    /// <summary>로딩바 + 상태 갱신. progress 0~1은 바에 트윈, status는 문구만 표시.</summary>
+    /// <summary>로딩바 + 상태 갱신. progress는 0~1 정규화값 → Slider min~max로 변환. 1f는 즉시 max.</summary>
     public void UpdateProgress(float? progress, string status)
     {
-        // 마스크 전용 모드(로딩 UI 꺼짐)에서는 갱신 안 함
-        if (_loadingUIRoot != null && !_loadingUIRoot.activeSelf)
-            return;
-        if (_loadingUIRoot == null && _progressBarFill != null && !_progressBarFill.gameObject.activeSelf &&
-            _statusText != null && !_statusText.gameObject.activeSelf)
-            return;
-
-        if (progress.HasValue && _progressBarFill != null)
+        if (progress.HasValue && _progressSlider != null)
         {
             var p = Mathf.Clamp01(progress.Value);
-            _progressBarFill.DOKill();
-            _progressBarFill.DOFillAmount(p, _progressTweenDuration).SetEase(Ease.OutQuad);
+            var min = _progressSlider.minValue;
+            var max = _progressSlider.maxValue;
+            var targetValue = min + (max - min) * p;
+
+            _progressSlider.DOKill();
+            if (p >= 1f - 1e-4f)
+                _progressSlider.value = max;
+            else
+                _progressSlider.DOValue(targetValue, _progressTweenDuration).SetEase(Ease.OutQuad);
         }
         SetStatus(status ?? string.Empty);
-    }
-
-    private void SetLoadingUIVisible(bool visible)
-    {
-        if (_loadingUIRoot != null)
-        {
-            _loadingUIRoot.SetActive(visible);
-            return;
-        }
-        if (_progressBarFill != null)
-            _progressBarFill.gameObject.SetActive(visible);
-        if (_statusText != null)
-            _statusText.gameObject.SetActive(visible);
     }
 }

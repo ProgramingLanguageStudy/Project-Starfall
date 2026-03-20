@@ -1,7 +1,5 @@
 using System;
-using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class SettingsView : PanelViewBase
@@ -65,15 +63,13 @@ public class SettingsView : PanelViewBase
 
     public void OnIntroButtonClicked()
     {
-        StartCoroutine(SaveThenLoadIntro());
-    }
-
-    private IEnumerator SaveThenLoadIntro()
-    {
-        var sm = GameManager.Instance?.SaveManager;
-        if (sm != null)
-            yield return sm.SaveAsync(null);
-        SceneManager.LoadScene("Intro");
+        var slm = GameManager.Instance?.SceneLoadManager;
+        if (slm == null)
+        {
+            Debug.LogError("[SettingsView] SceneLoadManager is null.");
+            return;
+        }
+        slm.RequestLoadIntroFromPlay();
     }
 
     public void OnQuitButtonClicked()

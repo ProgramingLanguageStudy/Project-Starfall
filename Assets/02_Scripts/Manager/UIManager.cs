@@ -2,90 +2,82 @@ using UnityEngine;
 
 /// <summary>
 /// 전역 UI 관리. ErrorPanel, SceneTransitionLoading 등. GameManager 하위, DontDestroyOnLoad.
-/// RM에서 로드 후 인스턴스 유지. Show/Hide는 SetActive로 제어.
+/// 자식 계층(예: Canvas 아래)에 뷰를 배치하고 Awake에서만 찾는다. 런타임 생성 없음.
 /// </summary>
 public class UIManager : MonoBehaviour
 {
-    [Header("RM 경로 (Addressables)")]
-    [SerializeField] [Tooltip("에러 패널 프리팹. 예: UI/ErrorPanel")]
-    private string _errorPanelPath = "UI/ErrorPanel";
-    [SerializeField] [Tooltip("씬 전환 로딩 프리팹. 예: UI/SceneTransitionLoading")]
-    private string _transitionPanelPath = "UI/SceneTransitionLoading";
-
-    private GameObject _errorPanelInstance;
     private ErrorPanelView _errorPanelView;
-    private GameObject _transitionPanelInstance;
     private SceneTransitionLoadingView _transitionView;
+
+    private void Awake()
+    {
+        _errorPanelView = GetComponentInChildren<ErrorPanelView>(true);
+        _transitionView = GetComponentInChildren<SceneTransitionLoadingView>(true);
+    }
 
     #region ErrorPanel
 
-    /// <summary>에러 메시지 표시. 첫 호출 시 RM에서 로드 후 인스턴스 유지.</summary>
+    /// <summary>에러 메시지 표시.</summary>
     public void ShowError(string message)
     {
-        EnsureErrorPanel();
-        _errorPanelView?.Show(message);
+        if (_errorPanelView == null)
+        {
+            Debug.LogError("[UIManager] ErrorPanelView is null. UIManager 자식(예: Canvas 아래)에 배치했는지 확인.");
+            return;
+        }
+        _errorPanelView.Show(message);
     }
 
     /// <summary>에러 패널 숨김.</summary>
     public void HideError()
     {
-        _errorPanelView?.Hide();
-    }
-
-    private void EnsureErrorPanel()
-    {
-        if (_errorPanelView != null) return;
-
-        var gm = GameManager.Instance;
-        if (gm?.ResourceManager == null) return;
-
-        var prefab = gm.ResourceManager.GetPrefab(_errorPanelPath);
-        if (prefab == null)
+        if (_errorPanelView == null)
         {
-            Debug.LogWarning("[UIManager] ErrorPanel 프리팹 없음: " + _errorPanelPath);
+            Debug.LogError("[UIManager] ErrorPanelView is null.");
             return;
         }
-
-        _errorPanelInstance = Instantiate(prefab, transform);
-        _errorPanelView = _errorPanelInstance.GetComponent<ErrorPanelView>();
-        if (_errorPanelView == null)
-            _errorPanelView = _errorPanelInstance.GetComponentInChildren<ErrorPanelView>(true);
-        if (_errorPanelView == null)
-            Debug.LogWarning("[UIManager] ErrorPanelView 컴포넌트 없음.");
+        _errorPanelView.Hide();
     }
 
     #endregion
 
     #region SceneTransition
 
-    /// <summary>씬 전환 로딩 뷰. SceneLoadManager 등에서 사용. 첫 호출 시 RM에서 로드.</summary>
-    public SceneTransitionLoadingView GetTransitionView()
+    /// <summary>씬 전환 로딩 UI 표시. SceneLoadManager 등에서 호출.</summary>
+    public void ShowSceneTransition()
     {
-        EnsureTransitionPanel();
-        return _transitionView;
-    }
-
-    private void EnsureTransitionPanel()
-    {
-        if (_transitionView != null) return;
-
-        var gm = GameManager.Instance;
-        if (gm?.ResourceManager == null) return;
-
-        var prefab = gm.ResourceManager.GetPrefab(_transitionPanelPath);
-        if (prefab == null)
+        if (_transitionView == null)
         {
-            Debug.LogWarning("[UIManager] SceneTransition 프리팹 없음: " + _transitionPanelPath);
+            Debug.LogError("[UIManager] SceneTransitionLoadingView is null. UIManager 자식(예: Canvas 아래)에 배치했는지 확인.");
             return;
         }
-
-        _transitionPanelInstance = Instantiate(prefab, transform);
-        _transitionView = _transitionPanelInstance.GetComponent<SceneTransitionLoadingView>();
-        if (_transitionView == null)
-            _transitionView = _transitionPanelInstance.GetComponentInChildren<SceneTransitionLoadingView>(true);
-        if (_transitionView == null)
-            Debug.LogWarning("[UIManager] SceneTransitionLoadingView 컴포넌트 없음.");
+        _transitionView.Show();
     }
+
+    /// <summary>씬 전환 로딩 UI 숨김.</summary>
+    public void HideSceneTransition()
+    {
+        if (_transitionView == null)
+        {
+            Debug.LogError("[UIManager] SceneTransitionLoadingView is null.");
+            return;
+        }
+        _transitionView.Hide();
+    }
+
+    /// <summary>로딩바·상태 문구 갱신.</summary>
+    public void UpdateSceneTransitionProgress(float? progress, string status)
+    {
+        if (_transitionView == null)
+        {
+            Debug.LogError("[UIManager] SceneTransitionLoadingView is null. UpdateSceneTransitionProgress skipped.");
+            return;
+        }
+        _transitionView.UpdateProgress(progress, status);
+    }
+
+    /// <summary>디버그용. 없으면 null.</summary>
+    public SceneTransitionLoadingView GetTransitionView() => _transitionView;
 
     #endregion
 }

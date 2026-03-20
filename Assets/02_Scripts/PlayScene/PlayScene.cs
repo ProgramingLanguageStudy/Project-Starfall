@@ -84,15 +84,16 @@ public class PlayScene : MonoBehaviour
 
     private IEnumerator InitAfterLoadRoutine(GameManager gm)
     {
-        // DataManager·ResourceManager 미로드 시 선로드 (Play 씬 직접 진입 대응)
-        if (gm?.DataManager != null && !gm.DataManager.IsLoaded)
-            yield return gm.DataManager.LoadAsync(null);
-        if (gm?.ResourceManager != null && !gm.ResourceManager.IsLoaded())
-            yield return gm.ResourceManager.LoadAsync(null);
+        if (gm == null)
+        {
+            Debug.LogError("[PlayScene] GameManager is null.");
+            yield break;
+        }
 
-        if (gm?.SaveManager != null)
-            yield return gm.SaveManager.LoadAsync(null);
-        _pendingSaveData = gm?.SaveManager?.LoadedSaveData;
+        if (!gm.BootServicesReady)
+            yield return new WaitUntil(() => gm != null && gm.BootServicesReady);
+
+        _pendingSaveData = gm.SaveManager != null ? gm.SaveManager.LoadedSaveData : null;
 
         // 분대 컨트롤러는 CombatController 등 의존성만 먼저 주입.
         _squadController.Initialize(_combatController);
@@ -135,8 +136,6 @@ public class PlayScene : MonoBehaviour
     {
         if (_inputHandler == null || _squadController == null) return;
 
-        GameManager.Instance?.SaveManager?.StartPeriodicSave();
-
         _squadController.OnPlayerChanged += HandlePlayerChanged;
         _squadController.OnMembersChanged += RefreshSquadProfileView;
 
@@ -154,7 +153,6 @@ public class PlayScene : MonoBehaviour
 
     private void OnDisable()
     {
-        GameManager.Instance?.SaveManager?.StopPeriodicSave();
         GameManager.Instance?.PoolManager?.RemoveDestroyedFromAllPools();
         PlaySceneEventHub.Clear();
 

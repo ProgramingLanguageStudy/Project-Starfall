@@ -21,7 +21,7 @@ public class ResourceManager : MonoBehaviour
 
     #region Load
 
-    /// <summary>프리팹 로드 완료 여부. Boot 백그라운드 로드 후 Intro→Play 시 스킵에 사용.</summary>
+    /// <summary>프리팹 로드 완료 여부. GameManager 부트 후 Intro→Play 시 스킵에 사용.</summary>
     public bool IsLoaded() => _isLoaded;
 
     /// <summary>라벨로 프리팹 로드(비동기). 진행률 콜백 지원. 이미 로드됐으면 스킵.</summary>

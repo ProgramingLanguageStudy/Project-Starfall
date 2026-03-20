@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Play 씬 세이브 Contributor 초기화·등록·언로드. SaveManager에 Contributor 직접 등록.
+/// Play 씬 세이브 Contributor 초기화·등록·해제. 저장은 호출자가 SaveManager API로 명시 요청.
 /// PlayScene에서 Initialize 호출 시 의존성 주입. 인스펙터에서 Contributor 할당.
 /// </summary>
 public class PlaySaveCoordinator : MonoBehaviour
@@ -37,7 +37,6 @@ public class PlaySaveCoordinator : MonoBehaviour
     {
         var sm = GameManager.Instance?.SaveManager;
         if (sm == null) return;
-        sm.SaveBeforeUnload(); // Unregister 전에 저장 (빈 squad 방지)
         if (_contributors == null) return;
         foreach (var c in _contributors)
         {
