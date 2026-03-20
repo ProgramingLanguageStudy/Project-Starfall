@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -37,7 +39,7 @@ public class GameManager : MonoBehaviour
     private SoundManager _soundManager;
     private UIManager _uiManager;
 
-    /// <summary>Firebase 인증 래퍼. 로그인/회원가입/로그아웃, IsLoggedIn, UserUID 등.</summary>
+    /// <summary>Firebase 인증 래퍼. 로그인/회원가입/로그아웃, LastSnapshot·SessionChanged.</summary>
     public FirebaseAuthManager FirebaseAuthManager => _firebaseAuthManager;
     /// <summary>세이브 시점·API. ISaveContributor 등록·수집·적용, Firestore I/O.</summary>
     public SaveManager SaveManager => _saveManager;
@@ -45,7 +47,7 @@ public class GameManager : MonoBehaviour
     public DataManager DataManager => _dataManager;
     /// <summary>프리팹 등 Addressables 로드.</summary>
     public ResourceManager ResourceManager => _resourceManager;
-    /// <summary>씬 전환 로딩 (DataManager, ResourceManager, Play).</summary>
+    /// <summary>씬 전환 (Play/Intro). Data·Resource 로드는 부트 코루틴 전용.</summary>
     public SceneLoadManager SceneLoadManager => _sceneLoadManager;
     /// <summary>계정 귀속 재화(골드) 관리.</summary>
     public CurrencyManager CurrencyManager => _currencyManager;
@@ -58,30 +60,36 @@ public class GameManager : MonoBehaviour
     /// <summary>전역 UI. ErrorPanel, SceneTransition 등.</summary>
     public UIManager UIManager => _uiManager;
 
+    /// <summary>Auth 초기화·세이브 로드·DataManager·ResourceManager가 모두 끝난 뒤 true(병렬 부트 집계).</summary>
+    public bool BootServicesReady { get; private set; }
+
+    /// <summary>BootServicesReady가 true가 된 직후 한 번만 호출. Play 씬 등이 구독 가능.</summary>
+    public static event Action OnBootServicesReady;
+
     private void Awake()
     {
-        if (_instance == null)
-        {
-            _instance = this;
-            DontDestroyOnLoad(gameObject);
-
-            _firebaseAuthManager = this.GetOrAddComponentInChild<FirebaseAuthManager>("FirebaseAuthManager");
-            _saveManager = this.GetOrAddComponentInChild<SaveManager>("SaveManager");
-            SaveBackendProvider.BootCompleted = true;
-            _saveManager.SetBackend(SaveBackendProvider.CreateBackend());
-            _dataManager = this.GetOrAddComponentInChild<DataManager>("DataManager");
-            _resourceManager = this.GetOrAddComponentInChild<ResourceManager>("ResourceManager");
-            _sceneLoadManager = this.GetOrAddComponentInChild<SceneLoadManager>("SceneLoadManager");
-            _currencyManager = this.GetOrAddComponentInChild<CurrencyManager>("CurrencyManager");
-            _poolManager = this.GetOrAddComponentInChild<PoolManager>("PoolManager");
-            _effectManager = this.GetOrAddComponentInChild<EffectManager>("EffectManager");
-            _soundManager = this.GetOrAddComponentInChild<SoundManager>("SoundManager");
-            _uiManager = this.GetOrAddComponentInChild<UIManager>("UIManager");
-        }
-        else if (_instance != this)
+        // Instance getter가 Awake보다 먼저 돌면 Find로 _instance만 채워지고, 예전 if (_instance == null) 분기에
+        // 들어가지 않아 매니저가 전부 null로 남을 수 있음 → 중복만 막고 항상 자식 연결.
+        if (_instance != null && _instance != this)
         {
             Destroy(gameObject);
+            return;
         }
+
+        _instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        _firebaseAuthManager = this.GetOrAddComponentInChild<FirebaseAuthManager>("FirebaseAuthManager");
+        _saveManager = this.GetOrAddComponentInChild<SaveManager>("SaveManager");
+        _saveManager.WireFirebaseAuth(_firebaseAuthManager);
+        _dataManager = this.GetOrAddComponentInChild<DataManager>("DataManager");
+        _resourceManager = this.GetOrAddComponentInChild<ResourceManager>("ResourceManager");
+        _sceneLoadManager = this.GetOrAddComponentInChild<SceneLoadManager>("SceneLoadManager");
+        _currencyManager = this.GetOrAddComponentInChild<CurrencyManager>("CurrencyManager");
+        _poolManager = this.GetOrAddComponentInChild<PoolManager>("PoolManager");
+        _effectManager = this.GetOrAddComponentInChild<EffectManager>("EffectManager");
+        _soundManager = this.GetOrAddComponentInChild<SoundManager>("SoundManager");
+        _uiManager = this.GetOrAddComponentInChild<UIManager>("UIManager");
     }
 
     private void Start()
@@ -89,5 +97,60 @@ public class GameManager : MonoBehaviour
         if (_instance != this) return;
 
         _currencyManager?.Initialize();
+        StartCoroutine(AuthThenSaveBootRoutine());
+        StartCoroutine(DataBootRoutine());
+        StartCoroutine(ResourceBootRoutine());
+        StartCoroutine(BootWatchRoutine());
+    }
+
+    /// <summary>Firebase Auth 완료 후 세이브 로드. DM·RM과 병렬로 독립 코루틴.</summary>
+    private IEnumerator AuthThenSaveBootRoutine()
+    {
+        if (_firebaseAuthManager != null)
+            yield return _firebaseAuthManager.InitializeAsync();
+        else
+            Debug.LogError("[GameManager] FirebaseAuthManager is null.");
+
+        if (_saveManager != null)
+            yield return _saveManager.LoadAsync(null);
+        else
+            Debug.LogError("[GameManager] SaveManager is null.");
+    }
+
+    private IEnumerator DataBootRoutine()
+    {
+        if (_dataManager != null)
+            yield return _dataManager.LoadAsync(null);
+        else
+            Debug.LogError("[GameManager] DataManager is null.");
+    }
+
+    private IEnumerator ResourceBootRoutine()
+    {
+        if (_resourceManager != null)
+            yield return _resourceManager.LoadAsync(null);
+        else
+            Debug.LogError("[GameManager] ResourceManager is null.");
+    }
+
+    /// <summary>네 서비스 완료 플래그를 매 프레임 검사해 한 번만 BootServicesReady 통지.</summary>
+    private IEnumerator BootWatchRoutine()
+    {
+        while (!BootServicesReady)
+        {
+            var authOk = _firebaseAuthManager == null || _firebaseAuthManager.IsInitializeComplete;
+            var saveOk = _saveManager == null || _saveManager.IsLoadComplete;
+            var dataOk = _dataManager == null || _dataManager.IsLoaded;
+            var resOk = _resourceManager == null || _resourceManager.IsLoaded();
+
+            if (authOk && saveOk && dataOk && resOk)
+            {
+                BootServicesReady = true;
+                OnBootServicesReady?.Invoke();
+                yield break;
+            }
+
+            yield return null;
+        }
     }
 }
