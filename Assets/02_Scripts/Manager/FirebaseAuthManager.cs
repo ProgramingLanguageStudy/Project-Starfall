@@ -7,63 +7,83 @@ using Firebase.Extensions;
 using UnityEngine;
 
 /// <summary>
-/// Firebase Auth 래퍼. GameManager가 보유하며, 로그인/회원가입/로그아웃 및 인증 상태 제공.
-/// FirebaseAuth.DefaultInstance를 단일 접근점으로 감싸, 검증·에러 메시지 변환을 담당.
+/// Firebase Auth 래퍼. 외부에는 <see cref="SessionChanged"/>와 <see cref="LastSnapshot"/>만으로 상태를 전달.
 /// </summary>
 public class FirebaseAuthManager : MonoBehaviour
 {
     #region [Internal State]
 
     private FirebaseAuth _auth;
+
+    /// <summary>의존성 통과 후 <see cref="FirebaseAuth.DefaultInstance"/>를 받아 Auth API를 쓸 수 있는지. 실패 시 false 유지.</summary>
     private bool _isInitialized;
+
+    /// <summary><see cref="FirebaseAuth.StateChanged"/>에 핸들러를 붙였는지. 중복 구독 방지 및 <see cref="OnDestroy"/>에서 해제 판별.</summary>
+    private bool _nativeStateHooked;
+
+    /// <summary><see cref="RecordInitResult"/>가 호출되어 초기화 시도 결과가 한 번이라도 기록됐는지. <see cref="BuildSnapshot"/>에서 Initializing 분기.</summary>
+    private bool _initCompleted;
+
+    /// <summary>마지막으로 기록된 초기화 시도가 성공인지. false면 <see cref="FirebaseAuthLifecyclePhase.InitFailed"/>와 <see cref="_initError"/> 사용.</summary>
+    private bool _initSuccess;
+    private string _initError = string.Empty;
 
     #endregion
 
     #region [Public API]
 
-    /// <summary>Firebase 초기화 완료 여부. 초기화 전 SignIn/SignUp 호출 시 PreCheck에서 차단.</summary>
-    public bool IsReady => _isInitialized;
+    /// <summary>가장 최근에 발행된 세션 스냅샷. 구독 전에는 default(Phase=Initializing).</summary>
+    public FirebaseAuthSessionSnapshot LastSnapshot { get; private set; }
 
-    /// <summary>현재 로그인된 사용자 존재 여부.</summary>
-    public bool IsLoggedIn => _auth?.CurrentUser != null;
+    /// <summary>초기화 완료·SDK 상태 변화 시마다 동일 형식으로 통지.</summary>
+    public event Action<FirebaseAuthSessionSnapshot> SessionChanged;
 
-    /// <summary>로그인된 사용자 UID. Firestore 경로 등에 사용. 미로그인 시 null.</summary>
-    public string UserUID => _auth?.CurrentUser?.UserId;
+    /// <summary><see cref="InitializeAsync"/> 코루틴이 한 번이라도 끝났는지(성공·실패 무관). 부트 집계용.</summary>
+    public bool IsInitializeComplete { get; private set; }
 
-    /// <summary>로그인된 사용자 이메일. 미로그인 시 null.</summary>
-    public string UserEmail => _auth?.CurrentUser?.Email;
-
-    /// <summary>
-    /// Firebase 의존성 체크 및 초기화. IEnumerator로 DataManager/ResourceManager와 동일 패턴.
-    /// </summary>
-    /// <param name="onProgress">진행 상태 문구. 예: "로그인 확인중...", "확인 완료"</param>
-    /// <param name="onComplete">success: 초기화 성공, hasUser: 이미 로그인됨, errorMessage: 실패 시 메시지</param>
-    public IEnumerator InitializeAsync(
-        Action<string> onProgress,
-        Action<bool, bool, string> onComplete)
+    /// <summary>Firebase 의존성 체크 및 초기화. 완료 시 <see cref="SessionChanged"/>로만 결과 전달.</summary>
+    public IEnumerator InitializeAsync()
     {
-        onProgress?.Invoke("로그인 확인중...");
-
-        var task = FirebaseApp.CheckAndFixDependenciesAsync();
-        yield return task.WaitUntilComplete();
-
-        if (task.Result != DependencyStatus.Available)
+        // 같은 플레이 세션에서 재진입: DefaultInstance는 이미 있음 → 구독만 보강하고 스냅샷 재발행.
+        if (_isInitialized)
         {
-            Debug.LogError($"[FirebaseAuthManager] Firebase dependency error: {task.Result}");
-            onComplete?.Invoke(false, false, "Firebase 초기화 실패. 재시도해 주세요.");
+            // 로그인/로그아웃 등 이후에도 StateChanged로 스냅샷 갱신되도록.
+            SubscribeFirebaseAuthStateChanged();
+            // 첫 부트 결과는 이미 성공으로 기록된 상태로 간주.
+            RecordInitResult(true, null);
+            PublishSession();
+            IsInitializeComplete = true;
             yield break;
         }
 
+        // 모바일 등에서 Play Services·의존성 설치/복구. 비동기 Task → 코루틴에서 끝날 때까지 한 프레임씩 양보.
+        var task = FirebaseApp.CheckAndFixDependenciesAsync();
+        yield return task.WaitUntilComplete();
+
+        // Firebase Core를 쓸 수 없으면 Auth 인스턴스도 없음 → InitFailed 스냅샷만 발행하고 종료.
+        if (task.Result != DependencyStatus.Available)
+        {
+            Debug.LogError($"[FirebaseAuthManager] Firebase dependency error: {task.Result}");
+            var err = "Firebase 초기화 실패. 재시도해 주세요.";
+            RecordInitResult(false, err);
+            PublishSession();
+            IsInitializeComplete = true;
+            yield break;
+        }
+
+        // 의존성 통과 후 단일 진입점으로 Auth 핸들 확보. 이 시점부터 SignIn 등 API 호출 가능.
         _auth = FirebaseAuth.DefaultInstance;
         _isInitialized = true;
 
-        var user = _auth.CurrentUser;
-        var statusMsg = user != null ? "로그인 완료" : "확인 완료";
-        onProgress?.Invoke(statusMsg);
-        onComplete?.Invoke(true, user != null, null);
+        // SDK가 로그인/로그아웃 시 알려 주는 이벤트 → 우리 쪽 SessionChanged로 다시 퍼뜨림.
+        SubscribeFirebaseAuthStateChanged();
+
+        // 첫 초기화 시도 성공을 내부에 기록한 뒤, ReadyGuest 또는 ReadyLoggedIn 스냅샷 발행.
+        RecordInitResult(true, null);
+        PublishSession();
+        IsInitializeComplete = true;
     }
 
-    /// <summary>이메일/비밀번호 로그인. PreCheck 후 Firebase 호출. 콜백은 메인 스레드에서 실행.</summary>
     public void SignIn(string email, string password, Action onSuccess, Action<string> onError)
     {
         if (!PreCheck(email, password, onError)) return;
@@ -72,7 +92,6 @@ public class FirebaseAuthManager : MonoBehaviour
             .ContinueWithOnMainThread(task => HandleAuthTask(task, "로그인", onSuccess, onError));
     }
 
-    /// <summary>이메일/비밀번호 회원가입. PreCheck 후 Firebase 호출. 콜백은 메인 스레드에서 실행.</summary>
     public void SignUp(string email, string password, Action onSuccess, Action<string> onError)
     {
         if (!PreCheck(email, password, onError)) return;
@@ -81,14 +100,76 @@ public class FirebaseAuthManager : MonoBehaviour
             .ContinueWithOnMainThread(task => HandleAuthTask(task, "회원가입", onSuccess, onError));
     }
 
-    /// <summary>로그아웃. CurrentUser를 null로 만듦.</summary>
     public void SignOut() => _auth?.SignOut();
+
+    #endregion
+
+    #region [Unity Lifecycle]
+
+    private void OnDestroy()
+    {
+        if (_auth != null && _nativeStateHooked)
+        {
+            _auth.StateChanged -= OnFirebaseAuthStateChanged;
+            _nativeStateHooked = false;
+        }
+    }
 
     #endregion
 
     #region [Private Helpers]
 
-    /// <summary>클라이언트 검증 + 초기화 여부. 실패 시 onError 호출 후 false.</summary>
+    /// <summary>
+    /// Firebase SDK의 StateChanged — 정보는 얇지만, 로그인/로그아웃 시 반드시 올라와
+    /// <see cref="PublishSession"/>으로 풍부한 스냅샷을 다시 만들기 위해 필요.
+    /// </summary>
+    private void SubscribeFirebaseAuthStateChanged()
+    {
+        if (_auth == null || _nativeStateHooked) return;
+        _auth.StateChanged += OnFirebaseAuthStateChanged;
+        _nativeStateHooked = true;
+    }
+
+    private void OnFirebaseAuthStateChanged(object sender, EventArgs e) => PublishSession();
+
+    private void RecordInitResult(bool success, string error)
+    {
+        _initCompleted = true;
+        _initSuccess = success;
+        _initError = error ?? string.Empty;
+    }
+
+    private void PublishSession()
+    {
+        var snap = BuildSnapshot();
+        LastSnapshot = snap;
+        SessionChanged?.Invoke(snap);
+    }
+
+    private FirebaseAuthSessionSnapshot BuildSnapshot()
+    {
+        if (!_initCompleted)
+            return new FirebaseAuthSessionSnapshot(FirebaseAuthLifecyclePhase.Initializing, string.Empty, null, null);
+
+        if (!_initSuccess)
+            return new FirebaseAuthSessionSnapshot(FirebaseAuthLifecyclePhase.InitFailed, _initError, null, null);
+
+        var user = _auth?.CurrentUser;
+        if (user != null)
+        {
+            return new FirebaseAuthSessionSnapshot(
+                FirebaseAuthLifecyclePhase.ReadyLoggedIn,
+                string.Empty,
+                user.UserId,
+                user.Email);
+        }
+
+        return new FirebaseAuthSessionSnapshot(FirebaseAuthLifecyclePhase.ReadyGuest, string.Empty, null, null);
+    }
+
+    /// <summary>
+    /// SignIn/SignUp 호출 전 검사. 이메일·비밀번호 클라이언트 검증 후, SDK 미초기화면 Firebase 호출 없이 onError 후 false.
+    /// </summary>
     private bool PreCheck(string email, string password, Action<string> onError)
     {
         var validationError = GetValidationError(email, password);
@@ -105,7 +186,6 @@ public class FirebaseAuthManager : MonoBehaviour
         return true;
     }
 
-    /// <summary>SignIn/SignUp Task 결과 처리. 취소/실패 시 onError, 성공 시 onSuccess.</summary>
     private void HandleAuthTask(Task<AuthResult> task, string action, Action onSuccess, Action<string> onError)
     {
         if (task.IsCanceled)
@@ -121,7 +201,6 @@ public class FirebaseAuthManager : MonoBehaviour
         onSuccess?.Invoke();
     }
 
-    /// <summary>이메일/비밀번호 클라이언트 검증. Firebase 호출 전 즉시 피드백.</summary>
     private static string GetValidationError(string email, string password)
     {
         if (string.IsNullOrEmpty(email)) return "이메일을 입력하세요.";
@@ -130,7 +209,6 @@ public class FirebaseAuthManager : MonoBehaviour
         return null;
     }
 
-    /// <summary>Firebase Auth API 에러를 사용자용 메시지로 변환. 로그인/회원가입 공통.</summary>
     private static string GetAuthErrorMessage(Exception ex)
     {
         FirebaseException firebaseEx = null;
