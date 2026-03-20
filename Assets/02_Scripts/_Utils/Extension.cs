@@ -104,6 +104,14 @@ public static class Extension
     }
 
     /// <summary>
+    /// <see cref="Util.CheckComponent{T}(MonoBehaviour, T)"/> 단축. 인스턴스 메서드 안에서 <c>CheckComponent(_field)</c>처럼 호출.
+    /// </summary>
+    public static bool CheckComponent<T>(this MonoBehaviour host, T component) where T : Object
+    {
+        return Util.CheckComponent(host, component);
+    }
+
+    /// <summary>
     /// Task 객체에서 바로 .Wait()를 찍어서 쓸 수 있게 연결
     /// </summary>
     public static IEnumerator WaitUntilComplete(this Task task)

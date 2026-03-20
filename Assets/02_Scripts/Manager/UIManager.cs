@@ -3,6 +3,7 @@ using UnityEngine;
 /// <summary>
 /// 전역 UI 관리. ErrorPanel, SceneTransitionLoading 등. GameManager 하위, DontDestroyOnLoad.
 /// 자식 계층(예: Canvas 아래)에 뷰를 배치하고 Awake에서만 찾는다. 런타임 생성 없음.
+/// Awake에서 뷰를 한 번 숨겨 프리팹에 켜 둔 상태로 저장돼 있어도 첫 프레임에 노출되지 않게 한다.
 /// </summary>
 public class UIManager : MonoBehaviour
 {
@@ -13,6 +14,11 @@ public class UIManager : MonoBehaviour
     {
         _errorPanelView = GetComponentInChildren<ErrorPanelView>(true);
         _transitionView = GetComponentInChildren<SceneTransitionLoadingView>(true);
+
+        if (_errorPanelView != null)
+            _errorPanelView.Hide();
+        if (_transitionView != null)
+            _transitionView.Hide();
     }
 
     #region ErrorPanel

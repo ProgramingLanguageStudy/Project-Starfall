@@ -224,6 +224,20 @@ public static class Util
     }
 
     /// <summary>
+    /// 참조가 없으면 호스트 오브젝트 이름·타입명으로 에러 로그 후 false. (인스펙터 할당·GetComponent 등 공통)
+    /// </summary>
+    public static bool CheckComponent<T>(MonoBehaviour host, T component) where T : Object
+    {
+        if (component != null)
+            return true;
+
+        string typeName = typeof(T).Name;
+        string contextName = host != null ? host.gameObject.name : "?";
+        Debug.LogError($"[{contextName}] {typeName} 참조가 할당되지 않았습니다.");
+        return false;
+    }
+
+    /// <summary>
     /// Task가 완료될 때까지 대기하는 코루틴 로직의 원본
     /// </summary>
     public static IEnumerator WaitUntilComplete(Task task)
@@ -235,7 +249,8 @@ public static class Util
 
         if (task.IsFaulted)
         {
-            Debug.LogError($"[Task Error] {task.Exception}");
+            var exception = task.Exception?.InnerException ?? task.Exception;
+            Debug.LogError($"[Task Error] {exception}");
         }
     }
 }

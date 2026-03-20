@@ -17,7 +17,7 @@ MonoBehaviour:
   Description: "\uB291\uB300 5\uB9C8\uB9AC\uB97C \uCC98\uCE58\uD55C \uD6C4 \uCD0C\uC7A5\uB2D8\uAED8
     \uC54C\uB824\uB4DC\uB9AC\uC790."
   QuestType: 1
-  TargetId: enemy_wolf
+  TargetId: Wolf
   TargetAmount: 5
   RewardGold: 0
   RewardItems:

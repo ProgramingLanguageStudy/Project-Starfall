@@ -4,7 +4,7 @@ using UnityEngine.AI;
 
 /// <summary>
 /// Enemy = Model 보유 컨테이너. 전투 판단·상태 전환은 StateMachine. 팀 전투 공유는 OnEnteringCombat.
-/// Character처럼 RequireComponent + GetComponent 방식.
+/// 풀링: 사망 지연 후 <see cref="Poolable.ReturnToPool"/>. 팀 해산은 <see cref="OnReturnedToPool"/>.
 /// </summary>
 [RequireComponent(typeof(EnemyModel)), RequireComponent(typeof(EnemyAnimator)), RequireComponent(typeof(EnemyMover)),
  RequireComponent(typeof(EnemyAggro)), RequireComponent(typeof(EnemyDetector)),
@@ -21,11 +21,19 @@ public class Enemy : MonoBehaviour
     private WorldHealthBarView _healthBarView;
     private NavMeshAgent _agent;
     private Animator _animator;
+    private CombatController _combatController;
+
+    private bool _runtimeWired;
+    private bool _stateMachineInitialized;
 
     /// <summary>전투 진입 시 발행. 팀이 구독해 나머지 멤버에게 전달. triggerCharacter→Squad.Player 해석.</summary>
     public event Action<Character> OnEnteringCombat;
-    /// <summary>소멸 직전 발행. 팀이 구독해 등록 해제.</summary>
+
+    /// <summary>사망 직후(보상·퀘스트 등). 풀 반환 전.</summary>
     public event Action<Enemy> OnDestroyed;
+
+    /// <summary>풀 반환 직전. 팀은 여기서 멤버 제거 후 빈 팀 오브젝트 파괴.</summary>
+    public event Action<Enemy> OnReturnedToPool;
 
     public EnemyModel Model => _model;
     public EnemyMover Mover => _mover;
@@ -40,11 +48,16 @@ public class Enemy : MonoBehaviour
     /// <summary>전투 진입/이탈 알림. StateMachine이 호출. CombatController에 등록/해제.</summary>
     public void NotifyCombatStateChanged(bool inCombat)
     {
-        var combat = FindFirstObjectByType<CombatController>();
+        if (_combatController == null)
+        {
+            Debug.LogError("[Enemy] CombatController is null. Call ConfigureFromSpawn after spawn.");
+            return;
+        }
+
         if (inCombat)
-            combat?.RegisterInCombat(this);
+            _combatController.RegisterInCombat(this);
         else
-            combat?.UnregisterFromCombat(this);
+            _combatController.UnregisterFromCombat(this);
     }
 
     /// <summary>전투 진입 알림. Character(감지/공격) → Squad.Player 해석 후 타겟 설정. 팀 구독자에게 전달.</summary>
@@ -104,7 +117,6 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
-        // 모델이 죽어있는데 상태가 Dead가 아니라면 강제로 전환
         if (_model != null && _model.IsDead && _stateMachine != null && _stateMachine.CurrentStateKey != EnemyStateMachine.EnemyState.Dead)
         {
             _stateMachine.ChangeState(EnemyStateMachine.EnemyState.Dead);
@@ -112,38 +124,75 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    /// <summary>Spawner가 스폰 시 호출. 풀링 시 재사용 전에도 호출.</summary>
-    public void Initialize()
+    /// <summary>풀에서 꺼낸 뒤 1회 호출. 위치 설정 후 호출할 것.</summary>
+    public void ConfigureFromSpawn(CombatController combatController, EnemyData data, Vector3 patrolCenter)
     {
-        if (_model == null) _model = GetComponent<EnemyModel>();
-        if (_aggro == null) _aggro = GetComponent<EnemyAggro>();
-        if (_detector == null) _detector = GetComponent<EnemyDetector>();
-        if (_healthBarView == null) _healthBarView = GetComponentInChildren<WorldHealthBarView>(true);
-        if (_stateMachine == null) _stateMachine = GetComponent<EnemyStateMachine>();
-        if (_agent == null) _agent = GetComponent<NavMeshAgent>();
-        if (_mover == null) _mover = GetComponent<EnemyMover>();
-        if (_attacker == null) _attacker = GetComponent<EnemyAttacker>();
-        if (_enemyAnimator == null) _enemyAnimator = GetComponent<EnemyAnimator>();
-        if (_animator == null) _animator = GetComponentInChildren<Animator>();
+        CancelInvoke(nameof(CompleteRecycleToPool));
 
-        _model?.Initialize();
+        CacheComponentsIfNeeded();
+
+        if (!_runtimeWired)
+        {
+            if (_detector != null)
+                _detector.OnCharacterDetected += HandleCharacterDetected;
+            if (_model != null)
+                _model.OnDeath += HandleDeath;
+            _runtimeWired = true;
+        }
+
+        _combatController = combatController;
+
+        if (data == null)
+        {
+            Debug.LogError("[Enemy] ConfigureFromSpawn: EnemyData is null.", this);
+            return;
+        }
+
+        _model.ApplyData(data);
+        _model.Initialize();
         _aggro?.Initialize(_model);
         _detector?.Initialize(_model);
-        if (_detector != null)
-            _detector.OnCharacterDetected += HandleCharacterDetected;
+
+        if (_agent != null)
+            _agent.enabled = true;
+        var col = GetComponent<Collider>();
+        if (col != null)
+            col.enabled = true;
+
+        if (!_stateMachineInitialized)
+        {
+            _stateMachine.Initialize(this);
+            _stateMachineInitialized = true;
+        }
+        else
+            _stateMachine.ResetAfterPoolReturn(patrolCenter);
 
         _healthBarView?.Initialize(_model);
         _mover?.Initialize(_agent);
         _attacker?.Initialize(_model);
         _enemyAnimator?.Initialize(_animator);
-        _stateMachine?.Initialize(this);
+    }
 
-        if (_model != null)
-            _model.OnDeath += HandleDeath;
+    private void CacheComponentsIfNeeded()
+    {
+        if (_model != null) return;
+
+        _model = GetComponent<EnemyModel>();
+        _aggro = GetComponent<EnemyAggro>();
+        _detector = GetComponent<EnemyDetector>();
+        _healthBarView = GetComponentInChildren<WorldHealthBarView>(true);
+        _stateMachine = GetComponent<EnemyStateMachine>();
+        _agent = GetComponent<NavMeshAgent>();
+        _mover = GetComponent<EnemyMover>();
+        _attacker = GetComponent<EnemyAttacker>();
+        _enemyAnimator = GetComponent<EnemyAnimator>();
+        _animator = GetComponentInChildren<Animator>();
     }
 
     private void OnDestroy()
     {
+        CancelInvoke(nameof(CompleteRecycleToPool));
+
         if (_model != null)
             _model.OnDeath -= HandleDeath;
 
@@ -152,26 +201,35 @@ public class Enemy : MonoBehaviour
 
         ClearCombatSquad();
 
-        var combat = FindFirstObjectByType<CombatController>();
-        combat?.UnregisterFromCombat(this);
+        _combatController?.UnregisterFromCombat(this);
     }
 
-    [SerializeField, Tooltip("사망 후 파괴 지연(초)")]
-    private float _destroyDelay = 3f;
+    [SerializeField, Tooltip("사망 후 풀 반환 지연(초)")]
+    private float _recycleDelay = 3f;
 
-    /// <summary>Model.OnDeath 구독. 보상(골드·아이템)은 EnemyRewardController가 처리.</summary>
+    /// <summary>Model.OnDeath. 보상은 EnemyRewardController·PlaySceneEventHub.</summary>
     private void HandleDeath()
     {
         PlaySceneEventHub.OnEnemyKilled?.Invoke(this);
-
         OnDestroyed?.Invoke(this);
-
-        Invoke(nameof(DestroySelf), _destroyDelay);
+        Invoke(nameof(CompleteRecycleToPool), _recycleDelay);
     }
 
-    private void DestroySelf()
+    private void CompleteRecycleToPool()
     {
-        Destroy(gameObject);
+        CancelInvoke(nameof(CompleteRecycleToPool));
+        ClearCombatSquad();
+        _combatController?.UnregisterFromCombat(this);
+
+        transform.SetParent(null);
+
+        OnReturnedToPool?.Invoke(this);
+
+        var poolable = GetComponent<Poolable>();
+        if (poolable != null)
+            poolable.ReturnToPool();
+        else
+            Destroy(gameObject);
     }
 
     /// <summary>Detect로 Character 감지 시. 반경 내이면 전투 진입. (전투진입 트리거)</summary>

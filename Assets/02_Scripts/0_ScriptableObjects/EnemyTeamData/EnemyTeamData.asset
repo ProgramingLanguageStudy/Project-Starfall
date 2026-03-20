@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5e0b9d4e684cdd4ba840f5222c6565f, type: 3}
   m_Name: EnemyTeamData
   m_EditorClassIdentifier: 
-  enemyPrefabs:
-  - {fileID: 1991895847249239406, guid: a19d09856c14c1843aed6cdb67d43045, type: 3}
-  - {fileID: 1991895847249239406, guid: a19d09856c14c1843aed6cdb67d43045, type: 3}
-  - {fileID: 1991895847249239406, guid: a19d09856c14c1843aed6cdb67d43045, type: 3}
+  enemyIds:
+  - Wolf
+  - Wolf
+  - Wolf
   spawnRadius: 2

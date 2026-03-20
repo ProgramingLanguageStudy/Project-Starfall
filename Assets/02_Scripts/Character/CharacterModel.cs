@@ -15,14 +15,6 @@ public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, II
     private int _currentHp;
     [SerializeField] private float _currentMoveSpeed;
 
-    private struct BuffEntry
-    {
-        public StatModifier Modifier;
-        public float RemoveAtTime;
-        public BuffEntry(StatModifier modifier, float removeAtTime) { Modifier = modifier; RemoveAtTime = removeAtTime; }
-    }
-    private List<BuffEntry> _timedBuffs = new List<BuffEntry>();
-
     public CharacterData Data => _data;
 
     public CharacterBaseStats BaseStats => _baseStats;
@@ -108,21 +100,16 @@ public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, II
     public void ApplyBuff(StatModifier modifier, float durationSeconds)
     {
         if (durationSeconds <= 0f) return;
-        AddModifier(modifier);
-        _timedBuffs.Add(new BuffEntry(modifier, Time.time + durationSeconds));
-    }
-
-    private void Update()
-    {
-        if (_timedBuffs.Count == 0) return;
-        float now = Time.time;
-        for (int i = _timedBuffs.Count - 1; i >= 0; i--)
+        
+        // GameManager를 통한 중앙 집중식 버프 관리
+        if (GameManager.Instance != null && GameManager.Instance.BuffManager != null)
         {
-            if (now >= _timedBuffs[i].RemoveAtTime)
-            {
-                RemoveModifier(_timedBuffs[i].Modifier);
-                _timedBuffs.RemoveAt(i);
-            }
+            GameManager.Instance.BuffManager.AddBuff(this, modifier, durationSeconds);
+        }
+        else
+        {
+            // 폴백: GameManager가 없을 경우 (테스트 환경 등)를 대비해 직접 적용 로직을 두거나 로그를 남깁니다.
+            Debug.LogWarning("[CharacterModel] BuffManager not found via GameManager. Buff not applied.");
         }
     }
 

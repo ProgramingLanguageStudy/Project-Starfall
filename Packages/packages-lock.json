@@ -1,5 +1,14 @@
 {
   "dependencies": {
+    "com.aerro2.ide.trae": {
+      "version": "https://github.com/aerror2/com.unity.ide.trae.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.test-framework": "1.1.9"
+      },
+      "hash": "380274b1fda093058abc01f69e16d82386780697"
+    },
     "com.unity.addressables": {
       "version": "2.9.0",
       "depth": 0,

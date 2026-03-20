@@ -11,13 +11,15 @@ public struct DropEntry
 }
 
 /// <summary>
-/// Enemy 기초 스탯 정의 (디자인 타임). SO로 생성 후 EnemyModel에 할당.
+/// Enemy 기초 스탯 정의 (디자인 타임). SO로 생성 후 EnemyModel에 할당. DM 캐시 키: EnemyData/{Id}.
 /// </summary>
 [CreateAssetMenu(fileName = "EnemyData", menuName = "Enemy/Enemy Data")]
-public class EnemyData : ScriptableObject
+public class EnemyData : BaseData
 {
+    public override string Id => enemyId;
+
     [Header("식별")]
-    [Tooltip("퀘스트 TargetId 매칭용. 비면 처치 퀘스트 진행 안 함")]
+    [Tooltip("DM·퀘스트 TargetId·RM과 동일 키 권장 (예: Wolf). Addressables Enemy/{Id}")]
     public string enemyId;
 
     [Header("보상")]

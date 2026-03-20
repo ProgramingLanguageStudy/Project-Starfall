@@ -38,7 +38,31 @@ public static class SaveDevSettings
         Menu.SetChecked(MenuPath, EditorPrefs.GetBool(EditorPrefsKey, false));
         return true;
     }
+
+    private const string EditorPrefsKeyDiag = "Squad_Save_LogDiagnostics";
+    private const string MenuPathDiag = "Tools/Save/Log Save Diagnostics (Gold/Contributors)";
+
+    /// <summary>켜면 저장·로드·Gather 시 골드·contributor 목록 등을 콘솔에 출력. 빌드에서는 항상 false.</summary>
+    public static bool LogSaveDiagnostics => EditorPrefs.GetBool(EditorPrefsKeyDiag, false);
+
+    [MenuItem(MenuPathDiag, false, 201)]
+    private static void ToggleLogDiagnosticsMenu()
+    {
+        var v = !EditorPrefs.GetBool(EditorPrefsKeyDiag, false);
+        EditorPrefs.SetBool(EditorPrefsKeyDiag, v);
+        Debug.Log(v ? "[SaveDevSettings] Save diagnostics logging ON." : "[SaveDevSettings] Save diagnostics logging OFF.");
+    }
+
+    [MenuItem(MenuPathDiag, true)]
+    private static bool ToggleLogDiagnosticsMenuValidate()
+    {
+        Menu.SetChecked(MenuPathDiag, EditorPrefs.GetBool(EditorPrefsKeyDiag, false));
+        return true;
+    }
 #else
     public static bool ForceLocalSave => false;
+
+    /// <summary>빌드에서는 진단 로그 비활성.</summary>
+    public static bool LogSaveDiagnostics => false;
 #endif
 }

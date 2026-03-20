@@ -9,11 +9,20 @@ public class CurrencyManager : MonoBehaviour
 {
     private int _gold;
 
-    /// <summary>CurrencySaveContributor 등록·초기화. GameManager.Start에서 호출.</summary>
+    /// <summary>CurrencySaveContributor 초기화 및 SaveManager 등록. GameManager.Start에서 호출.</summary>
     public void Initialize()
     {
         var contrib = Util.GetOrAddComponent<CurrencySaveContributor>(gameObject);
         contrib.Initialize(this);
+
+        var sm = GameManager.Instance?.SaveManager;
+        if (sm == null)
+        {
+            Debug.LogError("[CurrencyManager] SaveManager is null. CurrencySaveContributor not registered; gold will not save.");
+            return;
+        }
+
+        sm.Register(contrib);
     }
 
     /// <summary>현재 골드. UI 표시용.</summary>

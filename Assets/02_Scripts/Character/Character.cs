@@ -45,6 +45,9 @@ public class Character : MonoBehaviour, IInteractReceiver
     /// <summary>소속 분대. 스폰 시 주입. Enemy가 Character→Squad→Player로 타겟 해석.</summary>
     public Squad Squad { get; private set; }
 
+    /// <summary>전투 시스템 참조. AIBrain 등이 타겟 탐색 시 사용.</summary>
+    public CombatController CombatController { get; private set; }
+
     // ── 공개 API (StateMachine·InputHandler·AIBrain 연동) ────
 
     public void RequestAttack() => _stateMachine?.RequestAttack();
@@ -66,53 +69,42 @@ public class Character : MonoBehaviour, IInteractReceiver
     /// <summary>플레이어용. MoveState.IsComplete에서 이동 입력 유무 판단.</summary>
     public bool HasMoveInput => _currentMoveDirection.sqrMagnitude >= 0.01f;
 
-    /// <summary>이동 적용. MoveState.Update에서 호출. 플레이어=방향, 동료=AIBrain 타겟 읽음.</summary>
     public void ApplyMovement()
     {
         if (_isPlayer)
         {
-            _mover?.Move(_currentMoveDirection);
+            _mover.Move(_currentMoveDirection);
         }
-        else
+        else if (_aiBrain != null && _aiBrain.CurrentTarget != null)
         {
-            var target = _aiBrain?.CurrentTarget;
-            if (target != null)
-            {
-                var stopDist = _aiBrain.CurrentStopDistance;
-                _followMover?.MoveToTarget(target.position, stopDist);
-            }
+            _followMover.MoveToTarget(_aiBrain.CurrentTarget.position, _aiBrain.CurrentStopDistance);
         }
     }
 
     /// <summary>즉시 정지. 공격 진입·사망 등.</summary>
     public void StopMovement()
     {
-        if (_isPlayer)
-            _mover?.Stop();
-        else
-            _followMover?.Stop();
+        if (_isPlayer) _mover.Stop();
+        else _followMover.Stop();
     }
 
     /// <summary>죽음 처리. DeadState.Enter에서 호출.</summary>
     public void Die()
     {
         StopMovement();
-        _characterAnimator?.Dead();
-        if (_characterController != null)
-            _characterController.enabled = false;
+        _characterAnimator.Dead();
+        SetPhysicsActive(false);
     }
 
     /// <summary>부활 처리. DeadState.Exit에서 호출.</summary>
     public void Revive()
     {
-        if (_characterController != null)
-            _characterController.enabled = true;
+        SetPhysicsActive(true);
     }
 
-    /// <summary>동료용. 직접 목표 위치로 이동 요청. (레거시/특수용)</summary>
-    public void RequestMoveToTarget(Vector3 targetPos)
+    private void SetPhysicsActive(bool active)
     {
-        _followMover.MoveToTarget(targetPos);
+        if (_characterController != null) _characterController.enabled = active;
     }
 
     /// <summary>NavMeshAgent 경로 초기화. RepositionCompanionsAround 등에서 Warp 전 호출.</summary>
@@ -129,70 +121,82 @@ public class Character : MonoBehaviour, IInteractReceiver
             return;
         }
 
-        if (_characterController == null)
-        {
-            transform.position = worldPosition;
-            return;
-        }
-
-        _characterController.enabled = false;
+        bool wasEnabled = _characterController != null && _characterController.enabled;
+        if (wasEnabled) _characterController.enabled = false;
+        
         transform.position = worldPosition;
-        _characterController.enabled = true;
+        
+        if (wasEnabled) _characterController.enabled = true;
     }
 
     /// <summary>플레이어 조종 모드로 전환.</summary>
     public void SetAsPlayer()
     {
-        _isPlayer = true;
-        if (_characterController != null) _characterController.enabled = true;
-        if (_navMeshAgent != null) _navMeshAgent.enabled = false;
-        if (_interactor != null) _interactor.enabled = true;
-        gameObject.layer = LayerMask.NameToLayer(LayerParams.Player);
-
-        if (_aiBrain != null) _aiBrain.enabled = false;
+        SetControlMode(true);
     }
 
     /// <summary>동료 모드로 전환.</summary>
     public void SetAsCompanion(Transform followTarget)
     {
-        _isPlayer = false;
-        if (_characterController != null) _characterController.enabled = false;
-        if (_navMeshAgent != null) _navMeshAgent.enabled = true;
-        if (_interactor != null) _interactor.enabled = false;
-        gameObject.layer = LayerMask.NameToLayer(LayerParams.Character);
+        SetControlMode(false);
+    }
 
-        if (_aiBrain != null) _aiBrain.enabled = true;
+    private void SetControlMode(bool isPlayer)
+    {
+        _isPlayer = isPlayer;
+
+        // 컴포넌트 상태 스왑
+        if (_characterController != null) _characterController.enabled = isPlayer;
+        if (_navMeshAgent != null) _navMeshAgent.enabled = !isPlayer;
+        if (_interactor != null) _interactor.enabled = isPlayer;
+        if (_aiBrain != null) _aiBrain.enabled = !isPlayer;
+
+        // 레이어 설정
+        gameObject.layer = LayerMask.NameToLayer(isPlayer ? LayerParams.Player : LayerParams.Character);
     }
 
     public void Initialize(CombatController combatController = null, Squad squad = null)
     {
         Squad = squad;
+        CombatController = combatController;
 
-        if (_model == null)
-        {
-            Debug.LogError($"[Character] CharacterModel is null (Awake/cache). GameObject={gameObject.name}");
-            return;
-        }
-
-        _aiBrain?.Initialize(this, combatController);
-
-        _model?.Initialize();
+        // 필수 컴포넌트 초기화 (상위에서 하위로 주입)
+        _model.Initialize();
         _mover.Initialize(_characterController, _model);
         _followMover.Initialize(_navMeshAgent, _model);
-        _characterAnimator?.Initialize(_animator);
-        _interactor?.Initialize(this);
-        _stateMachine?.Initialize(this);
-        _attacker?.Initialize(this, _stateMachine, _model, _characterAnimator);
+        _characterAnimator.Initialize(_animator);
+        _interactor.Initialize(this);
+        _stateMachine.Initialize(this);
+        _attacker.Initialize(_model, _stateMachine, _characterAnimator, transform);
+        _aiBrain?.Initialize(this, combatController);
+
+        // 이벤트 연결
+        BindEvents(true);
+    }
+
+    private void BindEvents(bool bind)
+    {
+        if (_stateMachine != null)
+        {
+            if (bind) _stateMachine.OnStateChanged += HandleStateChanged;
+            else _stateMachine.OnStateChanged -= HandleStateChanged;
+        }
 
         if (_animatorEventBridge != null && _attacker != null)
         {
-            _animatorEventBridge.OnBeginHitWindow += _attacker.Animation_BeginHitWindow;
-            _animatorEventBridge.OnEndHitWindow += _attacker.Animation_EndHitWindow;
-            _animatorEventBridge.OnAttackEnded += _attacker.Animation_OnAttackEnded;
-            Debug.Log($"[Character] {gameObject.name} AnimatorEventBridge 연결 완료");
+            if (bind)
+            {
+                _animatorEventBridge.OnBeginHitWindow += _attacker.Animation_BeginHitWindow;
+                _animatorEventBridge.OnEndHitWindow += _attacker.Animation_EndHitWindow;
+                _animatorEventBridge.OnAttackEnded += _attacker.Animation_OnAttackEnded;
+            }
+            else
+            {
+                _animatorEventBridge.OnBeginHitWindow -= _attacker.Animation_BeginHitWindow;
+                _animatorEventBridge.OnEndHitWindow -= _attacker.Animation_EndHitWindow;
+                _animatorEventBridge.OnAttackEnded -= _attacker.Animation_OnAttackEnded;
+            }
         }
-        else if (_animatorEventBridge == null)
-            Debug.LogWarning($"[Character] {gameObject.name} AnimatorEventBridge 없음 (애니 이벤트 동작 안 함)");
     }
 
     // ── Unity ───────────────────────────────────────────────
@@ -213,24 +217,20 @@ public class Character : MonoBehaviour, IInteractReceiver
         _aiBrain = GetComponent<AIBrain>();
     }
 
-    private void Update()
+    private void HandleStateChanged(CharacterState previous, CharacterState current)
     {
         if (_characterAnimator == null) return;
 
-        bool isMove = StateMachine != null && StateMachine.CurrentState == CharacterState.Move;
+        bool isMove = current == CharacterState.Move;
         _characterAnimator.SetMoving(isMove);
 
+        // 이동 상태로 진입 시 모델의 이동 속도 전달 (애니메이터 댐핑 사용)
         float speed = isMove && _model != null ? _model.CurrentMoveSpeed : 0f;
         _characterAnimator.Move(speed);
     }
 
     private void OnDisable()
     {
-        if (_animatorEventBridge != null && _attacker != null)
-        {
-            _animatorEventBridge.OnBeginHitWindow -= _attacker.Animation_BeginHitWindow;
-            _animatorEventBridge.OnEndHitWindow -= _attacker.Animation_EndHitWindow;
-            _animatorEventBridge.OnAttackEnded -= _attacker.Animation_OnAttackEnded;
-        }
+        BindEvents(false);
     }
 }

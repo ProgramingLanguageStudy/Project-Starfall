@@ -4,6 +4,7 @@ using UnityEngine;
 /// <summary>
 /// 직사각형 구역 내 그리드 기반 아이템 스폰. 행/열 개수로 균등 분할.
 /// Terrain.activeTerrains 순회 + SampleHeight로 높이 계산 (다중 Terrain·경계 대응).
+/// 자동 스폰은 <see cref="PlayScene.IsSceneReady"/> 이후(ResourceManager 등 부트 완료 뒤).
 /// </summary>
 public class ItemZoneSpawner : MonoBehaviour
 {
@@ -23,13 +24,40 @@ public class ItemZoneSpawner : MonoBehaviour
     private int _amount = 9;
 
     [Header("스폰 시점")]
-    [SerializeField] [Tooltip("true면 Start에서 자동 스폰, false면 Spawn() 수동 호출")]
+    [SerializeField] [Tooltip("true면 PlayScene 준비 완료 후 자동 Spawn, false면 Spawn() 수동 호출")]
     private bool _spawnOnStart = true;
 
-    private void Start()
+    private bool _didAutoSpawn;
+
+    // EnemySpawner와 동일: IsSceneReady 이후에만 자동 스폰(부트·RM 보장)
+    private void OnEnable()
     {
-        if (_spawnOnStart)
-            Spawn();
+        if (!_spawnOnStart)
+            return;
+
+        if (PlayScene.IsSceneReady)
+            TryAutoSpawnOnce();
+        else
+            PlayScene.OnSceneReady += OnPlaySceneReadyForAutoSpawn;
+    }
+
+    private void OnDisable()
+    {
+        PlayScene.OnSceneReady -= OnPlaySceneReadyForAutoSpawn;
+    }
+
+    private void OnPlaySceneReadyForAutoSpawn()
+    {
+        PlayScene.OnSceneReady -= OnPlaySceneReadyForAutoSpawn;
+        TryAutoSpawnOnce();
+    }
+
+    private void TryAutoSpawnOnce()
+    {
+        if (_didAutoSpawn)
+            return;
+        _didAutoSpawn = true;
+        Spawn();
     }
 
     /// <summary>구역 내 그리드 셀에 아이템 스폰.</summary>
@@ -61,6 +89,7 @@ public class ItemZoneSpawner : MonoBehaviour
             return;
         }
 
+        // 셀 목록을 섞은 뒤 앞에서 amount개만 사용 → 구역 내 랜덤 분포
         float cellSizeX = _zoneSize.x / _gridCols;
         float cellSizeZ = _zoneSize.y / _gridRows;
 
@@ -80,33 +109,30 @@ public class ItemZoneSpawner : MonoBehaviour
         for (int i = 0; i < spawnCount; i++)
         {
             var (ix, iz) = cells[i];
+            // 셀 안에서 또 한 번 랜덤 오프셋
             float x = minX + ix * cellSizeX + Random.Range(0f, cellSizeX);
             float z = minZ + iz * cellSizeZ + Random.Range(0f, cellSizeZ);
 
-            var terrain = GetTerrainAtPosition(x, z);
-            if (terrain == null) continue;
+            float y = TerrainSpawnUtil.GetTerrainHeight(x, z, transform.position.y);
+            var pos = new Vector3(x, y, z);
 
-            float y = terrain.SampleHeight(new Vector3(x, 0f, z));
-            var pos = new Vector3(x, terrain.transform.position.y + y, z);
+            GameObject go;
+            var pm = GameManager.Instance?.PoolManager;
+            // PM 있으면 풀(픽업 시 ItemObject가 ReturnToPool), 없으면 구형 Instantiate
+            if (pm != null)
+                go = pm.Pop(prefab);
+            else
+                go = Instantiate(prefab);
 
-            var go = Instantiate(prefab, pos, Quaternion.identity, transform);
+            if (go == null)
+                continue;
+
+            go.transform.SetParent(transform);
+            go.transform.SetPositionAndRotation(pos, Quaternion.identity);
             var itemObj = go.GetComponent<ItemObject>();
             if (itemObj != null)
                 itemObj.Initialize(_itemData, 1);
         }
-    }
-
-    private static Terrain GetTerrainAtPosition(float worldX, float worldZ)
-    {
-        foreach (var t in Terrain.activeTerrains)
-        {
-            var bounds = t.terrainData.bounds;
-            var worldMin = t.transform.TransformPoint(bounds.min);
-            var worldMax = t.transform.TransformPoint(bounds.max);
-            if (worldX >= worldMin.x && worldX <= worldMax.x && worldZ >= worldMin.z && worldZ <= worldMax.z)
-                return t;
-        }
-        return null;
     }
 
     private static void Shuffle<T>(List<T> list)

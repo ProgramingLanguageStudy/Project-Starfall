@@ -23,6 +23,12 @@ public class EnemyModel : MonoBehaviour, IDamageable, IAttackPowerSource
     /// <summary>데미지 입었을 때. (공격자 Transform, null 가능). 구독자가 전투 진입 등 판단.</summary>
     public event Action<Transform> OnDamaged;
 
+    /// <summary>런타임에 DM에서 가져온 데이터 적용 (풀 재사용 시).</summary>
+    public void ApplyData(EnemyData data)
+    {
+        _data = data;
+    }
+
     public void Initialize()
     {
         _currentHp = MaxHp;

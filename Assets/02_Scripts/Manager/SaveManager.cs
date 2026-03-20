@@ -234,6 +234,13 @@ public class SaveManager : MonoBehaviour
         var data = GatherSaveData();
         if (data == null) { onComplete?.Invoke(false); yield break; }
 
+        if (SaveDevSettings.LogSaveDiagnostics)
+        {
+            var ordered = _contributors.Where(x => x != null).OrderBy(x => x.SaveOrder).ToList();
+            var names = string.Join(", ", ordered.Select(x => x.GetType().Name));
+            Debug.Log($"[SaveDiag] GatherSaveData → count={ordered.Count} [{names}] → gold={data.gold}");
+        }
+
         var success = false;
         // 로컬·Firestore 공통: 백엔드 코루틴이 끝날 때까지 프레임 양보(메인 스레드 블로킹 없음).
         yield return _backend.SaveAsync(data, b => success = b);
@@ -290,11 +297,15 @@ public class SaveManager : MonoBehaviour
             }
             _loadedSaveData = data;
             Debug.Log("[SaveManager] Loaded.");
+            if (SaveDevSettings.LogSaveDiagnostics)
+                Debug.Log($"[SaveDiag] LoadedSaveData.gold={data.gold}");
         }
         else
         {
             _loadedSaveData = CreateDefaultSaveData();
             Debug.Log("[SaveManager] No save found. Using default.");
+            if (SaveDevSettings.LogSaveDiagnostics)
+                Debug.Log($"[SaveDiag] default LoadedSaveData.gold={_loadedSaveData.gold}");
         }
 
         onProgress?.Invoke(1f, "Save 로드 완료");

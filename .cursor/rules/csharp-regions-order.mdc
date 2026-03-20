@@ -1,0 +1,44 @@
+---
+description: C# 클래스 내 #region 블록 권장 순서 (Unity MonoBehaviour 중심)
+globs: "**/Assets/**/*.cs"
+alwaysApply: true
+---
+
+# C# `#region` 순서
+
+`#region`은 필수가 아니지만, 쓸 때는 **아래 순서**를 맞추면 읽기·리뷰가 수월하다. 새 코드·리팩터 시 이 순서를 기본으로 한다.
+
+## MonoBehaviour (매니저·씬 오브젝트)
+
+위에서 아래로:
+
+1. **중첩 타입** (클래스 안의 `struct` / `enum` 등) — 짧으면 생략 가능, 두면 **필드보다 위**
+2. **Constants** — `const`, `static readonly` 등
+3. **SerializeField** — `[SerializeField]`만 모음 (인스펙터 노출)
+4. **Fields / Internal State** — 비공개 필드, 캐시, 코루틴 참조, SDK 핸들 등
+5. **Public API** — `public` 메서드·프로퍼티·`event` (외부에 열린 계약)
+6. **Unity Lifecycle** — `Awake`, `Start`, `OnEnable`, `OnDisable`, `OnDestroy`, `Update` 등
+7. **Private Helpers** — `private` 헬, 이벤트 핸들러, 빌드/검증 유틸
+
+**이름 예시** (프로젝트에서 이미 쓰는 스타일과 호환):
+
+- `Internal State` → 위 표의 4번에 해당
+- `Public API` → 5번
+- `Unity Lifecycle` → 6번
+- `Private Helpers` → 7번
+
+`Public API`와 `Unity Lifecycle` 순서: **공개 계약을 먼저** 보고, 그다음 Unity 콜백이 오면 “진입점” 흐름이 자연스럽다.
+
+## MonoBehaviour가 아닌 클래스 (정적 헬퍼·데이터 등)
+
+1. Nested types  
+2. Constants  
+3. Static / instance fields  
+4. 생성자 (있으면)  
+5. Public API  
+6. Private helpers  
+
+## 유연하게
+
+- 파일이 짧으면 `#region` 없이 두어도 된다.
+- 한 region 안에서 **도메인별**로 나누는 것(예: `Save / Load`)은 해당 클래스 책임이 클 때만 허용하고, **기본 축은 위 순서**를 유지한다.

@@ -5,139 +5,97 @@ using UnityEngine;
 using Unity.Cinemachine;
 
 /// <summary>
-/// 플레이 씬 조율. InputHandler·SquadController 참조, 입력을 PlayerCharacter에 연결.
+/// 플레이 씬 조율. 인스펙터 연결 검증 → 코루틴으로 GameManager 부트 대기 → <see cref="Initialize"/> 후 <see cref="IsSceneReady"/>·인스턴스 플래그로 입력·Update 방어.
 /// </summary>
 public class PlayScene : MonoBehaviour
 {
-    [SerializeField] private InputHandler _inputHandler;
-    [SerializeField] [Tooltip("입력→월드 방향 변환에 사용. 비면 Camera.main")]
+    #region Constants
+
+    /// <summary>GameManager.Instance·BootServicesReady 대기 상한(초). SceneLoadManager와 동일.</summary>
+    private const float BootWaitTimeoutSeconds = 120f;
+
+    #endregion
+
+    #region SerializeField
+
+    [SerializeField] [Tooltip("플레이 입력")]
+    private InputHandler _inputHandler;
+    [SerializeField] [Tooltip("이동 입력→월드 방향 변환에 사용하는 카메라 Transform")]
     private Transform _cameraTransform;
-    [SerializeField] [Tooltip("비면 주입 안 함. 적 팀 스폰 (CombatController 주입)")]
-    private EnemySpawner _enemySpawner;
-    [SerializeField] [Tooltip("비면 주입 안 함. 있으면 분대 스폰·따라가기 설정")]
+    [SerializeField] [Tooltip("적 스폰 루트 Transform. 자식(및 자기) EnemySpawner 전원에 CombatController 주입")]
+    private Transform _enemySpawnRoot;
+    [SerializeField] [Tooltip("분대 스폰·따라가기·조종 캐릭터")]
     private SquadController _squadController;
-    [SerializeField] [Tooltip("전투 상태 On/Off 관리. 조건은 외부에서 SetCombatOn/Off 호출")]
+    [SerializeField] [Tooltip("전투 On/Off. 외부에서 SetCombatOn/Off")]
     private CombatController _combatController;
-    [SerializeField] [Tooltip("비면 주입 안 함. 있으면 플레이어 변경 시 ItemUser 갱신")]
+    [SerializeField] [Tooltip("인벤토리 M-V. 플레이어 변경 시 ItemUser 갱신")]
     private InventoryPresenter _inventoryPresenter;
-    [SerializeField] [Tooltip("비면 주입 안 함. 플레이 화면 UI(체력바 등). 조종 캐릭터 Model.OnHpChanged 구독")]
+    [SerializeField] [Tooltip("체력바·분대 프로필 등 HUD. 조종 캐릭터 Model.OnHpChanged")]
     private PlaySceneView _playSceneView;
-    [SerializeField] [Tooltip("비면 갱신 안 함. 있으면 SquadSwap 시 Follow 타겟을 현재 조종 캐릭터로 변경")]
+    [SerializeField] [Tooltip("조종 캐릭터 Follow. SquadSwap 시 타겟 갱신")]
     private CinemachineCamera _cinemachineCamera;
-    [SerializeField] [Tooltip("세이브/로드 조율. 인스펙터에서 Contributor 할당")]
+    [SerializeField] [Tooltip("세이브/로드 조율·Contributor")]
     private PlaySaveCoordinator _saveCoordinator;
-    [SerializeField] [Tooltip("대화 관련 컴포넌트·이벤트 연결")]
+    [SerializeField] [Tooltip("대화 컴포넌트·이벤트 연결")]
     private DialogueController _dialogueController;
-    [SerializeField] [Tooltip("퀘스트 UI(M-V). SaveCoordinator·QuestController 초기화 시 System 주입용")]
+    [SerializeField] [Tooltip("퀘스트 UI(M-V). SaveCoordinator·QuestController에 System 주입")]
     private QuestPresenter _questPresenter;
-    [SerializeField] [Tooltip("퀘스트 조율·수락/완료 API. DialogueController에 주입")]
+    [SerializeField] [Tooltip("퀘스트 수락·완료. DialogueController 연동")]
     private QuestController _questController;
-    [SerializeField] [Tooltip("플래그 저장·조회. QuestSystem처럼 Play 씬에서 보유")]
+    [SerializeField] [Tooltip("스토리 플래그 저장·조회")]
     private FlagSystem _flagSystem;
-    [SerializeField] [Tooltip("NPC 등록·조회 관리")]
+    [SerializeField] [Tooltip("NPC 등록·조회")]
     private NpcController _npcController;
-    [SerializeField] MapController _mapController;
-    [SerializeField] PortalController _portalController;
-    [SerializeField] SettingsView _settingsView;
-    [SerializeField] [Tooltip("상호작용 힌트, 픽업 로그 등 잠깐 뜨는 오버레이 UI")]
+    [SerializeField] [Tooltip("미니맵·맵 토글·스크롤")]
+    private MapController _mapController;
+    [SerializeField] [Tooltip("포탈. 맵 뷰·플래그 연동")]
+    private PortalController _portalController;
+    [SerializeField] [Tooltip("설정 패널")]
+    private SettingsView _settingsView;
+    [SerializeField] [Tooltip("힌트·픽업 로그 등 짧은 오버레이 UI")]
     private PlaySceneOverlayController _overlayController;
 
-    private CharacterModel _hpModelSubscribed;
-    private SaveData _pendingSaveData;
+    #endregion
+
+    #region Internal State
+
+    private CharacterModel _hpModelSubscribed; // 체력바용 OnHpChanged 구독 대상
+    private SaveData _pendingSaveData; // ApplySaveData 직전 버퍼
+
+    #endregion
+
+    #region Public API
+
+    /// <summary>
+    /// <see cref="Initialize"/>가 끝난 뒤 true. <see cref="OnDisable"/>에서 false.
+    /// 늦게 켜진 스포너는 <see cref="OnSceneReady"/> 구독 전에 이 값을 보고 즉시 초기화할 수 있음.
+    /// </summary>
+    public static bool IsSceneReady { get; private set; }
 
     /// <summary>씬 초기화 완료 시 발생. SceneLoadManager가 로딩 UI 숨김용으로 구독.</summary>
     public static event Action OnSceneReady;
 
+    #endregion
+
+    #region Unity Lifecycle
+
     private void Awake()
     {
-        if (_inputHandler == null)
-        {
-            Debug.LogWarning("[PlayScene] InputHandler가 할당되지 않았습니다. 인스펙터에서 할당해 주세요.");
+        IsSceneReady = false;
+
+        if (!ValidateBoundReferences())
             return;
-        }
-        if (_squadController == null)
-        {
-            Debug.LogWarning("[PlayScene] SquadController가 할당되지 않았습니다.");
-            return;
-        }
 
-        if (_cameraTransform == null && Camera.main != null)
-            _cameraTransform = Camera.main.transform;
-
-        var gm = GameManager.Instance;
-        _saveCoordinator?.Initialize(
-            _squadController,
-            _flagSystem,
-            _questPresenter,
-            _inventoryPresenter?.Model);
-
-        if (_settingsView != null)
-            _settingsView.Initialize();
-        _playSceneView?.Initialize();
-        _overlayController?.Initialize();
-
-        if (_cinemachineCamera != null)
-            _cinemachineCamera.gameObject.SetActive(false);
-
-        StartCoroutine(InitAfterLoadRoutine(gm));
-    }
-
-    private IEnumerator InitAfterLoadRoutine(GameManager gm)
-    {
-        if (gm == null)
-        {
-            Debug.LogError("[PlayScene] GameManager is null.");
-            yield break;
-        }
-
-        if (!gm.BootServicesReady)
-            yield return new WaitUntil(() => gm != null && gm.BootServicesReady);
-
-        _pendingSaveData = gm.SaveManager != null ? gm.SaveManager.LoadedSaveData : null;
-
-        // 분대 컨트롤러는 CombatController 등 의존성만 먼저 주입.
-        _squadController.Initialize(_combatController);
-
-        _npcController?.Initialize();
-
-        var player = _squadController.PlayerCharacter;
-        _enemySpawner?.Initialize(_combatController);
-
-        if (_inventoryPresenter != null)
-            _inventoryPresenter.SetPlayerCharacter(player);
-
-        _dialogueController?.Initialize(_questController, _flagSystem);
-        if (_questController != null && _questPresenter != null && _inventoryPresenter?.Model != null)
-            _questController.Initialize(_questPresenter.System, _inventoryPresenter.Model, _flagSystem, _squadController);
-
-        if (_mapController != null)
-            _mapController.Initialize(_portalController, player, _squadController);
-
-        if (_portalController != null)
-            _portalController.Initialize(_mapController.MapView, _flagSystem);
-
-        if (_pendingSaveData != null && GameManager.Instance?.SaveManager != null)
-        {
-            GameManager.Instance.SaveManager.ApplySaveData(_pendingSaveData);
-            _pendingSaveData = null;
-        }
-
-        // ApplySaveData 후 분대가 채워지므로 프로필 바인딩·선택 강조 갱신 (SetSlots는 OnMembersChanged 미호출)
-        RefreshSquadProfileView(_squadController.Characters);
-        HandlePlayerChanged(_squadController.PlayerCharacter);
-
-        if (_cinemachineCamera != null)
-            _cinemachineCamera.gameObject.SetActive(true);
-
-        OnSceneReady?.Invoke();
+        StartCoroutine(WaitForBootThenInitializeRoutine());
     }
 
     private void OnEnable()
     {
         if (_inputHandler == null || _squadController == null) return;
 
-        _squadController.OnPlayerChanged += HandlePlayerChanged;
-        _squadController.OnMembersChanged += RefreshSquadProfileView;
+        // Initialize 전 콜백은 OnSquad*에서 IsSceneReady로 무시
+        _squadController.OnPlayerChanged += OnSquadPlayerChanged;
+        _squadController.OnMembersChanged += OnSquadMembersChanged;
 
         _inputHandler.OnInteractPerformed += HandleInteract;
         _inputHandler.OnInventoryPerformed += HandleInventoryKey;
@@ -153,6 +111,8 @@ public class PlayScene : MonoBehaviour
 
     private void OnDisable()
     {
+        IsSceneReady = false;
+
         GameManager.Instance?.PoolManager?.RemoveDestroyedFromAllPools();
         PlaySceneEventHub.Clear();
 
@@ -163,8 +123,8 @@ public class PlayScene : MonoBehaviour
         }
         if (_squadController != null)
         {
-            _squadController.OnPlayerChanged -= HandlePlayerChanged;
-            _squadController.OnMembersChanged -= RefreshSquadProfileView;
+            _squadController.OnPlayerChanged -= OnSquadPlayerChanged;
+            _squadController.OnMembersChanged -= OnSquadMembersChanged;
         }
         if (_inputHandler == null) return;
 
@@ -182,6 +142,8 @@ public class PlayScene : MonoBehaviour
 
     private void Update()
     {
+        if (!IsSceneReady) return;
+
         var player = _squadController?.PlayerCharacter;
         if (_inputHandler == null || player == null) return;
         if (!_squadController.CanMove) return;
@@ -195,7 +157,132 @@ public class PlayScene : MonoBehaviour
         if (hasInput)
             player.RequestMove();
 
-        _mapController.RequestScrollMap(_inputHandler.ScrollInput);
+        _mapController?.RequestScrollMap(_inputHandler.ScrollInput);
+    }
+
+    #endregion
+
+    #region Private Helpers
+
+    /// <summary>루트 아래(포함) 모든 <see cref="EnemySpawner"/>에 전투 컨트롤러 주입·스폰. 참조는 <see cref="ValidateBoundReferences"/> 이후에만 호출.</summary>
+    private static void InitializeEnemySpawnersUnderRoot(Transform root, CombatController combatController)
+    {
+        var spawners = root.GetComponentsInChildren<EnemySpawner>(true);
+        for (int i = 0; i < spawners.Length; i++)
+            spawners[i].Initialize(combatController);
+    }
+
+    /// <summary>인스펙터 연결 참조가 하나라도 없으면 에러 로그 후 false.</summary>
+    private bool ValidateBoundReferences()
+    {
+        bool ok = true;
+        ok = this.CheckComponent(_inputHandler) && ok;
+        ok = this.CheckComponent(_cameraTransform) && ok;
+        ok = this.CheckComponent(_enemySpawnRoot) && ok;
+        ok = this.CheckComponent(_squadController) && ok;
+        ok = this.CheckComponent(_combatController) && ok;
+        ok = this.CheckComponent(_inventoryPresenter) && ok;
+        ok = this.CheckComponent(_playSceneView) && ok;
+        ok = this.CheckComponent(_cinemachineCamera) && ok;
+        ok = this.CheckComponent(_saveCoordinator) && ok;
+        ok = this.CheckComponent(_dialogueController) && ok;
+        ok = this.CheckComponent(_questPresenter) && ok;
+        ok = this.CheckComponent(_questController) && ok;
+        ok = this.CheckComponent(_flagSystem) && ok;
+        ok = this.CheckComponent(_npcController) && ok;
+        ok = this.CheckComponent(_mapController) && ok;
+        ok = this.CheckComponent(_portalController) && ok;
+        ok = this.CheckComponent(_settingsView) && ok;
+        ok = this.CheckComponent(_overlayController) && ok;
+        return ok;
+    }
+
+    /// <summary>GM 존재·부트 완료까지 대기 후 <see cref="Initialize"/>.</summary>
+    private IEnumerator WaitForBootThenInitializeRoutine()
+    {
+        float waitStart = Time.realtimeSinceStartup;
+
+        while (GameManager.Instance == null || !GameManager.Instance.BootServicesReady)
+        {
+            if (Time.realtimeSinceStartup - waitStart > BootWaitTimeoutSeconds)
+            {
+                Debug.LogError("[PlayScene] GameManager 부트 대기 시간 초과.");
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        Initialize();
+    }
+
+    /// <summary>세이브·분대·UI·맵 등 플레이 씬 일괄 초기화. 끝에서 <see cref="IsSceneReady"/> 및 <see cref="OnSceneReady"/>.</summary>
+    private void Initialize()
+    {
+        var gm = GameManager.Instance;
+        if (gm == null)
+        {
+            Debug.LogError("[PlayScene] Initialize: GameManager is null.");
+            return;
+        }
+
+        // 세이브 스냅샷 (Apply는 분대 주입 이후)
+        _pendingSaveData = gm.SaveManager != null ? gm.SaveManager.LoadedSaveData : null;
+
+        // 세이브 코디네이터·플레이 UI
+        _saveCoordinator?.Initialize(
+            _squadController,
+            _flagSystem,
+            _questPresenter,
+            _inventoryPresenter?.Model);
+
+        if (_settingsView != null)
+            _settingsView.Initialize();
+        _playSceneView?.Initialize();
+        _overlayController?.Initialize();
+
+        // 시네: 초기화 중 렌더 끄고, 세이브 반영 후 다시 켬
+        if (_cinemachineCamera != null)
+            _cinemachineCamera.gameObject.SetActive(false);
+
+        // 분대·전투·NPC·인벤
+        _squadController.Initialize(_combatController);
+        _npcController?.Initialize();
+
+        var player = _squadController.PlayerCharacter;
+        InitializeEnemySpawnersUnderRoot(_enemySpawnRoot, _combatController);
+
+        if (_inventoryPresenter != null)
+            _inventoryPresenter.SetPlayerCharacter(player);
+
+        // 대화·퀘스트
+        _dialogueController?.Initialize(_questController, _flagSystem);
+        if (_questController != null && _questPresenter != null && _inventoryPresenter?.Model != null)
+            _questController.Initialize(_questPresenter.System, _inventoryPresenter.Model, _flagSystem, _squadController);
+
+        // 맵·포탈
+        if (_mapController != null)
+            _mapController.Initialize(_portalController, player, _squadController);
+
+        if (_portalController != null)
+            _portalController.Initialize(_mapController.MapView, _flagSystem);
+
+        // 세이브 적용 → 분대 슬롯 갱신
+        if (_pendingSaveData != null && GameManager.Instance?.SaveManager != null)
+        {
+            GameManager.Instance.SaveManager.ApplySaveData(_pendingSaveData);
+            _pendingSaveData = null;
+        }
+
+        // ApplySaveData 후 프로필·체력바·카메라 팔로우 (SetSlots는 OnMembersChanged 미호출)
+        RefreshSquadProfileView(_squadController.Characters);
+        HandlePlayerChanged(_squadController.PlayerCharacter);
+
+        if (_cinemachineCamera != null)
+            _cinemachineCamera.gameObject.SetActive(true);
+
+        IsSceneReady = true;
+        OnSceneReady?.Invoke();
     }
 
     /// <summary>입력 + 카메라 → 월드 기준 이동 방향.</summary>
@@ -216,43 +303,63 @@ public class PlayScene : MonoBehaviour
         return (forward * input.y + right * input.x).normalized;
     }
 
+    private void OnSquadPlayerChanged(Character newPlayer)
+    {
+        if (!IsSceneReady) return;
+        HandlePlayerChanged(newPlayer);
+    }
+
+    private void OnSquadMembersChanged(IReadOnlyList<Character> slots)
+    {
+        if (!IsSceneReady) return;
+        RefreshSquadProfileView(slots);
+    }
+
     private void HandleInteract()
     {
+        if (!IsSceneReady) return;
         _squadController?.RequestInteract();
     }
 
     private void HandleInventoryKey()
     {
+        if (!IsSceneReady) return;
         _inventoryPresenter?.RequestToggleInventory();
     }
 
     private void HandleAttack()
     {
+        if (!IsSceneReady) return;
         _squadController?.RequestAttack();
     }
 
     private void HandleSquadSwap()
     {
+        if (!IsSceneReady) return;
         _squadController?.RequestSquadSwap();
     }
 
     private void HandleSave()
     {
+        if (!IsSceneReady) return;
         _saveCoordinator?.RequestSave();
     }
 
     private void HandleMap()
     {
+        if (!IsSceneReady) return;
         _mapController?.RequestToggleMap();
     }
 
     private void HandleSettings()
     {
+        if (!IsSceneReady) return;
         _settingsView?.RequestToggle();
     }
 
     private void HandleEscapeRequested()
     {
+        if (!IsSceneReady) return;
         _squadController?.TeleportToDefaultPoint();
     }
 
@@ -283,10 +390,11 @@ public class PlayScene : MonoBehaviour
 
     private void OnHpChanged(int currentHp, int maxHp)
     {
+        if (!IsSceneReady) return;
         _playSceneView?.RefreshHealth(currentHp, maxHp);
     }
 
-    /// <summary>분대원 추가/제거 시 프로필 슬롯 다시 바인딩. 이벤트로 받은 슬롯 배열로 뷰 설정.</summary>
+    /// <summary>분대원 추가/제거 시 프로필 슬롯 다시 바인딩.</summary>
     private void RefreshSquadProfileView(IReadOnlyList<Character> slots)
     {
         if (_playSceneView == null) return;
@@ -296,4 +404,6 @@ public class PlayScene : MonoBehaviour
             : -1;
         _playSceneView.SetSelectedProfileIndex(slot);
     }
+
+    #endregion
 }

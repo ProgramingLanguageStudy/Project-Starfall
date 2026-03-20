@@ -88,10 +88,16 @@ public class DataManager : MonoBehaviour
     {
         if (string.IsNullOrEmpty(id)) return null;
 
-        var key = $"{typeof(T).Name}/{id}";
-        if (typeof(T) == typeof(ItemData) || typeof(T).IsSubclassOf(typeof(ItemData)))
-            key = $"ItemData/{id}";
+        // T 타입의 Category를 정적으로 알 수 없으므로, 조회용 딕셔너리나 
+        // ItemData와 같은 특수 케이스 처리를 유지하되, 좀 더 깔끔하게 관리할 필요가 있음.
+        // 현재는 ItemData 계열만 예외 처리.
+        var category = typeof(T).Name;
+        if (typeof(ItemData).IsAssignableFrom(typeof(T)))
+        {
+            category = "ItemData";
+        }
 
+        var key = $"{category}/{id}";
         return _cache.TryGetValue(key, out var cached) ? cached as T : null;
     }
 

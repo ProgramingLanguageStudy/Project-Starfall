@@ -14,8 +14,6 @@ public class PortalDetector : MonoBehaviour
         {
             _isPlayerInside = true;
             OnDetectPlayer?.Invoke(true);
-            Debug.Log($"[{transform.parent.name}] 플레이어 감지됨");
-            Debug.Log($"[{gameObject.name}] 감지됨! | InstanceID: {GetInstanceID()} |HashCode: {this.GetHashCode()}");
         }
     }
 
@@ -26,7 +24,5 @@ public class PortalDetector : MonoBehaviour
         // 플레이어 레이어가 나가거나, 플레이어의 레이어가 'Companion' 등으로 바뀌는 순간 즉시 호출됨
         _isPlayerInside = false;
         OnDetectPlayer?.Invoke(false);
-        Debug.Log($"[{transform.parent.name}] 플레이어 이탈 혹은 상태 변경됨");
-        Debug.Log($"[{gameObject.name}] 감지됨! | InstanceID: {GetInstanceID()} |HashCode: {this.GetHashCode()}");
     }
 }

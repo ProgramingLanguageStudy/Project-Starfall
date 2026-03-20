@@ -9,21 +9,21 @@ public class CharacterAttacker : MonoBehaviour
 {
     [SerializeField] private HitboxController _hitboxController;
 
-    private Character _ownerCharacter;
-    private CharacterModel _ownerModel;
+    private IAttackPowerSource _ownerPowerSource;
     private CharacterStateMachine _stateMachine;
     private CharacterAnimator _characterAnimator;
+    private Transform _damageSourceTransform;
     private readonly HashSet<IDamageable> _hitThisAttack = new HashSet<IDamageable>();
 
     /// <summary>애니메이션 종료 시 true. AttackState.IsComplete가 읽음. Begin()에서 초기화.</summary>
     public bool IsAttackEnded { get; private set; }
 
-    public void Initialize(Character owner, CharacterStateMachine stateMachine, CharacterModel ownerModel, CharacterAnimator characterAnimator)
+    public void Initialize(IAttackPowerSource powerSource, CharacterStateMachine stateMachine, CharacterAnimator characterAnimator, Transform damageSource)
     {
-        _ownerCharacter = owner;
+        _ownerPowerSource = powerSource;
         _stateMachine = stateMachine;
-        _ownerModel = ownerModel;
         _characterAnimator = characterAnimator;
+        _damageSourceTransform = damageSource;
 
         if (_hitboxController == null)
             _hitboxController = GetComponentInChildren<HitboxController>(true);
@@ -45,28 +45,27 @@ public class CharacterAttacker : MonoBehaviour
 
     private void ApplyDamage(IDamageable target)
     {
-        if (target == null || _ownerModel == null)
+        if (target == null || _ownerPowerSource == null)
         {
-            if (target == null) Debug.Log($"[CharacterAttacker] {gameObject.name} ApplyDamage 스킵: target==null");
-            else if (_ownerModel == null) Debug.Log($"[CharacterAttacker] {gameObject.name} ApplyDamage 스킵: _ownerModel==null");
             return;
         }
-        if (ReferenceEquals(target, _ownerModel))
+
+        // 자기 자신 타격 방지 (IAttackPowerSource가 MonoBehaviour라면 비교 가능)
+        if (_ownerPowerSource is MonoBehaviour ownerMb && ReferenceEquals(target, ownerMb.GetComponent<IDamageable>()))
         {
-            Debug.Log($"[CharacterAttacker] {gameObject.name} ApplyDamage 스킵: 자기 자신");
             return;
         }
+
         if (_hitThisAttack.Contains(target))
         {
-            Debug.Log($"[CharacterAttacker] {gameObject.name} ApplyDamage 스킵: 이미 타격함 (target={target})");
             return;
         }
 
         _hitThisAttack.Add(target);
-        int damage = _ownerModel.AttackPower;
-        var attacker = _ownerCharacter != null ? _ownerCharacter.transform : null;
+        int damage = _ownerPowerSource.AttackPower;
+        
         Debug.Log($"[CharacterAttacker] {gameObject.name} → {target} 데미지 {damage} 적용");
-        target.TakeDamage(damage, attacker);
+        target.TakeDamage(damage, _damageSourceTransform);
     }
 
     /// <summary>AttackState.Enter에서 호출. 공격 시작.</summary>

@@ -36,6 +36,7 @@ public class GameManager : MonoBehaviour
     private SceneLoadManager _sceneLoadManager;
     private PoolManager _poolManager;
     private EffectManager _effectManager;
+    private BuffManager _buffManager;
     private SoundManager _soundManager;
     private UIManager _uiManager;
 
@@ -55,6 +56,8 @@ public class GameManager : MonoBehaviour
     public PoolManager PoolManager => _poolManager;
     /// <summary>이펙트 재생. Play, ShowDamageNumber. RM+Pool 연동.</summary>
     public EffectManager EffectManager => _effectManager;
+    /// <summary>중앙 집중식 버프 관리.</summary>
+    public BuffManager BuffManager => _buffManager;
     /// <summary>사운드 재생.</summary>
     public SoundManager SoundManager => _soundManager;
     /// <summary>전역 UI. ErrorPanel, SceneTransition 등.</summary>
@@ -88,6 +91,7 @@ public class GameManager : MonoBehaviour
         _currencyManager = this.GetOrAddComponentInChild<CurrencyManager>("CurrencyManager");
         _poolManager = this.GetOrAddComponentInChild<PoolManager>("PoolManager");
         _effectManager = this.GetOrAddComponentInChild<EffectManager>("EffectManager");
+        _buffManager = this.GetOrAddComponentInChild<BuffManager>("BuffManager");
         _soundManager = this.GetOrAddComponentInChild<SoundManager>("SoundManager");
         _uiManager = this.GetOrAddComponentInChild<UIManager>("UIManager");
     }

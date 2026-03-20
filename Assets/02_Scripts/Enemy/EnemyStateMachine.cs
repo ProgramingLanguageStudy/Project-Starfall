@@ -161,4 +161,31 @@ public class EnemyStateMachine : MonoBehaviour
     public void RequestChase() => ChangeState(EnemyState.Chase);
     public void RequestAttack() => ChangeState(EnemyState.Attack);
     public void RequestDead() => ChangeState(EnemyState.Dead);
+
+    /// <summary>풀 반환 직전 Dead에서 Patrol로 복구. ChangeState의 Dead 고정 차단을 우회.</summary>
+    public void ResetAfterPoolReturn(Vector3 patrolCenter)
+    {
+        if (_states == null || _enemy == null) return;
+
+        if (_enemy.Model != null)
+        {
+            _enemy.Model.OnDeath -= HandleDeath;
+            _enemy.Model.OnDamaged -= HandleDamaged;
+        }
+
+        _currentState?.Exit();
+        _patrolCenter = patrolCenter;
+        _chaseTarget = null;
+        _currentStateKey = EnemyState.Patrol;
+        _currentState = _states[EnemyState.Patrol];
+
+        if (_enemy.Model != null)
+        {
+            _enemy.Model.OnDeath += HandleDeath;
+            _enemy.Model.OnDamaged += HandleDamaged;
+        }
+
+        _currentState.Enter();
+        UpdateCombatRegistration(EnemyState.Patrol);
+    }
 }

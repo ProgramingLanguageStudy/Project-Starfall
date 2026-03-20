@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 적 팀. 멤버의 OnEnteringCombat 구독 → 전원 Chase, Combat 등록.
+/// 적 팀. 멤버의 OnEnteringCombat 구독 → 전원 Chase. 풀 반환 시 <see cref="Enemy.OnReturnedToPool"/>로 멤버 제거 후 빈 팀 오브젝트 파괴.
 /// </summary>
 public class EnemyTeam : MonoBehaviour
 {
@@ -21,15 +21,18 @@ public class EnemyTeam : MonoBehaviour
         if (enemy == null || _members.Contains(enemy)) return;
         _members.Add(enemy);
         enemy.OnEnteringCombat += HandleMemberEnteringCombat;
-        enemy.OnDestroyed += RemoveMember;
+        enemy.OnReturnedToPool += HandleMemberReturnedToPool;
     }
 
-    public void RemoveMember(Enemy enemy)
+    private void HandleMemberReturnedToPool(Enemy enemy)
     {
         if (enemy == null) return;
         enemy.OnEnteringCombat -= HandleMemberEnteringCombat;
-        enemy.OnDestroyed -= RemoveMember;
+        enemy.OnReturnedToPool -= HandleMemberReturnedToPool;
         _members.Remove(enemy);
+
+        if (_members.Count == 0)
+            Destroy(gameObject);
     }
 
     private void HandleMemberEnteringCombat(Character triggerCharacter)
