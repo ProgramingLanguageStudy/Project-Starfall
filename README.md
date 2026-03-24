@@ -170,6 +170,31 @@ public async Task<GameObject> GetPrefabAsync(string category, string name)
 | **해결** | **인증**: `FirebaseAuthManager`를 구현하여 이메일/비밀번호 기반 로그인 시스템 구축.<br>**서버 저장**: `FirestoreSaveBackend`를 구현하여 유저 UID별로 세이브 데이터를 Firestore에 JSON 형태로 저장. |
 | **결과** | 유저 데이터의 영속성 확보 및 서버 기반의 안정적인 데이터 관리 체계 구축. |
 
+**핵심 코드**
+
+```csharp
+// FirebaseAuthManager.cs - 이메일 로그인
+public void SignIn(string email, string password, Action onSuccess, Action<string> onError)
+{
+    _auth.SignInWithEmailAndPasswordAsync(email, password)
+        .ContinueWithOnMainThread(task => {
+            if (task.IsFaulted) onError?.Invoke("로그인 실패");
+            else onSuccess?.Invoke();
+        });
+}
+
+// FirestoreSaveBackend.cs - 클라우드 데이터 저장
+public Task<bool> SaveInternalAsync(SaveData data)
+{
+    var json = JsonUtility.ToJson(data);
+    var docRef = _db.Collection("users").Document(_userId)
+        .Collection("save").Document("slot0");
+
+    var dict = new Dictionary<string, object> { ["data"] = json };
+    return docRef.SetAsync(dict, SetOptions.MergeAll).ContinueWith(t => t.IsCompleted);
+}
+```
+
 #### 도식
 
 ```mermaid
@@ -195,6 +220,36 @@ flowchart TB
 | **문제** | 전투 중 대량의 적, 이펙트가 반복적으로 생성/파괴되면서 발생하는 CPU 부하 및 GC 스파이크로 인한 프레임 드랍. |
 | **해결** | `PoolManager`를 통한 객체 재사용 로직 구현. `Poolable` 컴포넌트를 통해 객체 상태를 리셋하고, 런타임 중 `Instantiate` 호출을 최소화. |
 | **결과** | 빈번한 전투 상황에서도 안정적인 프레임 유지 및 메모리 관리 효율 극대화. |
+
+**핵심 코드**
+
+```csharp
+// PoolManager.cs - 객체 획득 및 반환 인터페이스
+public GameObject Pop(GameObject prefab)
+{
+    var pool = GetPool(prefab);
+    return pool?.Pop();
+}
+
+public void Push(GameObject prefab, GameObject instance)
+{
+    var pool = GetPool(prefab);
+    pool?.Push(instance);
+}
+
+// Poolable.cs - 객체 스스로 풀에 반환되는 구조
+public class Poolable : MonoBehaviour
+{
+    private Pool _pool;
+    public void SetPool(Pool pool) => _pool = pool;
+
+    public void ReturnToPool()
+    {
+        if (_pool != null) _pool.Push(gameObject);
+        else Destroy(gameObject);
+    }
+}
+```
 
 #### 도식
 
