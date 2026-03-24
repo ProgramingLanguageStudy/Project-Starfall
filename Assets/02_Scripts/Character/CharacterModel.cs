@@ -12,6 +12,8 @@ public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, II
 
     private CharacterBaseStats _baseStats;
     private StatModifier _modifier;
+    private StatModifier _levelModifier;
+    private int _level = 1;
     private int _currentHp;
     [SerializeField] private float _currentMoveSpeed;
 
@@ -19,6 +21,7 @@ public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, II
 
     public CharacterBaseStats BaseStats => _baseStats;
     public StatModifier Modifier => _modifier;
+    public int Level => _level;
 
     public int CurrentHp => _currentHp;
     public float CurrentMoveSpeed => _currentMoveSpeed;
@@ -47,6 +50,9 @@ public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, II
     {
         _baseStats = CharacterBaseStats.From(_data);
         _modifier = default;
+        _level = 1;
+        _levelModifier = ComputeLevelModifier(_level);
+        _modifier = _modifier.Add(_levelModifier);
         _currentHp = MaxHp;
         OnHpChanged?.Invoke(_currentHp, MaxHp);
     }
@@ -56,6 +62,9 @@ public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, II
         _data = data;
         _baseStats = CharacterBaseStats.From(_data);
         _modifier = default;
+        _level = 1;
+        _levelModifier = ComputeLevelModifier(_level);
+        _modifier = _modifier.Add(_levelModifier);
         _currentHp = MaxHp;
         OnHpChanged?.Invoke(_currentHp, MaxHp);
     }
@@ -117,5 +126,45 @@ public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, II
     {
         _currentHp = Mathf.Clamp(value, 0, MaxHp);
         OnHpChanged?.Invoke(_currentHp, MaxHp);
+    }
+
+    public void SetLevelForLoad(int value)
+    {
+        SetLevelInternal(value);
+        _currentHp = Mathf.Clamp(_currentHp, 0, MaxHp);
+        OnHpChanged?.Invoke(_currentHp, MaxHp);
+    }
+
+    public bool TryLevelUp()
+    {
+        int maxLevel = _data != null && _data.maxLevel > 0 ? _data.maxLevel : int.MaxValue;
+        if (_level >= maxLevel) return false;
+        SetLevelInternal(_level + 1);
+        _currentHp = Mathf.Clamp(_currentHp, 0, MaxHp);
+        OnHpChanged?.Invoke(_currentHp, MaxHp);
+        return true;
+    }
+
+    private void SetLevelInternal(int value)
+    {
+        int maxLevel = _data != null && _data.maxLevel > 0 ? _data.maxLevel : int.MaxValue;
+        int clamped = Mathf.Clamp(value, 1, maxLevel);
+        if (clamped == _level) return;
+
+        _modifier = _modifier.Subtract(_levelModifier);
+        _level = clamped;
+        _levelModifier = ComputeLevelModifier(_level);
+        _modifier = _modifier.Add(_levelModifier);
+    }
+
+    private StatModifier ComputeLevelModifier(int level)
+    {
+        if (_data == null) return default;
+        int steps = Mathf.Max(0, level - 1);
+        return new StatModifier
+        {
+            maxHp = _data.maxHpPerLevel * steps,
+            attackPower = _data.attackPowerPerLevel * steps
+        };
     }
 }

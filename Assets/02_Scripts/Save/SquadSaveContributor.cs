@@ -44,6 +44,7 @@ public class SquadSaveContributor : SaveContributorBehaviour
             var m = new CharacterMemberData();
             var id = c.Model.Data.Id;
             m.id = !string.IsNullOrEmpty(id) ? id : c.Model.Data.displayName;
+            m.level = c.Model.Level;
             m.currentHp = c.Model.CurrentHp;
             m.slotIndex = slot;
             data.squad.members.Add(m);

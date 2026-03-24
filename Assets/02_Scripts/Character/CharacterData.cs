@@ -38,6 +38,14 @@ public class CharacterData : BaseData
     [Tooltip("방어력 (받는 데미지 감소 등)")]
     public int defense = 0;
 
+    [Header("레벨 성장")]
+    [Tooltip("최대 레벨. 0이면 제한 없음")]
+    public int maxLevel = 3;
+    [Tooltip("레벨 1당 추가 최대 체력")]
+    public int maxHpPerLevel = 10;
+    [Tooltip("레벨 1당 추가 공격력")]
+    public int attackPowerPerLevel = 2;
+
     [Header("따라가기")]
     [Tooltip("AI 모드: 따라갈 대상과 유지할 목표 거리")]
     public float followDistance = 3f;

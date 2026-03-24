@@ -394,6 +394,7 @@ public class SaveManager : MonoBehaviour
         data.squad.members.Add(new CharacterMemberData
         {
             id = "character_celeste",
+            level = 1,
             currentHp = 100,
             slotIndex = 0
         });

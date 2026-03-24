@@ -107,6 +107,7 @@ public class SquadController : MonoBehaviour
             var c = CreateCharacter(m.id, pos, root);
             if (c == null) continue;
 
+            c.Model?.SetLevelForLoad(m.level);
             c.Model?.SetCurrentHpForLoad(m.currentHp);
             slots[m.slotIndex] = c;
 
