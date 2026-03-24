@@ -389,37 +389,15 @@ private IEnumerator WaitForBootThenInitializeRoutine()
 
 > 위에서 구축한 핵심 아키텍처를 바탕으로 구현된 구체적인 게임 기능들입니다.
 
-### 3.1 분대 및 캐릭터 시스템
+### 3.1 분대 및 캐릭터 시스템 (Facade & Event-driven)
 
-Character는 **독립적인 컴포넌트 조합**으로 설계되어 있으며, `Character` 파사드 클래스를 통해 모든 명령(Request API)이 조율됩니다.
+캐릭터 시스템은 **독립적인 컴포넌트 조합**과 이를 조율하는 **Facade 패턴**을 중심으로 설계되었습니다. 특히 런타임 성능을 극대화하기 위해 `Update()`를 통한 폴링 방식을 지양하고 **이벤트 기반 아키텍처**를 채택했습니다.
 
-#### 도식
-
-```mermaid
-flowchart TB
-    subgraph "GlobalManagers (GameManager)"
-        BuffManager["BuffManager"]
-    end
-
-    subgraph "Character (Facade)"
-        Model["CharacterModel"]
-        StateMachine["CharacterStateMachine"]
-        Mover["CharacterMover"]
-        FollowMover["CharacterFollowMover"]
-        Attacker["CharacterAttacker"]
-        Interactor["CharacterInteractor"]
-        Animator["CharacterAnimator"]
-        AIBrain["AIBrain"]
-    end
-
-    Squad["SquadController"] --> Character
-    Model -.->|"버프 요청"| BuffManager
-    Attacker -->|"IAttackPowerSource 주입"| Model
-```
-
-**핵심 설계**
-*   **컴포넌트 독립성**: `CharacterAttacker`는 부모 클래스를 직접 참조하는 대신 `IAttackPowerSource` 인터페이스를 주입받아 완벽하게 독립적으로 작동합니다.
-*   **이벤트 기반 연동**: `Update()`를 통한 폴링 대신 상태 변경 이벤트를 구독하여 애니메이션과 버프 상태를 업데이트함으로써 CPU 효율을 높였습니다.
+*   **Facade 조율**: `Character` 클래스가 이동(`Mover`), 전투(`Attacker`), 상태(`StateMachine`) 등 하위 시스템의 중앙 접점 역할을 수행하여 외부 시스템(Squad, AI)과의 결합도를 낮췄습니다.
+*   **이벤트 기반 업데이트**: 
+    *   **애니메이션**: 매 프레임 상태를 체크하는 대신, `StateMachine`의 상태 변경 이벤트를 구독하여 필요한 시점에만 애니메이션 파라미터를 갱신합니다.
+    *   **버프 시스템**: `BuffManager`와 연동하여 능력치 변화가 발생할 때만 스탯 보정치(`StatModifier`)를 재계산하도록 설계되어 CPU 부하를 최소화했습니다.
+*   **컴포넌트 독립성**: `CharacterAttacker`와 같은 하위 시스템은 부모를 직접 참조하지 않고 `IAttackPowerSource`와 같은 인터페이스를 주입받아 완벽하게 독립적으로 작동합니다.
 
 ---
 
@@ -427,45 +405,58 @@ flowchart TB
 
 플레이어의 입력을 대신하여 상황에 맞는 최적의 판단을 내리는 시스템입니다.
 
-| 구분 | 내용 |
-|------|------|
-| **문제** | 동료가 플레이어처럼 입력을 받지 않아, 전투 시 추적·사거리 판단·공격 시점을 자동으로 결정해야 함 |
-| **해결** | `IsInCombat` 상태에 따라 `TickFollow`(추적)와 `TickCombat`(전투) 로직으로 분기. 타겟과의 거리와 공격 사거리를 계산하여 `Character` 파사드에 이동/공격 요청을 전달. |
-| **결과** | 플레이어와 동일한 상태 머신을 공유하면서도, 지능적인 자율 행동이 가능한 동료 시스템 구현. |
+*   **상태 기반 분기**: `IsInCombat` 플래그에 따라 `TickFollow`(추적)와 `TickCombat`(전투) 로직으로 분기하여 행동을 결정합니다.
+*   **유기적 협동**: 타겟과의 거리와 공격 사거리를 실시간으로 계산하여 `Character` 파사드에 이동/공격 명령을 전달함으로써 플레이어와 동일한 메커니즘으로 동작합니다.
 
 ---
 
-### 3.3 전투 및 적 시스템
+### 3.3 전투 및 적 시스템 (Pooling & Data-Driven)
 
 오브젝트 풀링과 데이터 기반 스폰이 결합된 고성능 전투 시스템입니다.
 
-*   **풀링 기반 스폰**: `EnemySpawner`가 `PoolManager`를 통해 적을 생성하고, 사망 시 3초 후 자동으로 풀에 반환합니다. 이는 런타임 중 `Instantiate/Destroy` 호출을 최소화하여 프레임 드랍을 방지합니다.
-*   **어그로 시스템**: 거리별 어그로 누적을 통해 가장 위협적인 대상을 우선 공격하도록 설계되었습니다.
-*   **유연한 스포너**: 문자열 ID만으로 적의 종류를 결정하므로, 데이터 수정만으로 배치 구성을 즉시 변경할 수 있습니다.
+*   **풀링 기반 스폰**: `EnemySpawner`가 `PoolManager`를 통해 적을 생성하고, 사망 시 자동으로 풀에 반환합니다. 이는 대규모 전투 상황에서도 프레임 드랍 없는 안정적인 환경을 제공합니다.
+*   **어그로 시스템**: 거리 및 누적 데미지 기반의 어그로 시스템을 통해 AI 동료와 적 간의 유기적인 타겟팅 전환을 지원합니다.
 
 ---
 
 ### 3.4 대화 및 퀘스트 시나리오 연동
 
-**플래그 시스템(FlagSystem)**을 중심으로 대화와 퀘스트가 유기적으로 연결됩니다.
+**플래그 시스템(FlagSystem)**을 중심으로 대화와 퀘스트가 유기적으로 연결되어 게임의 흐름을 제어합니다.
 
-*   **시나리오 분기**: `DialogueData(SO)`에 설정된 플래그 조건에 따라 NPC의 대사가 실시간으로 변화합니다.
-*   **퀘스트 연동**: 대화 종료 시 특정 플래그를 세팅하여 퀘스트를 수락하거나, 조건 달성 여부를 확인하여 보상을 지급합니다.
-*   **동료 영입**: 특정 퀘스트 완료 플래그를 감지하여 NPC를 분대원(`AddCompanion`)으로 즉시 합류시키는 동적 시나리오를 지원합니다.
+*   **시나리오 분기**: `DialogueData(SO)`에 설정된 플래그 조건에 따라 NPC의 대사가 실시간으로 변화하며, 대화 결과가 다시 플래그를 변경하여 퀘스트 수락이나 동료 영입으로 이어집니다.
+*   **유연한 확장성**: 새로운 대화나 퀘스트를 추가할 때 코드 수정 없이 ScriptableObject 설정만으로 복잡한 조건부 시나리오를 구성할 수 있습니다.
 
 ---
 
-### 3.5 인벤토리 시스템
+### 3.5 인벤토리 시스템 (MVP Pattern)
 
-*   **MVP 패턴**: 데이터(Inventory)와 UI(View)를 `Presenter`가 중개하여 로직과 표현을 엄격히 분리했습니다.
-*   **동적 대상 적용**: 플레이어가 조종하는 캐릭터가 바뀌면 아이템 사용 대상(`ItemUser`)도 실시간으로 갱신됩니다.
+*   **관심사 분리**: 데이터(Inventory)와 UI(View)를 `Presenter`가 중개하는 **MVP 패턴**을 적용하여 UI 수정이 비즈니스 로직에 영향을 주지 않도록 설계했습니다.
+*   **동적 대상 적용**: 분대원 교체 시 아이템 사용 대상(`IItemUser`)을 실시간으로 갱신하여 인벤토리 시스템의 범용성을 확보했습니다.
 
 ---
 
 ### 3.6 스마트 지도 및 포탈 시스템
 
-*   **실시간 미니맵**: 전용 카메라와 `RenderTexture`를 사용하여 현재 지형을 실시간으로 투영합니다.
-*   **전역 순간이동**: `FlagSystem`과 연동되어 해금된 포탈만 지도에 표시되며, 클릭 시 분대 전체가 해당 위치로 즉시 이동합니다.
+*   **실시간 미니맵**: 전용 카메라와 `RenderTexture`를 활용해 현재 지형과 위치를 실시간으로 투영하며, 줌 및 스크롤 기능을 지원합니다.
+*   **전역 순간이동**: 해금된 포탈을 시각적으로 표시하고, 클릭 시 분대 전체의 위치를 보정하여 즉시 이동시키는 Fast Travel 시스템을 구현했습니다.
+
+---
+
+### 3.7 모듈형 UI 연출 시스템 (Tween Facade)
+
+UI의 몰입감을 높이기 위해 `DOTween`을 기반으로 한 **모듈형 연출 시스템**을 구축했습니다.
+
+*   **UITweenFacade**: 모든 UI 요소에 공통으로 적용 가능한 등장/퇴장 연출 인터페이스를 제공합니다. Scale, Alpha, Punch 등 다양한 효과를 코드 한 줄로 실행할 수 있습니다.
+*   **Preset 기반 관리**: `Panel`, `Toast`, `Title` 등 UI 역할별로 최적화된 연출 수치(Duration, Ease, Scale)를 **ScriptableObject 프리셋**으로 관리하여 프로젝트 전체의 UI 일관성을 유지합니다.
+
+---
+
+### 3.8 사운드 및 이펙트 관리 시스템
+
+중앙 집중식 매니저를 통해 시각/청각 피드백을 효율적으로 관리합니다.
+
+*   **EffectManager**: `ResourceManager`와 `PoolManager`를 연동하여 타격 이펙트, 데미지 텍스트 등을 풀링 기반으로 생성합니다. `PlaySceneEventHub`를 통해 전투 이벤트를 감지하고 적절한 시각 효과를 자동 발행합니다.
+*   **SoundManager**: 2D/3D 사운드 재생을 통합 관리하며, 향후 Addressables를 통한 오디오 클립 동적 로딩 확장이 가능하도록 인터페이스가 설계되어 있습니다.
 
 ---
 
