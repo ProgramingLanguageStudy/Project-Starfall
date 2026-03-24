@@ -67,20 +67,14 @@
 
 ```mermaid
 flowchart TD
-    subgraph "에셋 로딩 흐름"
-        Loader["ResourceManager"]
-        Addressables["Addressables.LoadAssetAsync(key)"]
-        Cache["로컬 캐시"]
-        Remote["원격 서버 (CDN)"]
-        Asset["로드된 에셋 (프리팹 등)"]
+    subgraph 에셋 로딩 흐름
+        Loader[ResourceManager] -->|1. 에셋 요청| Addressables[Addressables.LoadAssetAsync]
+        Addressables -->|2. 캐시 확인| Cache[로컬 캐시]
+        Cache -- 캐시 있음 --> Asset[로드된 에셋]
+        Cache -- 캐시 없음 -->|3. 원격 다운로드| Remote[원격 서버]
+        Remote -->|4. 캐시에 저장| Cache
+        Addressables -->|5. 비동기 반환| Loader
     end
-
-    Loader -->|1. 에셋 요청| Addressables
-    Addressables -->|2. 캐시 확인| Cache
-    Cache -- "캐시 있음" --> Asset
-    Cache -- "캐시 없음" -->|3. 원격 다운로드| Remote
-    Remote -->|4. 캐시에 저장| Cache
-    Addressables -->|5. 비동기 반환| Loader
 ```
 
 **핵심 코드**
@@ -122,24 +116,16 @@ public async Task<GameObject> GetPrefab(string key)
 
 ```mermaid
 flowchart TB
-    subgraph "인증 및 데이터 저장 흐름"
-        UI["LoginView (UI)"]
-        AuthManager["FirebaseAuthManager"]
-        FirebaseSDK["Firebase SDK"]
-        FirebaseAuth["Firebase Auth 서비스"]
-        SaveManager["SaveManager"]
-        FirestoreBackend["FirestoreSaveBackend"]
-        FirestoreDB["Firestore 데이터베이스"]
+    subgraph 인증 및 데이터 저장 흐름
+        UI[LoginView] -- 이메일/비밀번호 --> AuthManager[FirebaseAuthManager]
+        AuthManager -- SignIn 요청 --> FirebaseSDK[Firebase SDK]
+        FirebaseSDK --> FirebaseAuth[Firebase Auth 서비스]
+        FirebaseAuth -- 성공 (UID 반환) --> AuthManager
+
+        SaveManager[SaveManager] -- Save(data) 요청 --> FirestoreBackend[FirestoreSaveBackend]
+        FirestoreBackend -- UID와 데이터 전달 --> FirebaseSDK
+        FirebaseSDK -- SetAsync(jsonData) --> FirestoreDB[Firestore 데이터베이스]
     end
-
-    UI -- "이메일/비밀번호" --> AuthManager
-    AuthManager -- "SignIn 요청" --> FirebaseSDK
-    FirebaseSDK --> FirebaseAuth
-    FirebaseAuth -- "성공 (UID 반환)" --> AuthManager
-
-    SaveManager -- "Save(data) 요청" --> FirestoreBackend
-    FirestoreBackend -- "UID와 데이터 전달" --> FirebaseSDK
-    FirebaseSDK -- "SetAsync(jsonData)" --> FirestoreDB
 ```
 
 **핵심 코드**
@@ -180,26 +166,17 @@ public async Task<bool> Save(SaveData data)
 
 ```mermaid
 flowchart TB
-    subgraph "스폰 (Pop)"
-        Spawner["EnemySpawner"]
-        PoolManager_Pop["PoolManager"]
-        Pool_Pop["Pool (프리팹별)"]
+    subgraph 스폰 (Pop)
+        Spawner[EnemySpawner] -- Pop(prefab) 요청 --> PoolManager_Pop[PoolManager]
+        PoolManager_Pop -- 해당 풀 검색/생성 --> Pool_Pop[Pool]
+        Pool_Pop -- 비활성 오브젝트 반환 --> Spawner
     end
-    subgraph "반환 (Push)"
-        Enemy["Enemy Instance"]
-        OnDeath["OnDeath()"]
-        PoolManager_Push["PoolManager"]
-        Pool_Push["Pool (프리팹별)"]
+    subgraph 반환 (Push)
+        Enemy[Enemy Instance] --> OnDeath
+        OnDeath[OnDeath()] -- Push(this) 요청 --> PoolManager_Push[PoolManager]
+        PoolManager_Push -- 해당 풀 검색 --> Pool_Push[Pool]
+        Pool_Push -- 비활성화 후 보관 --> Enemy
     end
-
-    Spawner -- "Pop(prefab) 요청" --> PoolManager_Pop
-    PoolManager_Pop -- "해당 풀 검색/생성" --> Pool_Pop
-    Pool_Pop -- "비활성 오브젝트 반환<br/>(없으면 새로 생성)" --> Spawner
-
-    Enemy --> OnDeath
-    OnDeath -- "Push(this) 요청" --> PoolManager_Push
-    PoolManager_Push -- "해당 풀 검색" --> Pool_Push
-    Pool_Push -- "비활성화 후 보관" --> Enemy
 ```
 
 **핵심 코드**
