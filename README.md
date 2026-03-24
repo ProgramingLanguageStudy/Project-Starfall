@@ -267,30 +267,44 @@ flowchart TB
 
 | 구분 | 내용 |
 |------|------|
-| **문제** | 플레이어(방향 이동)와 동료(목표 추적)의 이동 방식이 달라, 동일한 StateMachine으로 통합하기 어려움 |
-| **해결** | RequestMove/RequestAttack 등 Request API는 플레이어·동료 공통. 이동 실행부만 분리: CharacterMover(방향)와 CharacterFollowMover(목표)를 두고, ApplyMovement에서 `_isPlayer`로 분기해 플레이어는 CharacterMover, 동료는 FollowMover 호출 |
-| **결과** | 하나의 `CharacterStateMachine`(Idle·Move·Attack·Dead)으로 플레이어·동료 모두 처리. 플레이어는 입력→Request, 동료는 AIBrain→Request로 같은 API 사용. MoveState.Update에서 ApplyMovement 호출, 플레이어=SetMoveDirection·CharacterMover, 동료=AIBrain.CurrentTarget·FollowMover(NavMesh) |
+| **문제** | 1. 플레이어(방향 이동)와 동료(목표 추적)의 이동 방식이 달라, 동일한 StateMachine으로 통합하기 어려움<br>2. 모든 캐릭터가 각자 `Update()`를 통해 상태를 체크하여, 캐릭터 수가 늘어날수록 불필요한 CPU 부하 발생 |
+| **해결** | 1. **실행부 분리**: 이동 실행부만 `CharacterMover`(방향)와 `CharacterFollowMover`(목표)로 분리하고, `ApplyMovement`에서 `_isPlayer`로 분기하여 해결.<br>2. **이벤트 기반 전환**: `Character.cs`의 `Update()`를 제거. `CharacterStateMachine`의 `OnStateChanged` 이벤트를 구독하여 상태가 변경될 때만 애니메이션을 갱신.<br>3. **중앙 관리**: 버프 등 주기적인 업데이트가 필요한 로직은 `BuffManager` 같은 중앙 관리자로 이전하여 개별 `Update()` 호출을 최소화. |
+| **결과** | 하나의 `CharacterStateMachine`으로 플레이어·동료 모두 처리. 불필요한 `Update()` 호출을 제거하여 성능을 최적화하고, 이벤트 기반의 반응형 아키텍처 구축. |
 
 **핵심 코드**
 
 ```csharp
-// Character.cs - 플레이어/동료 분기
-public void ApplyMovement()
+// Character.cs - 이벤트 구독 및 핸들러
+public void Initialize(/* ... */)
 {
-    if (_isPlayer)
-        _mover?.Move(_currentMoveDirection);
-    else
+    // ...
+    if (_stateMachine != null)
     {
-        var target = _aiBrain?.CurrentTarget;
-        if (target != null)
-            _followMover?.MoveToTarget(target.position, _aiBrain.CurrentStopDistance);
+        _stateMachine.OnStateChanged += HandleStateChanged;
     }
 }
 
-// CharacterMoveState.cs - MoveState가 ApplyMovement 호출
-public override void Update()
+private void HandleStateChanged(CharacterState previous, CharacterState current)
 {
-    Character?.ApplyMovement();
+    bool isMove = current == CharacterState.Move;
+    _characterAnimator.SetMoving(isMove);
+    float speed = isMove ? _model.CurrentMoveSpeed : 0f;
+    _characterAnimator.Move(speed);
+}
+
+// Character.cs - 최적화된 ApplyMovement
+public void ApplyMovement()
+{
+    if (_isPlayer)
+    {
+        _mover.Move(_currentMoveDirection);
+        return;
+    }
+    
+    if (_aiBrain != null && _aiBrain.CurrentTarget != null)
+    {
+        _followMover.MoveToTarget(_aiBrain.CurrentTarget.position, _aiBrain.CurrentStopDistance);
+    }
 }
 ```
 
