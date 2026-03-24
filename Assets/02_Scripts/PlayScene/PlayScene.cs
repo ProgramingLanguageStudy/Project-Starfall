@@ -115,6 +115,7 @@ public class PlayScene : MonoBehaviour
 
         GameManager.Instance?.PoolManager?.RemoveDestroyedFromAllPools();
         PlaySceneEventHub.Clear();
+        PlaySceneRegistry.Clear();
 
         if (_hpModelSubscribed != null)
         {

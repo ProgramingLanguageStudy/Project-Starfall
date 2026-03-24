@@ -63,6 +63,12 @@ MonoBehaviour:
     m_SerializedLabels:
     - Prefab
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9e92add31b7f1564f873330c404d833f
+    m_Address: Assets/02_Scripts/0_ScriptableObjects/Object
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Data
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a3d7c898bda711846b782c65a7ca89c4
     m_Address: Assets/02_Scripts/0_ScriptableObjects/Items
     m_ReadOnly: 0
@@ -77,6 +83,12 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d39227540c2f6874b8622fd93446bbdd
     m_Address: Assets/00_Prefabs/Weapon
+    m_ReadOnly: 0
+    m_SerializedLabels:
+    - Prefab
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d6a83cf3b4752c643be72432b904b54d
+    m_Address: Assets/00_Prefabs/Object
     m_ReadOnly: 0
     m_SerializedLabels:
     - Prefab
