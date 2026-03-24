@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -134,6 +135,36 @@ public class ResourceManager : MonoBehaviour
             return handle.Result;
 
         Debug.LogError($"[ResourceManager] 캐시 없음: {key}. 라벨 프리로드에 포함됐는지 확인.");
+        return null;
+    }
+
+    /// <summary>
+    /// 비동기 프리팹 획득. 캐시에 없으면 Addressables로 직접 로드하여 캐싱 후 반환.
+    /// 대규모 에셋이나 특정 시점에만 필요한 에셋(On-demand) 관리에 적합.
+    /// </summary>
+    public async Task<GameObject> GetPrefabAsync(string category, string name)
+    {
+        if (string.IsNullOrEmpty(category) || string.IsNullOrEmpty(name)) return null;
+
+        var key = $"{category}/{name}";
+        
+        // 1. 캐시 확인
+        if (_cache.TryGetValue(key, out var handle))
+            return handle.Result;
+
+        // 2. 캐시에 없으면 직접 로드 시도 (On-demand Loading)
+        string address = $"{AddressableConfig.PrefabPrefix}{key}.prefab";
+        var loadHandle = Addressables.LoadAssetAsync<GameObject>(address);
+        
+        await loadHandle.Task;
+
+        if (loadHandle.Status == AsyncOperationStatus.Succeeded)
+        {
+            _cache[key] = loadHandle;
+            return loadHandle.Result;
+        }
+
+        Debug.LogError($"[ResourceManager] 비동기 로드 실패: {address}");
         return null;
     }
 
