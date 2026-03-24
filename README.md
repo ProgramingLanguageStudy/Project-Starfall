@@ -55,7 +55,181 @@
 
 ## 2. 핵심 기술 항목
 
-### 2.1 분대·캐릭터 통합 상태머신
+### 2.1 비동기 기반 Addressables 콘텐츠 관리
+
+| 구분 | 내용 |
+|------|------|
+| **문제** | 모든 에셋(프리팹, 데이터 등)을 빌드에 포함하면 앱 용량이 커지고, 업데이트 시 앱 전체를 다시 빌드해야 하는 비효율성. |
+| **해결** | Addressable Asset System을 도입하여 주요 에셋을 원격으로 관리. `ResourceManager`를 통해 비동기 로딩(`LoadAssetAsync`)을 구현하여, 필요할 때만 에셋을 다운로드하거나 캐시에서 로드. |
+| **결과** | 앱 초기 빌드 용량 최소화, 콘텐츠 업데이트 시 앱 재빌드 불필요, 메모리 관리 효율성 증대. |
+
+#### 도식
+
+```mermaid
+flowchart TD
+    subgraph "에셋 로딩 흐름"
+        Loader["ResourceManager"]
+        Addressables["Addressables.LoadAssetAsync(key)"]
+        Cache["로컬 캐시"]
+        Remote["원격 서버 (CDN)"]
+        Asset["로드된 에셋 (프리팹 등)"]
+    end
+
+    Loader -->|1. 에셋 요청| Addressables
+    Addressables -->|2. 캐시 확인| Cache
+    Cache -- "캐시 있음" --> Asset
+    Cache -- "캐시 없음" -->|3. 원격 다운로드| Remote
+    Remote -->|4. 캐시에 저장| Cache
+    Addressables -->|5. 비동기 반환| Loader
+```
+
+**핵심 코드**
+
+```csharp
+// ResourceManager.cs - 비동기 프리팹 로딩
+public async Task<GameObject> GetPrefab(string key)
+{
+    if (_prefabs.TryGetValue(key, out var prefab))
+        return prefab;
+
+    var handle = Addressables.LoadAssetAsync<GameObject>(key);
+    await handle.Task;
+
+    if (handle.Status == AsyncOperationStatus.Succeeded)
+    {
+        _prefabs[key] = handle.Result;
+        return handle.Result;
+    }
+    else
+    {
+        Debug.LogError($"[ResourceManager] Prefab 로드 실패: {key}");
+        return null;
+    }
+}
+```
+
+---
+
+### 2.2 Firebase를 이용한 백엔드 연동 (인증 & Firestore 저장)
+
+| 구분 | 내용 |
+|------|------|
+| **문제** | 로컬 세이브는 기기 분실 시 데이터가 유실되며, 여러 기기에서 동일한 계정으로 플레이할 수 없음. |
+| **해결** | **인증**: `FirebaseAuthManager`를 구현하여 이메일/비밀번호 기반 회원가입 및 로그인 시스템 구축.<br>**서버 저장**: `SaveManager`에 `FirestoreSaveBackend`를 구현. 로그인된 사용자의 UID를 기준으로 세이브 데이터를 Firestore 데이터베이스에 JSON 형태로 저장 및 로드. |
+| **결과** | 유저 데이터의 영속성 확보, 크로스 플랫폼 플레이 기반 마련, 서버 기반의 안정적인 데이터 관리 체계 구축. |
+
+#### 도식
+
+```mermaid
+flowchart TB
+    subgraph "인증 및 데이터 저장 흐름"
+        UI["LoginView (UI)"]
+        AuthManager["FirebaseAuthManager"]
+        FirebaseSDK["Firebase SDK"]
+        FirebaseAuth["Firebase Auth 서비스"]
+        SaveManager["SaveManager"]
+        FirestoreBackend["FirestoreSaveBackend"]
+        FirestoreDB["Firestore 데이터베이스"]
+    end
+
+    UI -- "이메일/비밀번호" --> AuthManager
+    AuthManager -- "SignIn 요청" --> FirebaseSDK
+    FirebaseSDK --> FirebaseAuth
+    FirebaseAuth -- "성공 (UID 반환)" --> AuthManager
+
+    SaveManager -- "Save(data) 요청" --> FirestoreBackend
+    FirestoreBackend -- "UID와 데이터 전달" --> FirebaseSDK
+    FirebaseSDK -- "SetAsync(jsonData)" --> FirestoreDB
+```
+
+**핵심 코드**
+
+```csharp
+// FirestoreSaveBackend.cs - Firestore에 비동기 저장
+public async Task<bool> Save(SaveData data)
+{
+    string userId = _authManager.UserId;
+    if (string.IsNullOrEmpty(userId)) return false;
+
+    var docRef = _db.Collection(SaveConfig.FirestoreCollectionName).Document(userId);
+    string json = JsonUtility.ToJson(data);
+    try
+    {
+        await docRef.SetAsync(json);
+        return true;
+    }
+    catch (Exception e)
+    {
+        Debug.LogError($"[Firestore] Save failed: {e.Message}");
+        return false;
+    }
+}
+```
+
+---
+
+### 2.3 오브젝트 풀링을 통한 메모리 최적화
+
+| 구분 | 내용 |
+|------|------|
+| **문제** | 전투 중 적, 이펙트, 아이템 등 수많은 오브젝트를 반복적으로 생성(`Instantiate`)하고 파괴(`Destroy`)하면서 발생하는 CPU 부하 및 가비지 컬렉션(GC) 스파이크. |
+| **해결** | `PoolManager`를 구현하여 자주 사용하는 오브젝트를 미리 생성해두고 재활용. `Poolable` 컴포넌트를 통해 오브젝트의 상태를 리셋하고, 사용이 끝나면 다시 풀에 반환. |
+| **결과** | 잦은 메모리 할당 및 해제로 인한 성능 저하를 방지하고, 부드러운 게임 플레이 경험을 제공. |
+
+#### 도식
+
+```mermaid
+flowchart TB
+    subgraph "스폰 (Pop)"
+        Spawner["EnemySpawner"]
+        PoolManager_Pop["PoolManager"]
+        Pool_Pop["Pool (프리팹별)"]
+    end
+    subgraph "반환 (Push)"
+        Enemy["Enemy Instance"]
+        OnDeath["OnDeath()"]
+        PoolManager_Push["PoolManager"]
+        Pool_Push["Pool (프리팹별)"]
+    end
+
+    Spawner -- "Pop(prefab) 요청" --> PoolManager_Pop
+    PoolManager_Pop -- "해당 풀 검색/생성" --> Pool_Pop
+    Pool_Pop -- "비활성 오브젝트 반환<br/>(없으면 새로 생성)" --> Spawner
+
+    Enemy --> OnDeath
+    OnDeath -- "Push(this) 요청" --> PoolManager_Push
+    PoolManager_Push -- "해당 풀 검색" --> Pool_Push
+    Pool_Push -- "비활성화 후 보관" --> Enemy
+```
+
+**핵심 코드**
+
+```csharp
+// PoolManager.cs - 오브젝트 풀에서 가져오기
+public Poolable Pop(GameObject prefab, Vector3 position, Quaternion rotation)
+{
+    if (!_pools.TryGetValue(prefab, out var pool))
+    {
+        pool = new Pool(prefab, transform);
+        _pools.Add(prefab, pool);
+    }
+    return pool.Pop(position, rotation);
+}
+
+// EnemySpawner.cs - 풀링된 적 스폰
+private void SpawnEnemy(string enemyId, EnemyTeam team)
+{
+    var enemyData = GameManager.Instance.DataManager.Get<EnemyData>(enemyId);
+    var prefab = await GameManager.Instance.ResourceManager.GetPrefab(enemyData.prefabKey);
+    var enemyObject = GameManager.Instance.PoolManager.Pop(prefab);
+    var enemy = enemyObject.GetComponent<Enemy>();
+    enemy.ConfigureFromSpawn(enemyData, team);
+}
+```
+
+---
+
+### 2.4 분대·캐릭터 통합 상태머신
 
 #### 도식
 
