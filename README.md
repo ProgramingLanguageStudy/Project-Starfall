@@ -8,19 +8,20 @@
 
 ### 1.1 게임 개요
 
-**Squad System Framework**는 **분대 시스템 기반 3인칭 RPG 프레임워크**입니다.
+**Squad System Framework**는 **분대 시스템 기반 3인칭 RPG 프레임워크**입니다. 
+단순한 기능 구현을 넘어, **객체지향 설계(OOP)**와 **데이터 기반 디자인(Data-Driven Design)**을 통해 콘텐츠 확장성과 시스템 유지보수성을 극대화하는 것을 목표로 제작되었습니다.
 
-- **플레이어·동료 분대**: 한 명을 조종하고, 나머지는 AI가 따라오며 전투에 참여
-- **분대 교체(Swap)**: 조종 대상을 순환 전환
-- **동료 영입**: 퀘스트 완료 시 NPC를 분대에 영입
-- **적 전투**: 분대 vs 적 팀, 어그로, 처치 퀘스트 연동
-- **대화**: NPC 상호작용, 플래그 기반 대화 분기
-- **퀘스트**: 수집·처치·영입, 진행도·완료 분기
-- **인벤토리**: 아이템 수집·보관
-- **아이템 사용**: 회복 아이템 등, 조종 중인 캐릭터에 적용
-- **포탈·맵**: 근접 이펙트, 해금 아이콘 표시, 지도 클릭 순간이동, 스크롤·줌
-- **사망·리스폰**: 마을 고정 위치에서 부활
-- **세이브/로드**: 분대 구성, 퀘스트, 인벤토리, 플래그, 캐릭터 위치·조종 캐릭터 저장
+- **플레이어·동료 분대**: 한 명을 직접 조종하고, 나머지는 AI(AIBrain)가 상황에 맞춰 추적 및 전투를 수행하는 유기적인 분대 시스템
+- **인증 및 클라우드 세이브**: **Firebase Auth**를 이용한 계정 관리와 **Firestore**를 통한 서버 기반 데이터 영속성 확보
+- **비동기 에셋 관리**: **Addressables** 시스템을 도입하여 런타임 중 필요한 에셋만 동적으로 로드하고 메모리 점유율 최적화
+- **고성능 오브젝트 풀링**: 적, 이펙트, 아이템 등 빈번한 생성/파괴가 일어나는 객체들을 **PoolManager**로 관리하여 성능 스파이크 방지
+- **중앙 집중식 버프 관리**: **BuffManager**를 통해 모든 캐릭터의 상태 효과를 전역에서 조율하고 정밀한 시간 제어 및 세이브 데이터 연동 구현
+- **분대 교체(Swap)**: 실시간으로 조종 대상을 순환 전환하며 각기 다른 캐릭터의 스탯과 스킬 활용 가능
+- **동료 영입 및 시나리오**: 퀘스트 및 대화 시스템과 연동하여 특정 조건을 만족할 시 NPC를 분대에 영입하는 확장형 구조
+- **지능형 적 AI**: 어그로 시스템 기반의 타겟팅, 상태 머신을 활용한 패턴 전투 및 처치 퀘스트 자동 연동
+- **유연한 상호작용**: 대화, 인벤토리 등 RPG의 핵심 요소들을 모듈화하여 독립적인 컴포넌트로 구성
+- **스마트 지도 및 포탈 시스템**: `RenderTexture` 기반의 실시간 지도, 줌/스크롤 기능 및 해금된 포탈을 통한 전역 순간이동(Fast Travel) 시스템
+- **사망 및 리스폰**: 세이브 데이터와 연동된 부활 시스템 및 위치 보정 로직 포함
 
 ### 1.2 게임 이미지
 
@@ -53,64 +54,121 @@
 
 ---
 
-## 2. 핵심 기술 항목
+## 2. 핵심 기술 및 아키텍처
 
-### 2.1 비동기 기반 Addressables 콘텐츠 관리
+### 2.0 전체 시스템 아키텍처 (Overall Architecture)
+
+본 프레임워크는 **싱글톤 기반의 전역 매니저(Global Managers)**와 **씬별 조율자(Scene Coordinators)**, 그리고 **독립적인 엔티티(Entities)**가 유기적으로 통신하는 구조로 설계되었습니다. 모든 핵심 시스템은 인터페이스를 통해 결합도를 낮추어 확장성을 확보했습니다.
+
+#### 시스템 계층 도식
+
+```mermaid
+flowchart TB
+    subgraph "Backend Layer (Firebase)"
+        Auth["FirebaseAuth"]
+        DB["Firestore DB"]
+    end
+
+    subgraph "Global Service Layer (GameManager)"
+        DM["DataManager (SO)"]
+        RM["ResourceManager (Addressables)"]
+        PM["PoolManager (Pooling)"]
+        SM["SaveManager (Persistence)"]
+        BM["BuffManager (Status)"]
+    end
+
+    subgraph "Scene Layer (PlayScene)"
+        PSC["PlayScene (Coordinator)"]
+        SC["SquadController"]
+        CC["CombatController"]
+    end
+
+    subgraph "Entity Layer (Squad & Enemy)"
+        Char["Character (Facade)"]
+        Enemy["Enemy (Pooled)"]
+    end
+
+    %% 관계 설정
+    Auth <--> SM
+    DB <--> SM
+    SM -.-> PSC
+    DM --> PSC
+    RM --> PSC
+    PM --> Enemy
+    BM -.-> Char
+    PSC --> SC
+    PSC --> CC
+    SC --> Char
+    CC --> Enemy
+```
+
+**아키텍처 핵심 원칙**
+1.  **Centralized Management**: `GameManager`가 데이터, 리소스, 세이브 등 전역 서비스를 통합 관리하여 시스템 응집도를 높였습니다.
+2.  **Decoupled Entities**: 각 캐릭터와 적은 매니저를 직접 참조하지 않고, 인터페이스나 이벤트를 통해 통신하여 개별 클래스의 독립성을 유지합니다.
+3.  **Data-Driven Flow**: 모든 에셋 생성과 스탯 설정은 `DataManager`를 통해 흐르며, 코드 수정 없이 콘텐츠를 확장할 수 있습니다.
+
+---
+
+### 2.1 하이브리드 Addressables 콘텐츠 관리 (Preload & On-demand Ready)
 
 | 구분 | 내용 |
 |------|------|
-| **문제** | 모든 에셋(프리팹, 데이터 등)을 빌드에 포함하면 앱 용량이 커지고, 업데이트 시 앱 전체를 다시 빌드해야 하는 비효율성. |
-| **해결** | Addressable Asset System을 도입하여 주요 에셋을 원격으로 관리. `ResourceManager`를 통해 비동기 로딩(`LoadAssetAsync`)을 구현하여, 필요할 때만 에셋을 다운로드하거나 캐시에서 로드. |
-| **결과** | 앱 초기 빌드 용량 최소화, 콘텐츠 업데이트 시 앱 재빌드 불필요, 메모리 관리 효율성 증대. |
+| **문제** | 모든 에셋을 처음에 로드하면 메모리 낭비가 심하고, 반대로 매번 비동기 로드만 하면 런타임 성능 저하(Stuttering)가 발생할 수 있음. |
+| **해결** | **하이브리드 아키텍처** 설계. 현재는 성능 안정성을 위해 핵심 프리팹을 라벨 기반으로 프리로드(Preload)하여 동기식(`GetPrefab`)으로 즉시 사용하며, 향후 대규모 에셋 확장을 대비해 온디맨드 비동기 로드(`GetPrefabAsync`) 인터페이스를 선제적으로 구축. |
+| **결과** | 최적의 메모리 점유율 유지 및 런타임 성능 확보, 향후 에셋 규모 확장에 유연하게 대응 가능한 확장성 확보. |
 
 #### 도식
 
 ```mermaid
 flowchart TD
-    subgraph "에셋 로딩 흐름"
-        Loader["ResourceManager"] -->|"1. 에셋 요청"| Addressables["Addressables.LoadAssetAsync"]
-        Addressables -->|"2. 캐시 확인"| Cache["로컬 캐시"]
-        Cache -->|"캐시 있음"| Asset["로드된 에셋"]
-        Cache -->|"캐시 없음"| Remote["원격 서버"]
-        Remote -->|"3. 캐시에 저장"| Cache
-        Addressables -->|"4. 비동기 반환"| Loader
+    subgraph "Hybrid Resource Management"
+        Loader["ResourceManager"]
+        
+        subgraph "1. Preload Strategy (Core Assets)"
+            Loader -->|"Boot 시점"| PL["Label-based Preload"]
+            PL -->|"Handle Cache"| Cache[("_cache Dictionary")]
+        end
+        
+        subgraph "2. On-demand Strategy (Large/Extra Assets)"
+            System["Game Systems"] -->|"Request"| Loader
+            Loader -->|"If not in cache"| AL["Async Individual Load"]
+            AL -->|"Update Cache"| Cache
+        end
+        
+        System -->|"Get (Sync/Async)"| Loader
+        Loader -->|"Return GameObject"| System
     end
 ```
 
 **핵심 코드**
 
 ```csharp
-// ResourceManager.cs - 비동기 프리팹 로딩
-public async Task<GameObject> GetPrefab(string key)
+// ResourceManager.cs - 하이브리드 접근 방식
+// 1. 캐시된 에셋 즉시 반환 (프리로드 된 경우)
+public GameObject GetPrefab(string category, string name) { ... }
+
+// 2. 캐시에 없으면 비동기 로드 후 반환 (On-demand 확장)
+public async Task<GameObject> GetPrefabAsync(string category, string name)
 {
-    if (_prefabs.TryGetValue(key, out var prefab))
-        return prefab;
+    var key = $"{category}/{name}";
+    if (_cache.TryGetValue(key, out var handle)) return handle.Result;
 
-    var handle = Addressables.LoadAssetAsync<GameObject>(key);
-    await handle.Task;
-
-    if (handle.Status == AsyncOperationStatus.Succeeded)
-    {
-        _prefabs[key] = handle.Result;
-        return handle.Result;
-    }
-    else
-    {
-        Debug.LogError($"[ResourceManager] Prefab 로드 실패: {key}");
-        return null;
-    }
+    var loadHandle = Addressables.LoadAssetAsync<GameObject>(address);
+    await loadHandle.Task;
+    _cache[key] = loadHandle;
+    return loadHandle.Result;
 }
 ```
 
 ---
 
-### 2.2 Firebase를 이용한 백엔드 연동 (인증 & Firestore 저장)
+### 2.2 Firebase 백엔드 연동 (인증 & 클라우드 저장)
 
 | 구분 | 내용 |
 |------|------|
 | **문제** | 로컬 세이브는 기기 분실 시 데이터가 유실되며, 여러 기기에서 동일한 계정으로 플레이할 수 없음. |
-| **해결** | **인증**: `FirebaseAuthManager`를 구현하여 이메일/비밀번호 기반 회원가입 및 로그인 시스템 구축.<br>**서버 저장**: `SaveManager`에 `FirestoreSaveBackend`를 구현. 로그인된 사용자의 UID를 기준으로 세이브 데이터를 Firestore 데이터베이스에 JSON 형태로 저장 및 로드. |
-| **결과** | 유저 데이터의 영속성 확보, 크로스 플랫폼 플레이 기반 마련, 서버 기반의 안정적인 데이터 관리 체계 구축. |
+| **해결** | **인증**: `FirebaseAuthManager`를 구현하여 이메일/비밀번호 기반 로그인 시스템 구축.<br>**서버 저장**: `FirestoreSaveBackend`를 구현하여 유저 UID별로 세이브 데이터를 Firestore에 JSON 형태로 저장. |
+| **결과** | 유저 데이터의 영속성 확보 및 서버 기반의 안정적인 데이터 관리 체계 구축. |
 
 #### 도식
 
@@ -128,39 +186,15 @@ flowchart TB
     end
 ```
 
-**핵심 코드**
-
-```csharp
-// FirestoreSaveBackend.cs - Firestore에 비동기 저장
-public async Task<bool> Save(SaveData data)
-{
-    string userId = _authManager.UserId;
-    if (string.IsNullOrEmpty(userId)) return false;
-
-    var docRef = _db.Collection(SaveConfig.FirestoreCollectionName).Document(userId);
-    string json = JsonUtility.ToJson(data);
-    try
-    {
-        await docRef.SetAsync(json);
-        return true;
-    }
-    catch (Exception e)
-    {
-        Debug.LogError($"[Firestore] Save failed: {e.Message}");
-        return false;
-    }
-}
-```
-
 ---
 
-### 2.3 오브젝트 풀링을 통한 메모리 최적화
+### 2.3 고성능 오브젝트 풀링 시스템
 
 | 구분 | 내용 |
 |------|------|
-| **문제** | 전투 중 적, 이펙트, 아이템 등 수많은 오브젝트를 반복적으로 생성(`Instantiate`)하고 파괴(`Destroy`)하면서 발생하는 CPU 부하 및 가비지 컬렉션(GC) 스파이크. |
-| **해결** | `PoolManager`를 구현하여 자주 사용하는 오브젝트를 미리 생성해두고 재활용. `Poolable` 컴포넌트를 통해 오브젝트의 상태를 리셋하고, 사용이 끝나면 다시 풀에 반환. |
-| **결과** | 잦은 메모리 할당 및 해제로 인한 성능 저하를 방지하고, 부드러운 게임 플레이 경험을 제공. |
+| **문제** | 전투 중 대량의 적, 이펙트가 반복적으로 생성/파괴되면서 발생하는 CPU 부하 및 GC 스파이크로 인한 프레임 드랍. |
+| **해결** | `PoolManager`를 통한 객체 재사용 로직 구현. `Poolable` 컴포넌트를 통해 객체 상태를 리셋하고, 런타임 중 `Instantiate` 호출을 최소화. |
+| **결과** | 빈번한 전투 상황에서도 안정적인 프레임 유지 및 메모리 관리 효율 극대화. |
 
 #### 도식
 
@@ -179,339 +213,132 @@ flowchart TB
     end
 ```
 
-**핵심 코드**
-
-```csharp
-// PoolManager.cs - 오브젝트 풀에서 가져오기
-public Poolable Pop(GameObject prefab, Vector3 position, Quaternion rotation)
-{
-    if (!_pools.TryGetValue(prefab, out var pool))
-    {
-        pool = new Pool(prefab, transform);
-        _pools.Add(prefab, pool);
-    }
-    return pool.Pop(position, rotation);
-}
-
-// EnemySpawner.cs - 풀링된 적 스폰
-private void SpawnEnemy(string enemyId, EnemyTeam team)
-{
-    var enemyData = GameManager.Instance.DataManager.Get<EnemyData>(enemyId);
-    var prefab = await GameManager.Instance.ResourceManager.GetPrefab(enemyData.prefabKey);
-    var enemyObject = GameManager.Instance.PoolManager.Pop(prefab);
-    var enemy = enemyObject.GetComponent<Enemy>();
-    enemy.ConfigureFromSpawn(enemyData, team);
-}
-```
-
 ---
 
-### 2.4 분대·캐릭터 통합 상태머신
+### 2.4 데이터 기반 시스템 확장 (Data-Driven Design)
 
 | 구분 | 내용 |
 |------|------|
-| **문제** | 1. 플레이어(방향 이동)와 동료(목표 추적)의 이동 방식이 달라, 동일한 StateMachine으로 통합하기 어려움<br>2. 모든 캐릭터가 각자 `Update()`를 통해 상태를 체크하여, 캐릭터 수가 늘어날수록 불필요한 CPU 부하 발생 |
-| **해결** | 1. **실행부 분리**: 이동 실행부만 `CharacterMover`(방향)와 `CharacterFollowMover`(목표)로 분리하고, `ApplyMovement`에서 `_isPlayer`로 분기하여 해결.<br>2. **이벤트 기반 전환**: `Character.cs`의 `Update()`를 제거. `CharacterStateMachine`의 `OnStateChanged` 이벤트를 구독하여 상태가 변경될 때만 애니메이션을 갱신.<br>3. **중앙 관리**: 버프 등 주기적인 업데이트가 필요한 로직은 `BuffManager` 같은 중앙 관리자로 이전하여 개별 `Update()` 호출을 최소화. |
-| **결과** | 하나의 `CharacterStateMachine`으로 플레이어·동료 모두 처리. 불필요한 `Update()` 호출을 제거하여 성능을 최적화하고, 이벤트 기반의 반응형 아키텍처 구축. |
+| **문제** | 새로운 적이나 아이템을 추가할 때마다 코드를 수정하거나 씬의 스포너에 프리팹을 직접 할당해야 하는 번거로움과 오류 가능성. |
+| **해결** | 모든 콘텐츠를 `BaseData(SO)`로 규격화하고 `DataManager`에서 통합 관리. 스포너는 문자열 ID만 알고 있으면 `ResourceManager`와 연동하여 데이터와 에셋을 동적으로 매칭. |
+| **결과** | 기획자가 코드 수정 없이 데이터 시트(SO) 설정만으로 새로운 콘텐츠를 즉시 게임에 반영할 수 있는 확장성 확보. |
 
 #### 도식
 
 ```mermaid
-flowchart TB
-    subgraph PlayerPath["플레이어 경로"]
-        InputHandler["InputHandler"]
-        PlayScene["PlayScene"]
-        SquadController["SquadController"]
-    end
-
-    subgraph AIPath["동료(AI) 경로"]
-        AIBrain["AIBrain"]
-    end
-
-    subgraph Character["Character (Facade)"]
-        API["RequestMove / RequestAttack / SetMoveDirection<br/>(Request API - 플레이어·AI 공통)"]
-        ApplyMovement["ApplyMovement"]
-    end
-
-    StateMachine["CharacterStateMachine<br/>Idle·Move·Attack·Dead"]
-    MoveState["MoveState.Update"]
-    CharMover["CharacterMover<br/>방향 기반"]
-    FollowMover["CharacterFollowMover<br/>목표 기반 NavMesh"]
-
-    InputHandler --> PlayScene --> SquadController
-    SquadController -->|Request| API
-    AIBrain -->|Request| API
-    API --> StateMachine
-    StateMachine --> MoveState
-    MoveState -->|호출| ApplyMovement
-    ApplyMovement -->|"플레이어 _isPlayer"| CharMover
-    ApplyMovement -->|"동료"| FollowMover
+flowchart LR
+    SO["ScriptableObject (BaseData)"] -->|"ID 기반 등록"| DM["DataManager"]
+    DM -->|"1. ID 요청"| Requester["System (Quest, EnemySpawner, Item)"]
+    Requester -->|"2. 에셋 로드"| RM["ResourceManager (Addressables)"]
+    RM -->|"3. 프리팹 반환"| Requester
 ```
 
 **핵심 코드**
 
 ```csharp
-// Character.cs - 이벤트 구독 및 핸들러
-public void Initialize(/* ... */)
+// DataManager.cs - 제네릭 데이터 조회
+public T Get<T>(string id) where T : BaseData
 {
-    // ...
-    if (_stateMachine != null)
-    {
-        _stateMachine.OnStateChanged += HandleStateChanged;
-    }
-}
-
-private void HandleStateChanged(CharacterState previous, CharacterState current)
-{
-    bool isMove = current == CharacterState.Move;
-    _characterAnimator.SetMoving(isMove);
-    float speed = isMove ? _model.CurrentMoveSpeed : 0f;
-    _characterAnimator.Move(speed);
-}
-
-// Character.cs - 최적화된 ApplyMovement
-public void ApplyMovement()
-{
-    if (_isPlayer)
-    {
-        _mover.Move(_currentMoveDirection);
-        return;
-    }
+    var category = typeof(T).Name;
+    if (typeof(ItemData).IsAssignableFrom(typeof(T))) category = "ItemData";
     
-    if (_aiBrain != null && _aiBrain.CurrentTarget != null)
+    var key = $"{category}/{id}";
+    return _cache.TryGetValue(key, out var cached) ? cached as T : null;
+}
+```
+
+---
+
+### 2.5 모듈형 세이브 컨트리뷰터 (Contributor Pattern)
+
+| 구분 | 내용 |
+|------|------|
+| **문제** | 세이브 항목(인벤토리, 퀘스트, 위치 등)이 늘어날수록 `SaveManager`의 코드가 비대해지고 시스템 간 결합도가 높아짐. |
+| **해결** | `ISaveContributor` 인터페이스 도입. 각 시스템이 자신의 데이터만 관리하도록 분리하고, `SaveManager`는 이들을 순회하며 데이터를 수집/배포하는 역할만 수행. |
+| **결과** | 새로운 저장 항목 추가 시 기존 코드를 건드리지 않고 새로운 Contributor만 추가하면 되는 개방-폐쇄 원칙(OCP) 준수. |
+
+#### 도식
+
+```mermaid
+flowchart TB
+    SaveManager["SaveManager"] -->|"1. Gather(data)"| PSC["PlaySaveCoordinator"]
+    subgraph "Contributors (순차적 수집)"
+        PSC --> C1["SquadContrib"]
+        PSC --> C2["QuestContrib"]
+        PSC --> C3["InventoryContrib"]
+    end
+    C3 -->|"2. JSON 직렬화"| SaveManager
+```
+
+**핵심 코드**
+
+```csharp
+// ISaveContributor.cs - 인터페이스 정의
+public interface ISaveContributor
+{
+    string Key { get; }
+    void Gather(SaveData data);
+    void Spread(SaveData data);
+}
+
+// SquadSaveContributor.cs - 구체적 구현 예시
+public class SquadSaveContributor : SaveContributorBehaviour, ISaveContributor
+{
+    public string Key => "Squad";
+    public void Gather(SaveData data) => data.squad = _squad.GetSaveData();
+    public void Spread(SaveData data) => _squad.LoadSaveData(data.squad);
+}
+```
+
+---
+
+### 2.6 안전한 씬 초기화 파이프라인 (Safe Boot Sequence)
+
+| 구분 | 내용 |
+|------|------|
+| **문제** | 씬 로딩 시 시스템 초기화 순서가 꼬여 `NullReferenceException`이 발생하거나, 글로벌 매니저가 준비되기 전에 로직이 실행되는 문제. |
+| **해결** | `PlayScene` 시작 시 `GameManager`의 모든 서비스(Data, Pool, Resource)가 로딩될 때까지 코루틴으로 안전하게 대기하는 부트 시퀀스 구축. |
+| **결과** | 비동기 로딩 환경에서도 시스템 간 의존성 순서를 보장하여 런타임 안정성 획득. |
+
+#### 도식
+
+```mermaid
+flowchart TD
+    Start["Scene Start (Awake)"] --> InitGM["GameManager.Initialize"]
+    InitGM --> WaitData["Wait for DataManager (SO Loading)"]
+    WaitData --> WaitRes["Wait for ResourceManager (Addressable Init)"]
+    WaitRes --> Ready["All Services Ready"]
+    Ready --> PlayScene["PlayScene.Start (Gameplay Begin)"]
+```
+
+**핵심 코드**
+
+```csharp
+// PlayScene.cs - 부트 시퀀스 대기 로직
+private IEnumerator WaitForBootThenInitializeRoutine()
+{
+    // GameManager 서비스가 모두 준비될 때까지 대기
+    while (!GameManager.Instance.BootServicesReady)
     {
-        _followMover.MoveToTarget(_aiBrain.CurrentTarget.position, _aiBrain.CurrentStopDistance);
+        yield return null;
     }
+
+    // 준비 완료 후 씬 시스템 초기화
+    Initialize();
 }
 ```
 
 ---
 
-### 2.2 AIBrain / 동료 AI
+## 3. 주요 시스템 구현 (Feature Implementation)
+
+> 위에서 구축한 핵심 아키텍처를 바탕으로 구현된 구체적인 게임 기능들입니다.
+
+### 3.1 분대 및 캐릭터 시스템
+
+Character는 **독립적인 컴포넌트 조합**으로 설계되어 있으며, `Character` 파사드 클래스를 통해 모든 명령(Request API)이 조율됩니다.
 
 #### 도식
-
-```mermaid
-flowchart TB
-    subgraph CombatCtrl["CombatController"]
-        IsInCombat["IsInCombat"]
-        GetNearest["GetNearestEnemy"]
-    end
-
-    subgraph AIBrain["AIBrain (동료 전용)"]
-        Branch["IsInCombat ? TickCombat : TickFollow"]
-    end
-
-    subgraph TickFollow["TickFollow"]
-        TF1["PlaySceneServices.GetPlayer → _currentTarget"]
-        TF3["HasArrived → RequestIdle<br/>!HasArrived → RequestMove"]
-    end
-
-    subgraph TickCombat["TickCombat"]
-        TC1["GetNearestEnemy → _currentCombatTarget"]
-        TC3["dist ≤ attackRange → RequestAttack<br/>dist &gt; attackRange → RequestMove"]
-    end
-
-    subgraph Char["Character"]
-        ApplyMove["ApplyMovement가 CurrentTarget 읽어 FollowMover 호출"]
-    end
-
-    CombatCtrl --> AIBrain
-    AIBrain --> TickFollow
-    AIBrain --> TickCombat
-    TF1 --> TF3
-    TC1 --> TC3
-    TF3 -->|RequestMove| ApplyMove
-    TC3 -->|RequestMove| ApplyMove
-```
-
-**SetFollowTarget**: SquadController가 플레이어 변경 시 Character → AIBrain.SetFollowTarget(플레이어) 호출. 따라갈 대상 설정.
-
-| 구분 | 내용 |
-|------|------|
-| **문제** | 동료가 플레이어처럼 입력을 받지 않아, 전투 시 추적·사거리 판단·공격 시점을 자동으로 결정해야 함 |
-| **해결** | CombatController(전투 상태, GetNearestEnemy) 기반 AIBrain. IsInCombat으로 TickFollow/TickCombat 분기. Follow 시 PlaySceneServices로 플레이어 획득, Combat 시 GetNearestEnemy로 타겟. 사거리 밖이면 RequestMove, 안이면 RequestAttack. Character.ApplyMovement가 CurrentTarget을 읽어 NavMesh 기반 FollowMover.MoveToTarget 호출 |
-| **결과** | 플레이어와 동일한 CharacterStateMachine·Attacker 재사용. AIBrain은 “판단”만 담당, 실행은 Character에 위임 |
-
-**핵심 코드**
-
-```csharp
-// AIBrain.cs - IsInCombat 분기
-private void Update()
-{
-    if (_character == null || _character.Model == null || _character.Model.IsDead) return;
-    if (_character.StateMachine?.CurrentState == CharacterState.Attack) return;
-
-    bool isInCombat = _combatController != null && _combatController.IsInCombat;
-    if (isInCombat) TickCombat();
-    else TickFollow();
-}
-
-private void TickFollow()
-{
-    var player = PlaySceneServices.Player?.GetPlayer();
-    _currentTarget = player != null ? player.transform : null;
-    if (_currentTarget == null || HasArrived())
-        _character?.RequestIdle();
-    else
-        _character?.RequestMove();
-}
-
-private void TickCombat()
-{
-    _currentCombatTarget = _combatController?.GetNearestEnemy(transform.position);
-    if (_currentCombatTarget == null || _currentCombatTarget.Model.IsDead) return;
-    _currentTarget = _currentCombatTarget.transform;
-    float dist = Vector3.Distance(transform.position, _currentCombatTarget.transform.position);
-    if (dist > _attackRange) _character?.RequestMove();
-    else { _character?.RequestIdle(); _character?.RequestAttack(); }
-}
-```
-
----
-
-### 2.3 시스템 간 독립성 (MVP + 조율층)
-
-#### 도식
-
-```mermaid
-flowchart TB
-    subgraph Coord["조율층"]
-        CoordDesc["InputHandler, SquadController<br/>QuestController, InventoryPresenter"]
-    end
-
-    subgraph Systems["각 시스템 - 직접 참조 없음"]
-        Quest["Quest Model"]
-        Inventory["Inventory (Model)"]
-        Dialogue["Dialogue System"]
-        Flag["FlagSystem"]
-    end
-
-    CoordDesc --> Quest
-    CoordDesc --> Inventory
-    CoordDesc --> Dialogue
-    CoordDesc --> Flag
-```
-
-| 구분 | 내용 |
-|------|------|
-| **문제** | 퀘스트·인벤토리·대화가 서로 참조하면 결합도 증가, 수정 범위 확대 |
-| **해결** | 퀘스트·인벤토리·대화는 Model/View 분리. PlayScene·PlaySaveCoordinator 등 조율층이 이벤트 구독 후 의존성 주입·호출 |
-| **결과** | 퀘스트 추가·수정 시 인벤토리·대화 코드를 건드리지 않고 변경 가능 |
-
-**핵심 코드**
-
-```csharp
-// PlayScene.cs - 조율층 Awake (시스템 연결·초기화)
-private void Awake()
-{
-    _saveCoordinator?.Initialize(_squadController, _flagSystem, _questController?.Presenter, _inventoryPresenter?.Model);
-    _pendingSaveData = GameManager.Instance?.SaveManager?.Load();
-    var spawnPos = _pendingSaveData?.squad != null ? (Vector3?)_pendingSaveData.squad.playerPosition : null;
-
-    _squadController.Initialize(spawnPos, _combatController, _pendingSaveData?.squad);
-    PlaySceneServices.Register(_squadController);
-
-    var player = _squadController.PlayerCharacter;
-    _squadController.SetFollowTarget(player?.transform ?? transform);
-    _inventoryPresenter?.SetPlayerCharacter(player);
-    _dialogueController?.Initialize(_questController?.Presenter, _flagSystem);
-    _questController?.Initialize(_inventoryPresenter?.Model, _flagSystem, _squadController);
-    _mapController?.Initialize(_portalController, player, _squadController);
-    _portalController?.Initialize(_mapController.MapView, _flagSystem);
-}
-```
-
----
-
-### 2.4 세이브/로드 Contributor 패턴
-
-#### 도식
-
-```mermaid
-flowchart TB
-    SaveManager["SaveManager"]
-    PSC["PlaySaveCoordinator<br/>ISaveHandler"]
-
-    subgraph Contrib["Contributors (SaveOrder 순)"]
-        Squad["SquadSaveContributor"]
-        Flag["FlagSaveContributor"]
-        Inv["InventorySaveContributor"]
-        Quest["QuestSaveContributor"]
-    end
-
-    SaveManager -->|"Gather / Apply"| PSC
-    PSC --> Squad
-    PSC --> Flag
-    PSC --> Inv
-    PSC --> Quest
-```
-
-| 구분 | 내용 |
-|------|------|
-| **문제** | 세이브 대상이 늘어날 때마다 조율층이 모든 시스템을 알아야 함 |
-| **해결** | `ISaveHandler` + `SaveContributorBehaviour` 기반. PlaySaveCoordinator가 Contributor 목록 보유, 각 Contributor가 Gather/Apply만 구현. SaveOrder로 적용 순서 보장 |
-| **결과** | 새 저장 대상 추가 시 Contributor 생성 후 PlaySaveCoordinator에 등록하면 되고, SaveManager 수정 불필요 |
-
-**핵심 코드**
-
-```csharp
-// SaveContributorBehaviour.cs - Gather/Apply 인터페이스
-public abstract class SaveContributorBehaviour : MonoBehaviour, ISaveContributor
-{
-    public abstract void Gather(SaveData data);
-    public abstract void Apply(SaveData data);
-}
-```
-
----
-
-### 2.5 대화·퀘스트 데이터(Scriptable Object) 기반 연동
-
-#### 도식
-
-```mermaid
-flowchart TB
-    NPC["NPC 상호작용"]
-    Selector["DialogueSelector<br/>requiredFlagsOn/Off 체크"]
-    Presenter["DialoguePresenter<br/>대화 재생"]
-    End["대화 종료"]
-
-    Flag["FlagSystem<br/>flagsToModify 적용"]
-    Quest["QuestPresenter<br/>questId, questDialogueType<br/>Accept / Complete"]
-
-    NPC --> Selector
-    Selector --> Presenter
-    Presenter --> End
-    End --> Flag
-    End --> Quest
-```
-
-| 구분 | 내용 |
-|------|------|
-| **문제** | 대화 분기·퀘스트 수락/완료를 하드코딩하면 시나리오 추가가 어려움 |
-| **해결** | DialogueData(ScriptableObject)에 `requiredFlagsOn/Off`(선택 조건), `flagsToModify`(종료 시 플래그), `questId`·`questDialogueType`(수락/완료)로 정의. 시나리오 설계자는 에셋만 수정 |
-| **결과** | 코드 수정 없이 대화·퀘스트 흐름 추가·변경 가능 |
-
----
-
-## 3. 전체 시스템 아키텍처
-
-> PlayScene이 조율층으로, 모든 시스템을 연결·초기화·이벤트 구독한다.
-
-```mermaid
-flowchart TB
-    Input["InputHandler<br/>Move/Attack/Interact/Map..."]
-    PlayScene["PlayScene (조율층)<br/>Awake: Initialize / OnEnable: 이벤트 구독"]
-
-    Input --> PlayScene
-```
-
-PlayScene은 SquadController, EnemySpawner, CombatController, InventoryPresenter, DialogueController, QuestController, MapController, PortalController, CursorController, SettingsView, PlaySaveCoordinator 등 다양한 시스템 간의 연결·조율을 담당한다.
-
-### 3.1 분대·캐릭터 시스템
-
-Character는 **컴포넌트화**되어 있다. 한 오브젝트에 Model·Mover·Animator·Interactor·Attacker·StateMachine 등 여러 컴포넌트를 조합하고, Request API로 외부(InputHandler, AIBrain)와 통일된 방식으로 연동한다.
 
 ```mermaid
 flowchart TB
@@ -532,274 +359,58 @@ flowchart TB
 
     Squad["SquadController"] --> Character
     Model -.->|"버프 요청"| BuffManager
+    Attacker -->|"IAttackPowerSource 주입"| Model
 ```
 
-**주요 컴포넌트**
-| 컴포넌트 | 역할 |
-|----------|------|
-| Character | Facade. Request API 제공. Model·StateMachine·Mover·Attacker·Interactor·Animator·AIBrain 등 조합 |
-| CharacterModel | HP, 스탯, CharacterData 보유. 중앙 **`BuffManager`**에 버프 관리를 위임하여 성능 최적화. |
-| CharacterStateMachine | Idle·Move·Attack·Dead 상태 관리 |
-| CharacterMover | 플레이어용 방향 이동 |
-| CharacterFollowMover | 동료용 NavMesh 목표 이동 |
-| CharacterAttacker | 공격 로직·사거리 판단. **`IAttackPowerSource` 인터페이스**를 통해 공격력을 주입받아 클래스 간 독립성 확보. |
-| CharacterInteractor | IInteractReceiver. 상호작용 수신 |
-| CharacterAnimator | 애니메이션 연동 |
-| AIBrain | 동료 전용. TickFollow/TickCombat |
-| SquadController | 분대 스폰, 플레이어/동료 관리, SetFollowTarget |
+**핵심 설계**
+*   **컴포넌트 독립성**: `CharacterAttacker`는 부모 클래스를 직접 참조하는 대신 `IAttackPowerSource` 인터페이스를 주입받아 완벽하게 독립적으로 작동합니다.
+*   **이벤트 기반 연동**: `Update()`를 통한 폴링 대신 상태 변경 이벤트를 구독하여 애니메이션과 버프 상태를 업데이트함으로써 CPU 효율을 높였습니다.
 
-Request API·ApplyMovement 분기·통합 상태머신 등 상세는 2.1 참조.
+---
 
-**핵심 코드**
+### 3.2 지능형 동료 AI (AIBrain)
 
-```csharp
-// SquadController.cs - 분대 전체 Follow 타겟 설정
-public void SetFollowTarget(Transform target)
-{
-    foreach (var c in _characters)
-    {
-        if (c == null || c.transform == target) continue;
-        c.SetFollowTarget(target);
-    }
-}
-```
+플레이어의 입력을 대신하여 상황에 맞는 최적의 판단을 내리는 시스템입니다.
 
-### 3.2 전투·적 시스템
+| 구분 | 내용 |
+|------|------|
+| **문제** | 동료가 플레이어처럼 입력을 받지 않아, 전투 시 추적·사거리 판단·공격 시점을 자동으로 결정해야 함 |
+| **해결** | `IsInCombat` 상태에 따라 `TickFollow`(추적)와 `TickCombat`(전투) 로직으로 분기. 타겟과의 거리와 공격 사거리를 계산하여 `Character` 파사드에 이동/공격 요청을 전달. |
+| **결과** | 플레이어와 동일한 상태 머신을 공유하면서도, 지능적인 자율 행동이 가능한 동료 시스템 구현. |
 
-Enemy도 Character처럼 **컴포넌트화**되어 있다.
+---
 
-```mermaid
-flowchart TB
-    subgraph Enemy["Enemy (Facade)"]
-        EModel["EnemyModel"]
-        EAggro["EnemyAggro"]
-        EDetector["EnemyDetector"]
-        ESM["EnemyStateMachine"]
-        EMover["EnemyMover"]
-        EAttacker["EnemyAttacker"]
-        EAnimator["EnemyAnimator"]
-    end
+### 3.3 전투 및 적 시스템
 
-    Spawner["EnemySpawner"]
-    Spawner --> Enemy
-```
+오브젝트 풀링과 데이터 기반 스폰이 결합된 고성능 전투 시스템입니다.
 
-**주요 컴포넌트**
-| 컴포넌트 | 역할 |
-|----------|------|
-| Enemy | Facade. Model·Aggro·Detector·StateMachine·Mover·Attacker·Animator 등 조합 |
-| EnemyModel | HP, 스탯, EnemyData. 어그로 수치·탐지 반경 등 |
-| EnemyDetector | Physics.OverlapSphere로 반경 내 Character 감지. OnCharacterDetected 발행 |
-| EnemyAggro | 거리별 어그로 누적. HasAnyAboveThreshold, GetHighestAggroTarget |
-| EnemyStateMachine | Idle·Patrol·Chase·Attack·Dead. 어그로 임계값 초과 시 전투 진입 |
-| EnemyMover | NavMesh 기반 이동 |
-| EnemyAttacker | 공격·Hitbox 연동 |
-| CombatController | 전투 중인 Enemy 목록 관리. IsInCombat, GetNearestEnemy. AIBrain에 주입 |
+*   **풀링 기반 스폰**: `EnemySpawner`가 `PoolManager`를 통해 적을 생성하고, 사망 시 3초 후 자동으로 풀에 반환합니다. 이는 런타임 중 `Instantiate/Destroy` 호출을 최소화하여 프레임 드랍을 방지합니다.
+*   **어그로 시스템**: 거리별 어그로 누적을 통해 가장 위협적인 대상을 우선 공격하도록 설계되었습니다.
+*   **유연한 스포너**: 문자열 ID만으로 적의 종류를 결정하므로, 데이터 수정만으로 배치 구성을 즉시 변경할 수 있습니다.
 
-**전투 연계** EnemyDetector가 분대(Character) 감지 → EnemyAggro에 어그로 누적 → 임계값 초과 시 EnemyStateMachine이 Chase/Attack 진입 → CombatController에 등록 → AIBrain이 IsInCombat·GetNearestEnemy로 동료 전투 판단(TickCombat). SquadController.Initialize(combatController)로 AIBrain에 CombatController 주입. 적 사망 시 HandleDeath → 3초 후 Destroy, _dropPrefab 드롭.
+---
 
-### 3.3 인벤토리 시스템
+### 3.4 대화 및 퀘스트 시나리오 연동
 
-```mermaid
-flowchart TB
-    Input["InputHandler.OnInventoryPerformed"]
-    PlayScene["PlayScene.HandleInventoryKey"]
+**플래그 시스템(FlagSystem)**을 중심으로 대화와 퀘스트가 유기적으로 연결됩니다.
 
-    subgraph Presenter["InventoryPresenter"]
-        Model["Inventory (Model)"]
-        View["InventoryView (View)"]
-    end
+*   **시나리오 분기**: `DialogueData(SO)`에 설정된 플래그 조건에 따라 NPC의 대사가 실시간으로 변화합니다.
+*   **퀘스트 연동**: 대화 종료 시 특정 플래그를 세팅하여 퀘스트를 수락하거나, 조건 달성 여부를 확인하여 보상을 지급합니다.
+*   **동료 영입**: 특정 퀘스트 완료 플래그를 감지하여 NPC를 분대원(`AddCompanion`)으로 즉시 합류시키는 동적 시나리오를 지원합니다.
 
-    Input --> PlayScene
-    PlayScene -->|"RequestToggleInventory"| Presenter
-    Model <--> View
-```
+---
 
-**주요 컴포넌트**
-| 컴포넌트 | 역할 |
-|----------|------|
-| InventoryPresenter | Model·View 연결. RequestToggleInventory, SetPlayerCharacter. OnUseItemRequested→TryUseItem, OnDropEnded→SwapItems |
-| Inventory | 슬롯 배열, AddItem, SetItemUser, TryUseItem, SwapItems. GameEvents.OnItemPickedUp 구독. Quest 완료 시 아이템 차감 |
-| InventoryView | UI 표시. OnUseItemRequested, OnDropEnded, OnRefreshRequested. ToggleInventory |
+### 3.5 인벤토리 시스템
 
-PlayScene.HandlePlayerChanged → InventoryPresenter.SetPlayerCharacter (플레이어 변경 시 소비품 효과 대상 ItemUser 갱신)
+*   **MVP 패턴**: 데이터(Inventory)와 UI(View)를 `Presenter`가 중개하여 로직과 표현을 엄격히 분리했습니다.
+*   **동적 대상 적용**: 플레이어가 조종하는 캐릭터가 바뀌면 아이템 사용 대상(`ItemUser`)도 실시간으로 갱신됩니다.
 
-**핵심 코드**
+---
 
-```csharp
-// Inventory.cs - 스택 가능/불가 아이템 처리
-public void AddItem(ItemData itemData, int amount = 1)
-{
-    if (itemData == null) return;
-    if (itemData.IsStackable)
-    {
-        foreach (var slot in _slots)
-        {
-            if (slot.Item != null && slot.Item.ItemId == itemData.ItemId && slot.Count < itemData.MaxStack)
-            {
-                int canAdd = itemData.MaxStack - slot.Count;
-                int amountToAdd = Mathf.Min(amount, canAdd);
-                slot.Count += amountToAdd;
-                amount -= amountToAdd;
-                OnSlotChanged?.Invoke(slot);
-                if (amount <= 0) { NotifyItemChangedWithId(itemData.ItemId); return; }
-            }
-        }
-    }
-    while (amount > 0)
-    {
-        int emptySlotIndex = FindEmptySlotIndex();
-        if (emptySlotIndex == -1) break;
-        int amountToPut = Mathf.Min(amount, itemData.MaxStack);
-        _slots[emptySlotIndex].Item = new ItemModel(itemData);
-        _slots[emptySlotIndex].Count = amountToPut;
-        amount -= amountToPut;
-        OnSlotChanged?.Invoke(_slots[emptySlotIndex]);
-    }
-    NotifyItemChangedWithId(itemData.ItemId);
-}
-```
+### 3.6 스마트 지도 및 포탈 시스템
 
-### 3.4 대화 시스템
-
-```mermaid
-flowchart TB
-    NPC["Npc 상호작용<br/>Interactor.TryInteract"]
-    EventHub["PlaySceneEventHub.OnNpcInteracted"]
-
-    subgraph DC["DialogueController"]
-        Selector["DialogueSelector<br/>requiredFlags 체크"]
-        Presenter["DialoguePresenter<br/>대화 UI 재생"]
-    end
-
-    Flag["FlagSystem<br/>flagsToModify"]
-    Quest["QuestPresenter<br/>Accept/Complete"]
-
-    NPC --> EventHub
-    EventHub --> DC
-    DC -->|"HandleNpcInteracted"| Selector
-    Selector -->|"SelectMain"| Presenter
-    Presenter -->|"HandleDialogueEnded"| Flag
-    Presenter -->|"questId"| Quest
-```
-
-**주요 컴포넌트**
-| 컴포넌트 | 역할 |
-|----------|------|
-| DialogueController | PlaySceneEventHub.OnNpcInteracted 구독. Selector.SelectMain → Presenter.RequestStartDialogue. HandleDialogueEnded → ApplyFlags, RequestQuestAction |
-| DialogueSelector | DataManager·FlagSystem 기반. SelectMain(npcId): requiredFlagsOn/Off 체크 후 재생할 대화 1개 선택. GetAvailableQuests |
-| DialoguePresenter | DialogueSystem↔DialogueView 연결. RequestStartDialogue, OnDialogueEnded 발행 |
-| DialogueSystem | 대화 상태·진행. StartDialogue |
-| DialogueView | 대화 UI. OnNextClicked, OnEndClicked, OnQuestDialogueSelected |
-| FlagSystem | flagsToModify 적용 (Set/Add) |
-| QuestPresenter | questId·questDialogueType에 따라 RequestAcceptQuest, RequestCompleteQuest |
-
-끝내기 버튼: 타이핑 중 첫 클릭=스킵, 두 번째 클릭=대화 종료
-
-### 3.5 퀘스트 시스템
-
-```mermaid
-flowchart TB
-    EnemyKilled["Enemy.HandleDeath<br/>PlaySceneEventHub.OnEnemyKilled"]
-    ItemPicked["GameEvents.OnItemPickedUp"]
-    Dialogue["DialogueController<br/>대화 종료 시"]
-
-    QC["QuestController"]
-    QP["QuestPresenter"]
-    QS["QuestSystem"]
-
-    EnemyKilled --> QC
-    ItemPicked --> QC
-    QC -->|"NotifyProgress"| QS
-    Dialogue -->|"RequestAccept/Complete"| QP
-    QP --> QS
-```
-
-**주요 컴포넌트**
-| 컴포넌트 | 역할 |
-|----------|------|
-| QuestController | OnEnemyKilled, OnItemPickedUp 구독 → QuestSystem.NotifyProgress. OnQuestUpdated: 목표 달성 플래그, Gather 시 인벤토리 동기화. OnQuestCompleted: 완료 플래그, Gather 아이템 차감, RecruitmentQuestData면 AddCompanion |
-| QuestPresenter | QuestSystem↔QuestView 연결. RequestAcceptQuest, RequestCompleteQuest. DialogueController에 주입 |
-| QuestSystem | NotifyProgress(targetId), AcceptQuest, CompleteQuest. OnQuestUpdated, OnQuestCompleted |
-
-**동료 영입** RecruitmentQuestData: 퀘스트 완료 시 `recruitCharacterId`로 CharacterData 참조해 SquadController.AddCompanion 호출. 대화·퀘스트 완료 플래그(`quest_*_completed`)로 수락 대화 재표시 여부 제어.
-
-**핵심 코드**
-
-```csharp
-// QuestSystem.cs - targetId 기반 진행 (다른 시스템과 무관한 API)
-public void NotifyProgress(string targetId)
-{
-    foreach (var quest in _activeQuests)
-    {
-        if (quest.IsCompleted || quest.TargetId != targetId) continue;
-        quest.CurrentAmount = Math.Min(quest.CurrentAmount + 1, quest.TargetAmount);
-        if (quest.IsCompleted)
-            Debug.Log($"<color=green>{quest.Title}</color> 목표 달성! NPC에게 돌아가세요.");
-        OnQuestUpdated?.Invoke(quest);
-    }
-}
-```
-
-### 3.6 맵 시스템
-
-```mermaid
-flowchart TB
-    PlayScene["PlayScene"]
-    MController["MapController"]
-
-    subgraph MapView["MapView"]
-        Toggle["ToggleMap"]
-        Scroll["ScrollZoom"]
-        Snapshot["TakeSnapshot"]
-        Portals["RefreshPortalIcons"]
-    end
-
-    PlayScene -->|"HandleMap<br/>OnMapPerformed"| MController
-    PlayScene -->|"Update<br/>ScrollInput"| MController
-    MController -->|"RequestToggleMap"| Toggle
-    MController -->|"RequestScrollMap"| Scroll
-    Toggle --> Snapshot
-    Toggle --> Portals
-```
-
-**주요 컴포넌트**
-| 컴포넌트 | 역할 |
-|----------|------|
-| MapController | RequestToggleMap, RequestScrollMap. MapView에 위임. Initialize(PortalController, Character, SquadController) |
-| MapView | ToggleMap(패널 On/Off), ScrollZoom(마우스 휠), TakeSnapshot, RefreshPortalIcons. MapCamera(RenderTexture 스냅샷), PortalController(해금 포탈), SquadController(플레이어 위치) 참조. Update에서 플레이어 아이콘 실시간 갱신 |
-
-### 3.7 포탈 시스템
-
-```mermaid
-flowchart TB
-    A["플레이어 포탈 근처 상호작용"]
-
-    Portal["Portal.OnInteracted"]
-
-    PController["PortalController<br/>FindObjectsByType 등록, OnInteracted 구독"]
-    MapView["MapView<br/>맵 열기/닫기, 포탈 아이콘 생성"]
-
-    Teleport["SquadController.TeleportPlayer"]
-    Repos["RepositionCompanionsAround"]
-
-    A --> Portal
-    Portal --> PController
-    PController -->|"ToggleMap"| MapView
-
-    MapView -->|"포탈 아이콘 클릭 시"| Teleport
-    Teleport --> Repos
-```
-
-**주요 컴포넌트**
-| 컴포넌트 | 역할 |
-|----------|------|
-| Portal | IInteractable. Interact 시 OnInteracted(IInteractReceiver, Portal) 발행. PortalData 표시용, ArrivalPosition 제공 |
-| PortalDetector | OnTriggerStay/Exit로 반경 내 플레이어 감지. Portal에 연결되어 PortalEffect 토글 |
-| PortalController | FindObjectsByType으로 포탈 등록, Portal.OnInteracted 구독. HandlePortalInteracted에서 MapView.ToggleMap 호출. PortalModel 목록 유지 |
-| PortalModel | Portal + FlagSystem. 해금 여부 관리. MapView에서 해금된 포탈만 아이콘 표시 |
-| MapView | Map_PortalIcon 생성(해금된 PortalModel만). OnPortalClicked 시 SquadController.TeleportPlayer 호출 후 맵 닫기 |
-| SquadController | TeleportPlayer(ArrivalPosition), TeleportToDefaultPoint(끼임 탈출), RepositionCompanionsAround |
+*   **실시간 미니맵**: 전용 카메라와 `RenderTexture`를 사용하여 현재 지형을 실시간으로 투영합니다.
+*   **전역 순간이동**: `FlagSystem`과 연동되어 해금된 포탈만 지도에 표시되며, 클릭 시 분대 전체가 해당 위치로 즉시 이동합니다.
 
 ---
 
@@ -830,42 +441,23 @@ flowchart TB
 
 ---
 
-## 5. 사용 Tool
+## 5. 사용 Tool 및 환경
 
-### 5.1 개발
+### 5.1 개발 환경
 | Tool | 버전/내용 |
 |------|-----------|
 | **Unity** | 6000.0.59f2 (Unity 6) |
-| **Git** | 버전 관리 |
-| **Cursor** | AI 기반 코드 에디터 (개발·리팩터링 보조) |
-
-개발 시 Unity 에디터 전용 디버깅 기능(Squad, Quest, Inventory, Portal 등)을 사용함.
-
-**디버거 인스펙터 뷰**
-
-| Squad | Quest |
-|:---:|:---:|
-| ![Squad](Docs/images/debug_squad.png) | ![Quest](Docs/images/debug_quest.png) |
-
-| Inventory | Portal |
-|:---:|:---:|
-| ![Inventory](Docs/images/debug_inventory.png) | ![Portal](Docs/images/debug_portal.png) |
-
-| EnemySpawner | Flag |
-|:---:|:---:|
-| ![EnemySpawner](Docs/images/debug_spawner.png) | ![Flag](Docs/images/debug__flag.png) |
+| **Trae IDE** | AI 보조를 통한 아키텍처 리팩토링 및 코드 품질 관리 |
+| **Git** | 프로젝트 버전 관리 및 협업 |
 
 **주요 패키지**
-- Unity AI Navigation 2.0.9
-- Cinemachine 3.1.5
-- Input System 1.14.0
-- Universal RP 17.1.0
-
-### 5.2 제작·문서
-| Tool | 용도 |
+| 패키지 | 용도 |
 |------|------|
-| **Capcut** | 영상 편집 |
-| **Notion** | 개발일지·문서 정리 |
+| **Addressables** | 비동기 콘텐츠 관리 및 원격 에셋 업데이트 |
+| **Firebase SDK** | 사용자 인증 및 클라우드 데이터베이스(Firestore) 연동 |
+| **AI Navigation** | NavMesh 기반의 지능형 길찾기 및 장애물 회피 |
+| **Cinemachine** | 3인칭 숄더뷰 및 컷신 카메라 워킹 |
+| **Universal RP** | 고성능 렌더링 파이프라인 적용 |
 
 ---
 
