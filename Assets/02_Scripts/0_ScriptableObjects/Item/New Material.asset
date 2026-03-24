@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 311bf164808c6c14da7132ee8c1b1670, type: 3}
   m_Name: New Material
   m_EditorClassIdentifier: Assembly-CSharp::MaterialItemData
-  _id: 
-  ItemName: 
+  _id: diamond
+  ItemName: "\uB2E4\uC774\uC544\uBAAC\uB4DC"
   Icon: {fileID: 0}
-  Description: 
-  IsStackable: 0
+  Description: "\uB808\uBCA8\uC5C5\uC5D0 \uD544\uC694\uD55C \uC7AC\uB8CC"
+  IsStackable: 1
   MaxStack: 50
