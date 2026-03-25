@@ -54,6 +54,8 @@ public class PlayScene : MonoBehaviour
     private SettingsView _settingsView;
     [SerializeField] [Tooltip("힌트·픽업 로그 등 짧은 오버레이 UI")]
     private PlaySceneOverlayController _overlayController;
+    [SerializeField] [Tooltip("레벨업 제단 Presenter")]
+    private LevelUpAltarPresenter _levelUpAltarPresenter;
 
     #endregion
 
@@ -85,7 +87,10 @@ public class PlayScene : MonoBehaviour
 
         if (!ValidateBoundReferences())
             return;
+    }
 
+    private void Start()
+    {
         StartCoroutine(WaitForBootThenInitializeRoutine());
     }
 
@@ -195,6 +200,7 @@ public class PlayScene : MonoBehaviour
         ok = this.CheckComponent(_portalController) && ok;
         ok = this.CheckComponent(_settingsView) && ok;
         ok = this.CheckComponent(_overlayController) && ok;
+        ok = this.CheckComponent(_levelUpAltarPresenter) && ok;
         return ok;
     }
 
@@ -237,10 +243,12 @@ public class PlayScene : MonoBehaviour
             _questPresenter,
             _inventoryPresenter?.Model);
 
+
         if (_settingsView != null)
             _settingsView.Initialize();
         _playSceneView?.Initialize();
         _overlayController?.Initialize();
+        _levelUpAltarPresenter?.Initialize(_inventoryPresenter?.Model);
 
         // 시네: 초기화 중 렌더 끄고, 세이브 반영 후 다시 켬
         if (_cinemachineCamera != null)
@@ -271,8 +279,14 @@ public class PlayScene : MonoBehaviour
         // 세이브 적용 → 분대 슬롯 갱신
         if (_pendingSaveData != null && GameManager.Instance?.SaveManager != null)
         {
+            Debug.Log($"[PlayScene] Save data squad members: {_pendingSaveData.squad?.members?.Count ?? 0}");
             GameManager.Instance.SaveManager.ApplySaveData(_pendingSaveData);
             _pendingSaveData = null;
+        }
+        else
+        {
+            Debug.LogWarning("[PlayScene] No save data to apply - creating default squad");
+            // 신규 게임일 때 기본 캐릭터 생성 로직 필요
         }
 
         // ApplySaveData 후 프로필·체력바·카메라 팔로우 (SetSlots는 OnMembersChanged 미호출)
