@@ -12,15 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27efad6da00606547be21bd7be83abc8, type: 3}
   m_Name: character_celeste
   m_EditorClassIdentifier: 
-  displayName: Celeste
   _id: character_celeste
-  _prefabName: Celeste
+  displayName: Celeste
   portrait: {fileID: 21300000, guid: 0ae65192ecfcbfe4ca16627988079628, type: 3}
   maxHp: 100
   moveSpeed: 6
   attackPower: 10
   attackSpeed: 1
   defense: 0
+  maxLevel: 10
+  maxHpPerLevel: 10
+  attackPowerPerLevel: 2
   followDistance: 1
   stopDistance: 1
   catchUpSpeed: 1.2

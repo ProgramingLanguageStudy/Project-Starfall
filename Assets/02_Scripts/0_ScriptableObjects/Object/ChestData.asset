@@ -15,18 +15,14 @@ MonoBehaviour:
   _id: Chest
   rewards:
   - item: {fileID: 11400000, guid: cbd5ba9f579764847a10f518b77abce0, type: 2}
-    minAmount: 1
-    maxAmount: 1
-    probability: 50
+    amount: 1
   - item: {fileID: 11400000, guid: 5c0294051d72eca4a914bfe1a3953e8e, type: 2}
-    minAmount: 1
-    maxAmount: 1
-    probability: 50
+    amount: 1
   - item: {fileID: 11400000, guid: cb9e81b02164722428312d9f2af98c5a, type: 2}
-    minAmount: 1
-    maxAmount: 1
-    probability: 10
+    amount: 1
   - item: {fileID: 11400000, guid: 73f38b7cc1611594781e97844ebc3770, type: 2}
-    minAmount: 1
-    maxAmount: 1
-    probability: 10
+    amount: 1
+  - item: {fileID: 11400000, guid: 73f38b7cc1611594781e97844ebc3770, type: 2}
+    amount: 1
+  - item: {fileID: 11400000, guid: 9d4f09e7e53e9c348804516037358832, type: 2}
+    amount: 10
