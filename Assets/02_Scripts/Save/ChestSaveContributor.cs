@@ -6,20 +6,22 @@ using UnityEngine;
 /// Apply는 "지금 당장 오브젝트가 존재한다"는 가정을 하지 않고,
 /// SaveData를 pending으로 보관한 뒤 Chest가 등록되는 시점에 증분 적용한다.
 /// </summary>
-public class ChestSaveContributor : SaveContributorBehaviour
+public class ChestSaveContributor : SaveContributor
 {
     private HashSet<string> _pendingOpenedSaveIds;
     private bool _subscribed;
 
     public override int SaveOrder => 4; // 다른 Contributor들과 겹치지 않는 순서
 
-    private void OnEnable()
+    protected override void OnEnable()
     {
+        base.OnEnable(); // SaveContributor의 등록 처리
         EnsureSubscribed();
     }
 
-    private void OnDisable()
+    protected override void OnDisable()
     {
+        base.OnDisable(); // SaveContributor의 해제 처리
         if (!_subscribed) return;
         PlaySceneRegistry.Chests.OnRegistered -= HandleChestRegistered;
         _subscribed = false;

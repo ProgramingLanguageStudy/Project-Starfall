@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// 플래그 세이브/로드 기여. PlaySaveCoordinator.Initialize에서 주입.
 /// </summary>
-public class FlagSaveContributor : SaveContributorBehaviour
+public class FlagSaveContributor : SaveContributor
 {
     public override int SaveOrder => 1;
 

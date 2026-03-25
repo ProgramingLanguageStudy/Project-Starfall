@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// 분대 세이브/로드 기여. PlaySaveCoordinator.Initialize에서 주입.
 /// </summary>
-public class SquadSaveContributor : SaveContributorBehaviour
+public class SquadSaveContributor : SaveContributor
 {
     public override int SaveOrder => 0;
 
@@ -53,9 +53,13 @@ public class SquadSaveContributor : SaveContributorBehaviour
 
     public override void Apply(SaveData data)
     {
+        Debug.Log($"[SquadSaveContributor] Apply: data.squad={data?.squad != null}, squadController={_squadController != null}");
+        
         if (data?.squad == null) return;
         if (_squadController == null) return;
 
+        Debug.Log($"[SquadSaveContributor] Calling SquadController.ApplySaveData with {data.squad.members?.Count ?? 0} members");
+        
         // SquadController가 세이브 데이터 전체를 적용하도록 위임.
         _squadController.ApplySaveData(data.squad);
     }

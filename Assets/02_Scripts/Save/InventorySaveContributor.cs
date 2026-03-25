@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>
 /// 인벤토리 세이브/로드. PlaySaveCoordinator.Initialize에서 주입. Resources/Items에 ItemData 에셋 필요.
 /// </summary>
-public class InventorySaveContributor : SaveContributorBehaviour
+public class InventorySaveContributor : SaveContributor
 {
     public override int SaveOrder => 2;
 

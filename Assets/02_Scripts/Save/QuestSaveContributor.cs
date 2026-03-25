@@ -6,7 +6,7 @@ using UnityEngine;
 /// Apply: 수집형은 인벤토리에서 개수 참조. 처치/방문형은 entry.currentAmount 사용.
 /// PlaySaveCoordinator.Initialize에서 주입. Apply 순서상 Inventory가 Quest보다 먼저 실행되어야 함.
 /// </summary>
-public class QuestSaveContributor : SaveContributorBehaviour
+public class QuestSaveContributor : SaveContributor
 {
     public override int SaveOrder => 3;
 
