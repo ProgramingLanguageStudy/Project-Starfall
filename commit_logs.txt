@@ -1,6 +1,0 @@
-Debug: 불필요한 로그 정리
-
-SaveContributor 등록 관련 로그 제거
-PlayScene, SquadController 초기화 로그 제거
-디버거 성공 로그 제거 (에러/경고/인증 로그 유지)
-핵심 기능 로그만 남겨 노이즈 감소
