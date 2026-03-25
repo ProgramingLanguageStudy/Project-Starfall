@@ -1,3 +1,7 @@
+---
+alwaysApply: false
+description: When I Ask for
+---
 ## 프로젝트 규칙 (Cursor → Trae 이관)
 
 이 파일은 `.cursor/rules/*.mdc`의 핵심 규칙을 이 환경에서 참고하기 위해 옮겨 적은 것입니다.

@@ -31,13 +31,6 @@ public class FlagDebuggerEditor : Editor
         if (GUILayout.Button("플래그 목록 출력 (Log)")) debugger.LogFlags();
 
         EditorGUILayout.Space(4);
-        GUI.backgroundColor = new Color(1f, 0.7f, 0.7f);
-        if (GUILayout.Button("세이브 파일 삭제"))
-        {
-            if (EditorUtility.DisplayDialog("세이브 삭제", "세이브 파일을 삭제합니다. 다음 플레이 시 새 게임으로 시작됩니다.", "삭제", "취소"))
-                debugger.DeleteSaveFile();
-        }
-        GUI.backgroundColor = Color.white;
 
         EditorGUI.EndDisabledGroup();
 

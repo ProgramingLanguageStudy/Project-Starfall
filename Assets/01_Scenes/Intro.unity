@@ -427,7 +427,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -600, y: 0}
+  m_AnchoredPosition: {x: -400, y: 0}
   m_SizeDelta: {x: 300, y: 6}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &160384346
@@ -619,7 +619,7 @@ GameObject:
   - component: {fileID: 266468225}
   - component: {fileID: 266468224}
   m_Layer: 5
-  m_Name: GUI_KIT_TXT
+  m_Name: Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -664,7 +664,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Squad System FrameWork
+  m_text: Proejct Starfall
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: b633915a7eab00342a258e5c2f50a75f, type: 2}
   m_sharedMaterial: {fileID: -5571592025542048100, guid: b633915a7eab00342a258e5c2f50a75f, type: 2}
@@ -890,7 +890,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: SSF
+  m_text: Project Starfall
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c18d470c4d95ced49aa122411cabfd3b, type: 2}
   m_sharedMaterial: {fileID: -6471479325630977397, guid: c18d470c4d95ced49aa122411cabfd3b, type: 2}
@@ -2479,7 +2479,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 600, y: 0}
+  m_AnchoredPosition: {x: 400, y: 0}
   m_SizeDelta: {x: 300, y: 6}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1025349707
@@ -5776,9 +5776,13 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1433901968090186373, guid: 986a81ddf1b2ecb4f8c6ec7972684cb2, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3052570058303874209, guid: 986a81ddf1b2ecb4f8c6ec7972684cb2, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4556943814488374308, guid: 986a81ddf1b2ecb4f8c6ec7972684cb2, type: 3}
       propertyPath: m_Name
@@ -5790,7 +5794,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5310169988558812351, guid: 986a81ddf1b2ecb4f8c6ec7972684cb2, type: 3}
       propertyPath: m_AnchorMax.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7802854652034497179, guid: 986a81ddf1b2ecb4f8c6ec7972684cb2, type: 3}
       propertyPath: m_LocalPosition.x
