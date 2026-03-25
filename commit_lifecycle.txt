@@ -1,0 +1,5 @@
+PlayScene: Unity 생명주기 수정
+
+PlayScene 초기화를 Awake에서 Start로 이동
+Contributor 등록 타이밍 문제 해결
+IntroScene에서 PlayScene 전환 시 캐릭터 스폰 정상 동작

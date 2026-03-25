@@ -1,0 +1,6 @@
+SaveContributor: 자동 등록 기능 추가
+
+SaveContributorBehaviour → SaveContributor로 리네임
+OnEnable/OnDisable에서 자동 SaveManager 등록/해제 처리
+모든 Contributor가 상속받아 자동 등록되도록 통일
+CurrencySaveContributor, SquadSaveContributor 등 전체 적용
