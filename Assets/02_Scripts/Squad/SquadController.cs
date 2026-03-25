@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// 분대 조율. Squad(상태) + ISquadCharacterFactory(생성) 연동.
+/// 분대 조율. Squad(상태) + SquadCharacterFactory(생성) 연동.
 /// 역할 배정, 입력 위임, 포메이션 등.
 /// </summary>
 public class SquadController : MonoBehaviour
@@ -12,8 +12,6 @@ public class SquadController : MonoBehaviour
     #region Inspector
 
     [Header("참조")]
-    [SerializeField] [Tooltip("Character 생성/삭제. InstantiateSquadCharacterFactory 또는 PooledSquadCharacterFactory")]
-    private MonoBehaviour _factoryObject;
     [SerializeField] [Tooltip("스폰된 분대 부모. 비면 this")]
     private Transform _squadRoot;
     [SerializeField] [Tooltip("세이브 없을 때 기본 스폰 위치")]
@@ -27,7 +25,7 @@ public class SquadController : MonoBehaviour
     #region Fields
 
     private Squad _squad = new Squad();
-    private ISquadCharacterFactory _factoryInterface;
+    private SquadCharacterFactory _factory;
     private CombatController _combatController;
 
     #endregion
@@ -55,6 +53,19 @@ public class SquadController : MonoBehaviour
 
     #endregion
 
+    #region Unity Lifecycle
+
+    private void Awake()
+    {
+        _factory = GetComponent<SquadCharacterFactory>();
+        if (_factory == null)
+        {
+            Debug.LogError($"[SquadController] {gameObject.name}: SquadCharacterFactory를 찾을 수 없습니다.");
+        }
+    }
+
+    #endregion
+
     #region Events
 
     public event Action<Character> OnPlayerChanged;
@@ -70,14 +81,8 @@ public class SquadController : MonoBehaviour
     {
         _combatController = combatController;
 
-        if (_factoryInterface == null)
-        {
-            _factoryInterface = (_factoryObject as ISquadCharacterFactory)
-                ?? (ISquadCharacterFactory)GetComponent<InstantiateSquadCharacterFactory>()
-                ?? GetComponent<PooledSquadCharacterFactory>();
-            _squad.OnPlayerChanged += c => OnPlayerChanged?.Invoke(c);
-            _squad.OnMembersChanged += slots => OnMembersChanged?.Invoke(slots);
-        }
+        _squad.OnPlayerChanged += c => OnPlayerChanged?.Invoke(c);
+        _squad.OnMembersChanged += slots => OnMembersChanged?.Invoke(slots);
     }
 
     /// <summary>세이브 데이터 기반으로 분대 슬롯·플레이어·상태를 복원.</summary>
@@ -131,8 +136,13 @@ public class SquadController : MonoBehaviour
 
     private Character CreateCharacter(string characterId, Vector3 position, Transform parent)
     {
-        if (_factoryInterface == null) return null;
-        return _factoryInterface.Create(characterId, position, parent, _combatController, _squad, _spawnRadius);
+        if (_factory == null)
+        {
+            Debug.LogError($"[SquadController] Factory is null! characterId={characterId}");
+            return null;
+        }
+        
+        return _factory.Create(characterId, position, parent, _combatController, _squad, _spawnRadius);
     }
 
     public void SetPlayerCharacter(Character character)
@@ -190,7 +200,7 @@ public class SquadController : MonoBehaviour
     public Character AddCompanion(string characterId)
     {
         if (string.IsNullOrEmpty(characterId)) return null;
-        if (_factoryInterface == null) return null;
+        if (_factory == null) return null;
 
         var followTarget = PlayerCharacter != null ? PlayerCharacter.transform : transform;
         var root = _squadRoot != null ? _squadRoot : transform;
@@ -202,7 +212,7 @@ public class SquadController : MonoBehaviour
         }
         var pos = followTarget.position + GetSpawnOffset(memberCount);
 
-        var created = CreateCharacter(characterId, pos, root);
+        var created = _factory.Create(characterId, pos, root, _combatController, _squad, _spawnRadius);
         if (created == null) return null;
 
         _squad.AddMember(created);
@@ -214,7 +224,7 @@ public class SquadController : MonoBehaviour
     {
         if (character == null) return;
         _squad.RemoveMember(character);
-        _factoryInterface?.Destroy(character);
+        _factory?.Destroy(character);
     }
 
     public void RepositionCompanionsAround(Transform center)

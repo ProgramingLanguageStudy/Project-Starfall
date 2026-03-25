@@ -2,10 +2,10 @@ using UnityEngine;
 using UnityEngine.AI;
 
 /// <summary>
-/// Instantiate 기반 Character 생성/삭제. 풀링 미사용.
-/// 분대원 생성 빈도가 낮아 풀 불필요. 경로: Character/{id}.prefab
+/// Instantiate 기반 Character 생성/삭제. 분대원 생성용.
+/// 경로: Character/{id}.prefab
 /// </summary>
-public class InstantiateSquadCharacterFactory : MonoBehaviour, ISquadCharacterFactory
+public class SquadCharacterFactory : MonoBehaviour
 {
     private const string PrefabCategory = "Character";
 
@@ -17,21 +17,21 @@ public class InstantiateSquadCharacterFactory : MonoBehaviour, ISquadCharacterFa
         var rm = GameManager.Instance?.ResourceManager;
         if (dm == null || rm == null)
         {
-            Debug.LogWarning("[InstantiateSquadCharacterFactory] DataManager 또는 ResourceManager 없음.");
+            Debug.LogWarning("[SquadCharacterFactory] DataManager 또는 ResourceManager 없음.");
             return null;
         }
 
         var data = dm.Get<CharacterData>(characterId);
         if (data == null)
         {
-            Debug.LogWarning($"[InstantiateSquadCharacterFactory] CharacterData 없음: {characterId}");
+            Debug.LogWarning($"[SquadCharacterFactory] CharacterData 없음: {characterId}");
             return null;
         }
 
         var prefab = rm.GetPrefab(PrefabCategory, data.Id);
         if (prefab == null)
         {
-            Debug.LogWarning($"[InstantiateSquadCharacterFactory] 프리팹 없음: {PrefabCategory}/{data.Id}. Addressables 재빌드·파일명 확인.");
+            Debug.LogWarning($"[SquadCharacterFactory] 프리팹 없음: {PrefabCategory}/{data.Id}. Addressables 재빌드·파일명 확인.");
             return null;
         }
 
