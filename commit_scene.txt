@@ -1,5 +1,0 @@
-Scene: 씬 파일 및 에디터 업데이트
-
-Intro, Play 씬 파일 수정
-FlagDebuggerEditor, SaveDebuggerEditor 추가
-프로젝트 규칙 문서 업데이트

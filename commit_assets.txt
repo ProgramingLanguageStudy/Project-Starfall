@@ -1,5 +1,0 @@
-Assets: 아이템/프리팹 데이터 수정
-
-아이템 데이터 파일명 정리 (New Material → item_diamond)
-캐릭터 데이터, ChestData 수정
-GameManager, UI_Button 프리팹 업데이트

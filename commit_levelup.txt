@@ -1,5 +1,0 @@
-LevelUpAltar: 레벨업 시스템 추가
-
-LevelUpAltar, LevelUpAltarPresenter, LevelUpAltarView 추가
-경험치 기반 레벨업 기능 구현
-SaveDebugger 추가로 세이브 데이터 디버깅 지원
