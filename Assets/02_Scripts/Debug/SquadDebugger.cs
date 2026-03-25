@@ -77,7 +77,6 @@ public class SquadDebugger : MonoBehaviour
         var sc = GetSquadController();
         if (sc == null) return;
         sc.TeleportPlayer(_teleportTarget.position);
-        Debug.Log("[SquadDebugger] 플레이어를 텔레포트했습니다.");
     }
 
     /// <summary>동료 소환. characterId를 플레이어 주변에 스폰.</summary>
@@ -93,9 +92,7 @@ public class SquadDebugger : MonoBehaviour
         }
 
         var c = sc.AddCompanion(characterId);
-        if (c != null)
-            Debug.Log($"[SquadDebugger] 동료 소환: {characterId}");
-        else
+        if (c == null)
             Debug.LogWarning("[SquadDebugger] 동료 소환 실패.");
     }
 
@@ -110,14 +107,13 @@ public class SquadDebugger : MonoBehaviour
             return;
         }
         sc.RemoveCharacter(character);
-        Debug.Log($"[SquadDebugger] 동료 제거: {character.name}");
     }
 
     [ContextMenu("Validate Setup (Log)")]
     private void ValidateAndLog()
     {
         if (ValidateSetup(out var issues))
-            Debug.Log("[SquadDebugger] 검증 통과: 부품 구성 정상");
+            return; // 성공 시 조용함
         else
             foreach (var msg in issues)
                 Debug.LogWarning($"[SquadDebugger] {msg}");

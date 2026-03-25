@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Text;
 using UnityEngine;
 
@@ -47,29 +46,6 @@ public class FlagDebugger : MonoBehaviour
         for (int i = 0; i < data.keys.Count && i < data.values.Count; i++)
             sb.AppendLine($"  {data.keys[i]} = {data.values[i]}");
         Debug.Log(sb.ToString());
-    }
-
-    /// <summary>세이브 파일 삭제. 다음 플레이 시 새 게임처럼 시작.</summary>
-    public void DeleteSaveFile()
-    {
-        var gm = GameManager.Instance;
-        if (gm?.SaveManager == null)
-        {
-            Debug.LogWarning("[FlagDebugger] GameManager 또는 SaveManager를 찾을 수 없습니다.");
-            return;
-        }
-
-        StartCoroutine(DeleteSaveFileRoutine(gm));
-    }
-
-    private IEnumerator DeleteSaveFileRoutine(GameManager gm)
-    {
-        var success = false;
-        yield return gm.SaveManager.TryDeleteSaveAsync(b => success = b);
-        if (success)
-            Debug.Log("[FlagDebugger] 세이브 파일 삭제 완료. 다음 플레이 시 새 게임으로 시작됩니다.");
-        else
-            Debug.Log("[FlagDebugger] 삭제할 세이브 파일이 없습니다.");
     }
 
     private FlagSystem GetFlagSystem()

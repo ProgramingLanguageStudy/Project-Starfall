@@ -67,6 +67,25 @@ public class SceneLoadManager : MonoBehaviour
             yield break;
         }
 
+        // PlayScene 로드 전에 세이브 데이터 확인
+        var saveMgr = gm.SaveManager;
+        if (saveMgr != null)
+        {
+            var loadedData = saveMgr.LoadedSaveData;
+            if (loadedData != null)
+            {
+                Debug.Log($"[SceneLoadManager] Squad members: {loadedData.squad?.members?.Count ?? 0}, Player: {loadedData.squad?.currentPlayerId}");
+            }
+            else
+            {
+                Debug.Log("[SceneLoadManager] No save data found - using default");
+            }
+        }
+        else
+        {
+            Debug.LogError("[SceneLoadManager] SaveManager is null!");
+        }
+
         const float bootWaitTimeoutSec = 120f;
         var bootWaitStart = Time.realtimeSinceStartup;
         while (!gm.BootServicesReady)
