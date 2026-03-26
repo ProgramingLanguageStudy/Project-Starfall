@@ -29,6 +29,13 @@ public class UITweenFacade : MonoBehaviour
 
     RectTransform _rect;
     CanvasGroup _canvasGroup;
+    Tween _currentTween;
+
+    /// <summary>현재 연출 중인지 여부</summary>
+    public bool IsPlaying => _currentTween != null && _currentTween.IsActive();
+    
+    /// <summary>연출 중인지 내부 상태로 추적</summary>
+    private bool _isInTransition = false;
 
     void Awake()
     {
@@ -43,6 +50,23 @@ public class UITweenFacade : MonoBehaviour
             _rect = GetComponent<RectTransform>();
             _canvasGroup = GetComponent<CanvasGroup>();
         }
+    }
+
+    /// <summary>이전 Tween 중지</summary>
+    void KillCurrentTween()
+    {
+        if (_currentTween != null && _currentTween.IsActive())
+        {
+            _currentTween.Kill();
+            _currentTween = null;
+        }
+        _isInTransition = false;  // 연출 상태 해제
+    }
+
+    /// <summary>현재 연출 즉시 중단</summary>
+    public void Stop()
+    {
+        KillCurrentTween();
     }
 
     UIPresetData GetActivePreset()
@@ -69,10 +93,37 @@ public class UITweenFacade : MonoBehaviour
     }
 
     /// <summary>등장. controlActive면 SetActive(true) 후 연출.</summary>
-    /// <param name="onComplete">연출 완료 후 호출. Title은 등장+Punch 후 호출.</param>
+    /// <param name="onComplete">연출 완료 후 호출. Title은 등장+Punch 후 호출.</summary>
     public void PlayEnter(Action onComplete = null)
     {
         EnsureCached();
+        
+        // 연출 중일 때 UIRole별 다른 동작
+        if (_isInTransition) 
+        {
+            if (role == UIRole.Toast)
+            {
+                // Toast는 즉시 종료 후 새로 시작
+                Stop();
+            }
+            else
+            {
+                // 다른 UI는 무시
+                onComplete?.Invoke();
+                return;
+            }
+        }
+        
+        // 이미 열려있고 연출 중이 아니면 아무것도 안 함
+        if (gameObject.activeSelf && !IsPlaying) 
+        {
+            onComplete?.Invoke();
+            return;
+        }
+        
+        // 연출 상태 설정
+        _isInTransition = true;
+        
         if (controlActive)
             gameObject.SetActive(true);
 
@@ -89,7 +140,13 @@ public class UITweenFacade : MonoBehaviour
             seq.Append(_rect.DOPunchScale(Vector3.one * TitlePreset.PunchStrength, TitlePreset.PunchDuration, 4, 0.5f));
         }
 
-        seq.OnComplete(() => onComplete?.Invoke());
+        seq.OnComplete(() => {
+            _currentTween = null;
+            _isInTransition = false;  // 연출 상태 해제
+            onComplete?.Invoke();
+        });
+        
+        _currentTween = seq;
         seq.Play();
     }
 
@@ -98,6 +155,24 @@ public class UITweenFacade : MonoBehaviour
     public void PlayExit(Action onComplete = null)
     {
         EnsureCached();
+        
+        // 연출 중이면 무시
+        if (_isInTransition) 
+        {
+            onComplete?.Invoke();
+            return;
+        }
+        
+        // 이미 닫혀있고 연출 중이 아니면 아무것도 안 함
+        if (!gameObject.activeSelf && !IsPlaying) 
+        {
+            onComplete?.Invoke();
+            return;
+        }
+        
+        // 연출 상태 설정
+        _isInTransition = true;
+        
         var p = GetActivePreset();
         _rect.localScale = p.ScaleTo;
         _canvasGroup.alpha = p.AlphaTo;
@@ -109,8 +184,17 @@ public class UITweenFacade : MonoBehaviour
         {
             if (controlActive)
                 gameObject.SetActive(false);
+            _currentTween = null;
+            _isInTransition = false;  // 연출 상태 해제
             onComplete?.Invoke();
         });
+        
+        _currentTween = seq;
         seq.Play();
+    }
+
+    private void OnDestroy()
+    {
+        KillCurrentTween();
     }
 }
