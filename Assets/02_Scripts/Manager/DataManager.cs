@@ -40,10 +40,14 @@ public class DataManager : MonoBehaviour
         var list = handle.Result;
         if (list != null)
         {
+            Debug.Log($"[DataManager] Loaded {list.Count} ScriptableObjects");
             foreach (var so in list)
             {
                 if (so != null)
+                {
+                    Debug.Log($"[DataManager] Loading: {so.GetType().Name} - {so.name}");
                     CacheByType(so);
+                }
             }
         }
 
@@ -65,7 +69,16 @@ public class DataManager : MonoBehaviour
     {
         // BaseData: 단일 캐시
         if (so is BaseData bd && !string.IsNullOrEmpty(bd.Id))
-            _cache[$"{bd.Category}/{bd.Id}"] = so;
+        {
+            // 하위 타입도 부모 타입의 카테고리로 통일 (QuestData, ItemData 등)
+            string category = bd.Category;
+            if (so is ItemData) category = "ItemData";
+            else if (so is QuestData) category = "QuestData";
+            
+            var key = $"{category}/{bd.Id}";
+            Debug.Log($"[DataManager] Caching {so.GetType().Name}: {key} (Category: {category}, Id: {bd.Id})");
+            _cache[key] = so;
+        }
 
         // DialogueData: npcId별 목록 (1:N)
         if (so is DialogueData dd && !string.IsNullOrEmpty(dd.npcId))
@@ -96,8 +109,26 @@ public class DataManager : MonoBehaviour
         {
             category = "ItemData";
         }
+        // QuestData 계열도 동일하게 처리 (RecruitmentQuestData 등 하위 타입용)
+        else if (typeof(QuestData).IsAssignableFrom(typeof(T)))
+        {
+            category = "QuestData";
+        }
 
         var key = $"{category}/{id}";
+        
+        // 디버그 로그 추가
+        Debug.Log($"[DataManager] Get<{typeof(T).Name}> with id: {id}");
+        Debug.Log($"[DataManager] Looking for key: {key}");
+        Debug.Log($"[DataManager] Cache contains {_cache.Count} items");
+        if (!_cache.ContainsKey(key))
+        {
+            Debug.LogWarning($"[DataManager] Key not found in cache: {key}");
+            // 캐시에 있는 모든 키 출력
+            var keys = string.Join(", ", _cache.Keys);
+            Debug.Log($"[DataManager] Available keys: {keys}");
+        }
+        
         return _cache.TryGetValue(key, out var cached) ? cached as T : null;
     }
 

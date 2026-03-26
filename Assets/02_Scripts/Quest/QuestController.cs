@@ -65,12 +65,31 @@ public class QuestController : MonoBehaviour
     {
         if (string.IsNullOrEmpty(itemId) || _questSystem == null) return;
 
+        Debug.Log($"[QuestController] Item changed: {itemId}, count: {totalCount}");
+
         foreach (var quest in _questSystem.GetActiveQuests())
         {
-            if (quest.IsCompleted || quest.QuestType != QuestType.Gather) continue;
+            Debug.Log($"[QuestController] Checking quest: {quest.Id}, type: {quest.QuestType}, target: {quest.TargetId}");
+            if (quest.IsCompleted) continue;
             if (quest.TargetId != itemId) continue;
 
-            _questSystem.SetTaskProgress(quest.Id, itemId, totalCount);
+            // Gather 퀘스트: 아이템 수집 진행도 업데이트
+            if (quest.QuestType == QuestType.Gather)
+            {
+                Debug.Log($"[QuestController] Updating Gather quest progress: {quest.Id} -> {totalCount}");
+                _questSystem.SetTaskProgress(quest.Id, itemId, totalCount);
+            }
+            // Recruitment 퀘스트: 아이템 수집 조건 체크 (완료 조건 충족 시 완료 처리)
+            else if (quest.QuestType == QuestType.Recruitment)
+            {
+                if (totalCount >= quest.TargetAmount)
+                {
+                    Debug.Log($"[QuestController] Recruitment quest item condition met: {quest.Id}");
+                    // Recruitment 퀘스트는 아이템 조건 충족 시 자동으로 완료 가능 상태로 변경
+                    // 실제 완료는 대화에서 처리하거나, 여기서 자동 완료
+                    _questSystem.SetTaskProgress(quest.Id, itemId, totalCount);
+                }
+            }
         }
     }
 
