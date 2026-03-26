@@ -420,26 +420,34 @@ private IEnumerator WaitForBootThenInitializeRoutine()
 <table>
 <tr>
 <td><strong>🏗️ 캐릭터 구조</strong><br><img src="Docs/images/character-inspectorview.png" width="400" alt="캐릭터 Inspector"></td>
-<td><strong>🔧 기술적 특징</strong><br>
-- Facade 패턴으로 캐릭터 시스템 캡슐화<br>
-- 이벤트 기반 상태 전파로 성능 최적화<br>
-- 인터페이스 주입으로 결합도 최소화</td>
+<td><strong>🔧 시스템 특징</strong><br>
+- **Facade 패턴**: 캐릭터의 복잡한 하위 시스템을 중앙에서 통합 관리<br>
+- **이벤트 기반**: 상태 변경 시 필요한 컴포넌트만 이벤트로 통신하여 성능 최적화<br>
+- **인터페이스 주입**: 의존성 주입으로 컴포넌트 간 결합도 최소화</td>
 </tr>
 </table>
 
-| 구분 | 내용 |
-|------|------|
-| **문제** | `Update()`를 통한 반복적인 상태 체크는 CPU 부하를 유발하며, 각 컴포넌트가 부모 클래스를 직접 참조할 경우 강한 결합이 발생하여 유지보수가 어려워짐. |
-| **해결** | **Facade 패턴**: `Character` 클래스가 하위 시스템(Mover, Attacker, StateMachine 등)의 중앙 접점 역할을 수행.<br>**이벤트 기반 아키텍처**: `StateMachine`의 상태 변경 이벤트나 `BuffManager`의 스탯 변경 이벤트를 구독하여 필요한 시점에만 애니메이션과 스탯을 갱신.<br>**인터페이스 주입**: `CharacterAttacker`는 `IAttackPowerSource` 인터페이스를 주입받아 부모 클래스와의 직접적인 의존성을 제거. |
-| **결과** | 불필요한 CPU 연산을 제거하여 런타임 성능을 확보하고, 각 컴포넌트의 독립성을 보장하여 테스트 및 기능 확장이 용이한 유연한 구조를 완성. |
+**주요 컴포넌트**
+- `Character`: Facade 클래스로 전체 캐릭터 시스템의 중앙 접점
+- `CharacterMover`: 이동 관리, `CharacterAttacker`: 공격 처리
+- `StateMachine`: 상태 전환, `BuffReceiver`: 버프 효과 적용
 
 #### 3.2 전투 및 적 시스템 (Pooling & Data-Driven)
 
-| 구분 | 내용 |
-|------|------|
-| **문제** | 대규모 전투 시 `Instantiate`와 `Destroy`의 반복 호출로 인한 프레임 드랍 및 GC 스파이크 발생. 적의 종류나 배치 변경 시 코드 수정이 불가피한 구조. |
-| **해결** | **오브젝트 풀링**: `PoolManager`를 통해 적과 이펙트를 재사용하여 런타임 메모리 할당을 최소화.<br>**데이터 기반 스폰**: `EnemySpawner`가 문자열 ID만으로 `DataManager`와 `ResourceManager`를 통해 적의 데이터와 프리팹을 동적으로 로드하여 생성. |
-| **결과** | 수십 명의 적이 등장하는 전투 상황에서도 안정적인 프레임을 유지하며, 기획자가 코드 수정 없이 데이터 파일만으로 적의 구성과 배치를 자유롭게 변경할 수 있는 환경 구축. |
+<table>
+<tr>
+<td><strong>🏊 풀링 진입</strong><br><img src="Docs/images/enemy-gotopool.png" width="400" alt="풀링 진입"></td>
+<td><strong>♻️ 리스폰 생성</strong><br><img src="Docs/images/enemy-respawn.png" width="400" alt="리스폰"></td>
+</tr>
+<tr>
+<td colspan="2"><strong>🔄 풀링 재사용</strong><br><img src="Docs/images/enemy-respawnfrompool.png" width="850" alt="재사용"></td>
+</tr>
+</table>
+
+**핵심 메커니즘**
+- **오브젝트 풀링**: `PoolManager`를 통한 적 재사용으로 메모리 할당 최소화
+- **데이터 기반 스폰**: `EnemySpawner`가 ID로 적 데이터를 동적 로드하여 생성
+- **성능 안정화**: `Instantiate/Destroy` 반복 제거로 프레임 드랍 방지
 
 #### 3.3 대화 및 퀘스트 시나리오 연동
 
