@@ -24,12 +24,15 @@
 </tr>
 </table>
 
-### ⚔️ 분대 전투 시스템
-<!-- 이미지 준비 중 -->
+### ⚔️ 분대 시스템
 <table>
 <tr>
-<td><strong>👥 분대 협공 전투</strong><br><em>스크린샷 준비 중...</em></td>
-<td><strong>🤝 동료 영입 시나리오</strong><br><em>스크린샷 준비 중...</em></td>
+<td><strong>🤝 동료 영입 퀘스트</strong><br><img src="Docs/images/play-squad-recruit.png" width="400" alt="영입 퀘스트"></td>
+<td><strong>✅ 영입 완료 시나리오</strong><br><img src="Docs/images/play-squad-recruit-complete.png" width="400" alt="영입 완료"></td>
+</tr>
+<tr>
+<td><strong>👥 3인 분대 완성</strong><br><img src="Docs/images/play-squad-basic.png" width="400" alt="분대 완성"></td>
+<td><strong>🔄 리더 교체 시스템</strong><br><img src="Docs/images/play-squad-leaderchange.png" width="400" alt="리더 교체"></td>
 </tr>
 </table>
 
@@ -49,30 +52,6 @@
 
 ## 핵심 기술 하이라이트
 
-### ⚡ 성능 최적화
-- **오브젝트 풀링**: 전투 시 60+ 프레임 안정성 확보
-- **Addressables 시스템**: 메모리 사용량 40% 감소
-- **이벤트 기반 아키텍처**: Update() 호출 최소화로 CPU 부하 감소
-
-### 🔧 아키텍처 설계
-- **MVP 패턴**: UI와 비즈니스 로직 완벽 분리
-- **Facade 패턴**: 캐릭터 시스템의 복잡성 캡슐화
-- **Contributor 패턴**: 모듈형 세이브 시스템으로 확장성 극대화
-
-### 🌐 클라우드 연동
-- **Firebase Auth**: 안전한 계정 관리 시스템
-- **Firestore**: 실시간 클라우드 세이브 및 데이터 동기화
-- **비동기 파이프라인**: 안정적인 씬 로딩 및 초기화
-
----
-
-## 1. 프로젝트 소개
-
-### 1.1 게임 개요
-
-**Project Starfall**은 **분대 시스템 기반 3인칭 RPG 프레임워크**입니다. 
-단순한 기능 구현을 넘어, **객체지향 설계(OOP)**와 **데이터 기반 디자인(Data-Driven Design)**을 통해 콘텐츠 확장성과 시스템 유지보수성을 극대화하는 것을 목표로 제작되었습니다.
-
 - **플레이어·동료 분대**: 한 명을 직접 조종하고, 나머지는 AI(AIBrain)가 상황에 맞춰 추적 및 전투를 수행하는 유기적인 분대 시스템
 - **인증 및 클라우드 세이브**: **Firebase Auth**를 이용한 계정 관리와 **Firestore**를 통한 서버 기반 데이터 영속성 확보
 - **비동기 에셋 관리**: **Addressables** 시스템을 도입하여 런타임 중 필요한 에셋만 동적으로 로드하고 메모리 점유율 최적화
@@ -84,6 +63,14 @@
 - **유연한 상호작용**: 대화, 인벤토리 등 RPG의 핵심 요소들을 모듈화하여 독립적인 컴포넌트로 구성
 - **스마트 지도 및 포탈 시스템**: `RenderTexture` 기반의 실시간 지도, 줌/스크롤 기능 및 해금된 포탈을 통한 전역 순간이동(Fast Travel) 시스템
 - **사망 및 리스폰**: 세이브 데이터와 연동된 부활 시스템 및 위치 보정 로직 포함
+---
+
+## 1. 프로젝트 소개
+
+### 1.1 게임 개요
+
+**Project Starfall**은 **분대 시스템 기반 3인칭 RPG 프레임워크**입니다. 
+단순한 기능 구현을 넘어, **객체지향 설계(OOP)**와 **데이터 기반 디자인(Data-Driven Design)**을 통해 콘텐츠 확장성과 시스템 유지보수성을 극대화하는 것을 목표로 제작되었습니다.
 
 ### 1.3 프로젝트 진행 단계
 
