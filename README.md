@@ -237,7 +237,7 @@ flowchart TB
 
 ---
 
-### 2.3 오브젝트 풀링 시스템
+### 2.3 커스텀 오브젝트 풀링 시스템
 
 | 구분 | 내용 |
 |------|------|
@@ -416,6 +416,16 @@ private IEnumerator WaitForBootThenInitializeRoutine()
 ### 3.A 핵심 게임플레이 루프 (Core Gameplay Loop)
 
 #### 3.1 분대 및 캐릭터 시스템 (Facade & Event-driven)
+
+<table>
+<tr>
+<td><strong>🏗️ 캐릭터 구조</strong><br><img src="Docs/images/character-inspectorview.png" width="400" alt="캐릭터 Inspector"></td>
+<td><strong>🔧 기술적 특징</strong><br>
+- Facade 패턴으로 캐릭터 시스템 캡슐화<br>
+- 이벤트 기반 상태 전파로 성능 최적화<br>
+- 인터페이스 주입으로 결합도 최소화</td>
+</tr>
+</table>
 
 | 구분 | 내용 |
 |------|------|
