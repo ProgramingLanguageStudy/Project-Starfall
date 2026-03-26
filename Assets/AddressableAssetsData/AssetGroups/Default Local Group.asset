@@ -21,8 +21,8 @@ MonoBehaviour:
     m_SerializedLabels:
     - Data
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 0c918e2035d8f4a49ae1e6c0591a22df
-    m_Address: Assets/02_Scripts/0_ScriptableObjects/Quests
+  - m_GUID: 14d4df827b8b28c4fa9e555e5adc1ddc
+    m_Address: Assets/02_Scripts/0_ScriptableObjects/Quest
     m_ReadOnly: 0
     m_SerializedLabels:
     - Data

@@ -21,7 +21,7 @@ MonoBehaviour:
   - itemData: {fileID: 11400000, guid: 73f38b7cc1611594781e97844ebc3770, type: 2}
     amount: 0
     probability: 0.1
-  maxHp: 10
+  maxHp: 100
   attackPower: 5
   defense: 0
   patrolSpeed: 1.5
