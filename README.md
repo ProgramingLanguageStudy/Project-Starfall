@@ -15,30 +15,32 @@
 ### 🔐 인트로 & 클라우드 로그인 시스템
 <table>
 <tr>
-<td><strong>🔑 Firebase 로그인 화면</strong><br><img src="Recordings/pictures/intro-login.png" width="400" alt="로그인"></td>
-<td><strong>⚠️ 로그인 에러 처리</strong><br><img src="Recordings/pictures/intro-login-error.png" width="400" alt="로그인 에러"></td>
+<td><strong>🔑 Firebase 로그인 화면</strong><br><img src="Docs/images/intro-login.png" width="400" alt="로그인"></td>
+<td><strong>⚠️ 로그인 에러 처리</strong><br><img src="Docs/images/intro-login-error.png" width="400" alt="로그인 에러"></td>
 </tr>
 <tr>
-<td colspan="2"><strong>✅ 로그인 성공 및 게임 시작</strong><br><img src="Recordings/pictures/intro-login-complete.png" width="850" alt="게임 시작"></td>
+<td colspan="2"><strong>✅ 로그인 성공 및 게임 시작</strong><br><img src="Docs/images/intro-login-complete.png" width="850" alt="게임 시작"></td>
 </tr>
 </table>
 
 ### ⚔️ 분대 전투 시스템
+<!-- 이미지 준비 중 -->
 <table>
 <tr>
-<td><strong>� 분대 협공 전투</strong><br><img src="Recordings/pictures/분대전투.png" width="400" alt="분대 전투"></td>
-<td><strong>🤝 동료 영입 시나리오</strong><br><img src="Recordings/pictures/동료영입완료.png" width="400" alt="동료 영입"></td>
+<td><strong>👥 분대 협공 전투</strong><br><em>스크린샷 준비 중...</em></td>
+<td><strong>🤝 동료 영입 시나리오</strong><br><em>스크린샷 준비 중...</em></td>
 </tr>
 </table>
 
 ### 🎒 성장 및 탐험 시스템  
+<!-- 이미지 준비 중 -->
 <table>
 <tr>
-<td><strong>� 대화 및 퀘스트</strong><br><img src="Recordings/pictures/대화퀘스트.png" width="400" alt="대화·퀘스트"></td>
-<td><strong>🗺️ 실시간 지도 및 포탈</strong><br><img src="Recordings/pictures/지도.png" width="400" alt="지도"></td>
+<td><strong>💬 대화 및 퀘스트</strong><br><em>스크린샷 준비 중...</em></td>
+<td><strong>🗺️ 실시간 지도 및 포탈</strong><br><em>스크린샷 준비 중...</em></td>
 </tr>
 <tr>
-<td colspan="2"><strong>🎒 인벤토리 관리 시스템</strong><br><img src="Recordings/pictures/인벤토리.png" width="850" alt="인벤토리"></td>
+<td colspan="2"><strong>🎒 인벤토리 관리 시스템</strong><br><em>스크린샷 준비 중...</em></td>
 </tr>
 </table>
 
