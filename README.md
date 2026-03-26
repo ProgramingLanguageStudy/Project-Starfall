@@ -1,7 +1,5 @@
 # Project Starfall
 
-> **분대 시스템 기반 3인칭 RPG 프레임워크**
-> 
 > 객체지향 설계와 데이터 기반 아키텍처로 구축한 확장 가능한 Unity RPG 게임입니다.
 > 
 > **Last Updated**: 2026.03.26 | **Unity**: 6000.3.10f1 | **Status**: Phase 2 (Content Loop)
@@ -31,20 +29,24 @@
 <td><strong>✅ 영입 완료 시나리오</strong><br><img src="Docs/images/play-squad-recruit-complete.png" width="400" alt="영입 완료"></td>
 </tr>
 <tr>
-<td><strong>👥 3인 분대 완성</strong><br><img src="Docs/images/play-squad-basic.png" width="400" alt="분대 완성"></td>
-<td><strong>🔄 리더 교체 시스템</strong><br><img src="Docs/images/play-squad-leaderchange.png" width="400" alt="리더 교체"></td>
+<td><strong>� 리더 교체 시스템</strong><br><img src="Docs/images/play-squad-leaderchange.png" width="400" alt="리더 교체"></td>
+<td><strong>⚔️ 분대 협공 전투</strong><br><img src="Docs/images/play-squad-combat.png" width="400" alt="분대 전투"></td>
 </tr>
 </table>
 
-### 🎒 성장 및 탐험 시스템  
-<!-- 이미지 준비 중 -->
+### 🎒 성장 및 탐험 시스템
 <table>
 <tr>
-<td><strong>💬 대화 및 퀘스트</strong><br><em>스크린샷 준비 중...</em></td>
-<td><strong>🗺️ 실시간 지도 및 포탈</strong><br><em>스크린샷 준비 중...</em></td>
+<td><strong>💬 퀘스트 수락</strong><br><img src="Docs/images/play-dialogue-questaccept.png" width="400" alt="퀘스트 수락"></td>
+<td><strong>🗺️ 지도 확인</strong><br><img src="Docs/images/play-map.png" width="400" alt="지도 확인"></td>
 </tr>
 <tr>
-<td colspan="2"><strong>🎒 인벤토리 관리 시스템</strong><br><em>스크린샷 준비 중...</em></td>
+<td><strong>🌀 포탈 이동</strong><br><img src="Docs/images/play-portal.png" width="400" alt="포탈 이동"></td>
+<td><strong>💎 보물 획득</strong><br><img src="Docs/images/play-chest-open.png" width="400" alt="보물 획득"></td>
+</tr>
+<tr>
+<td><strong>✅ 퀘스트 완료</strong><br><img src="Docs/images/play-quest-complete.png" width="400" alt="퀘스트 완료"></td>
+<td><strong>📈 레벨업 성장</strong><br><img src="Docs/images/play-altar-levelup.png" width="400" alt="레벨업 성장"></td>
 </tr>
 </table>
 
@@ -236,7 +238,7 @@ flowchart TB
 
 ---
 
-### 2.3 고성능 오브젝트 풀링 시스템
+### 2.3 오브젝트 풀링 시스템
 
 | 구분 | 내용 |
 |------|------|
