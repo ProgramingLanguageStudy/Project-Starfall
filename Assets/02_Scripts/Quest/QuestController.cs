@@ -124,7 +124,7 @@ public class QuestController : MonoBehaviour
     {
         if (data.RewardGold > 0)
         {
-            GameManager.Instance?.CurrencyManager?.AddGold(data.RewardGold);
+            _inventory?.AddGold(data.RewardGold);
             GameEvents.OnGoldAcquired?.Invoke(data.RewardGold);
         }
 

@@ -172,7 +172,7 @@ public class MapView : PanelViewBase
     private void Update()
     {
         var panel = _mapFacade != null ? _mapFacade.gameObject : _mapPanel;
-        if (panel == null || !panel.activeSelf || _player.transform == null) return;
+        if (panel == null || !panel.activeSelf || _player == null || _player.transform == null) return;
 
         // 플레이어 마커 실시간 업데이트 (지형 위에 있으므로 매 프레임 위치 갱신)
         _playerIcon.anchoredPosition = WorldToMapPos(_player.transform.position);

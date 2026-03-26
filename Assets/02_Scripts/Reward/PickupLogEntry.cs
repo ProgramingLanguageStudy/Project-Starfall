@@ -19,6 +19,9 @@ public class PickupLogEntry : MonoBehaviour
     [Tooltip("Facade 없을 때 사라지는 페이드 시간(초).")]
     [SerializeField] private float _fadeOutDuration = 0.3f;
 
+    [Tooltip("골드 아이콘 스프라이트. Resources/UI/gold_icon 또는 직접 할당")]
+    [SerializeField] private Sprite _goldIcon;
+
     private CanvasGroup _canvasGroup;
 
     private void Awake()
@@ -46,7 +49,12 @@ public class PickupLogEntry : MonoBehaviour
     public void ShowGold(int amount)
     {
         if (_icon != null)
-            _icon.sprite = null; // 골드 아이콘은 별도 지정 가능
+        {
+            if (_goldIcon != null)
+                _icon.sprite = _goldIcon;
+            else
+                _icon.sprite = Resources.Load<Sprite>("UI/gold_icon"); // fallback
+        }
         if (_descText != null)
             _descText.text = "Gold +" + amount;
 
