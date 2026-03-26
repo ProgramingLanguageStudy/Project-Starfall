@@ -32,8 +32,10 @@ public class PlayScene : MonoBehaviour
     private InventoryPresenter _inventoryPresenter;
     [SerializeField] [Tooltip("체력바·분대 프로필 등 HUD. 조종 캐릭터 Model.OnHpChanged")]
     private PlaySceneView _playSceneView;
-    [SerializeField] [Tooltip("조종 캐릭터 Follow. SquadSwap 시 타겟 갱신")]
-    private CinemachineCamera _cinemachineCamera;
+    [SerializeField] [Tooltip("카메라 제어 통합. 순간이동·플레이어 변경·커서 상태 처리")]
+    private CameraController _cameraController;
+    [SerializeField] [Tooltip("커서 제어. 커서 표시/숨김 및 상태 변경 이벤트 발행")]
+    private CursorController _cursorController;
     [SerializeField] [Tooltip("세이브/로드 조율·Contributor")]
     private PlaySaveCoordinator _saveCoordinator;
     [SerializeField] [Tooltip("대화 컴포넌트·이벤트 연결")]
@@ -96,8 +98,6 @@ public class PlayScene : MonoBehaviour
 
     private void OnEnable()
     {
-        if (_inputHandler == null || _squadController == null) return;
-
         // Initialize 전 콜백은 OnSquad*에서 IsSceneReady로 무시
         _squadController.OnPlayerChanged += OnSquadPlayerChanged;
         _squadController.OnMembersChanged += OnSquadMembersChanged;
@@ -110,8 +110,10 @@ public class PlayScene : MonoBehaviour
         _inputHandler.OnMapPerformed += HandleMap;
         _inputHandler.OnSettingsPerformed += HandleSettings;
 
-        if (_settingsView != null)
-            _settingsView.OnEscapeRequested += HandleEscapeRequested;
+        // 커서 상태 변경 이벤트 연결
+        _cursorController.OnCursorStateChanged += _cameraController.HandleCursorStateChange;
+
+        _settingsView.OnEscapeRequested += HandleEscapeRequested;
     }
 
     private void OnDisable()
@@ -127,13 +129,12 @@ public class PlayScene : MonoBehaviour
             _hpModelSubscribed.OnHpChanged -= OnHpChanged;
             _hpModelSubscribed = null;
         }
-        if (_squadController != null)
-        {
-            _squadController.OnPlayerChanged -= OnSquadPlayerChanged;
-            _squadController.OnMembersChanged -= OnSquadMembersChanged;
-        }
-        if (_inputHandler == null) return;
-
+        _squadController.OnPlayerChanged -= OnSquadPlayerChanged;
+        _squadController.OnMembersChanged -= OnSquadMembersChanged;
+        
+        // 커서 상태 변경 이벤트 해제
+        _cursorController.OnCursorStateChanged -= _cameraController.HandleCursorStateChange;
+        
         _inputHandler.OnInteractPerformed -= HandleInteract;
         _inputHandler.OnInventoryPerformed -= HandleInventoryKey;
         _inputHandler.OnAttackPerformed -= HandleAttack;
@@ -142,16 +143,14 @@ public class PlayScene : MonoBehaviour
         _inputHandler.OnMapPerformed -= HandleMap;
         _inputHandler.OnSettingsPerformed -= HandleSettings;
 
-        if (_settingsView != null)
-            _settingsView.OnEscapeRequested -= HandleEscapeRequested;
+        _settingsView.OnEscapeRequested -= HandleEscapeRequested;
     }
 
     private void Update()
     {
         if (!IsSceneReady) return;
 
-        var player = _squadController?.PlayerCharacter;
-        if (_inputHandler == null || player == null) return;
+        var player = _squadController.PlayerCharacter;
         if (!_squadController.CanMove) return;
 
         Vector2 input = _inputHandler.MoveInput;
@@ -189,7 +188,8 @@ public class PlayScene : MonoBehaviour
         ok = this.CheckComponent(_combatController) && ok;
         ok = this.CheckComponent(_inventoryPresenter) && ok;
         ok = this.CheckComponent(_playSceneView) && ok;
-        ok = this.CheckComponent(_cinemachineCamera) && ok;
+        ok = this.CheckComponent(_cameraController) && ok;
+        ok = this.CheckComponent(_cursorController) && ok;
         ok = this.CheckComponent(_saveCoordinator) && ok;
         ok = this.CheckComponent(_dialogueController) && ok;
         ok = this.CheckComponent(_questPresenter) && ok;
@@ -237,44 +237,40 @@ public class PlayScene : MonoBehaviour
         _pendingSaveData = gm.SaveManager != null ? gm.SaveManager.LoadedSaveData : null;
 
         // 세이브 코디네이터·플레이 UI
-        _saveCoordinator?.Initialize(
+        _saveCoordinator.Initialize(
             _squadController,
             _flagSystem,
             _questPresenter,
-            _inventoryPresenter?.Model);
+            _inventoryPresenter.Model);
 
-
-        if (_settingsView != null)
-            _settingsView.Initialize();
-        _playSceneView?.Initialize();
-        _overlayController?.Initialize();
-        _levelUpAltarPresenter?.Initialize(_inventoryPresenter?.Model);
+        _settingsView.Initialize();
+        _playSceneView.Initialize();
+        _overlayController.Initialize();
+        _levelUpAltarPresenter.Initialize(_inventoryPresenter.Model);
 
         // 시네: 초기화 중 렌더 끄고, 세이브 반영 후 다시 켬
-        if (_cinemachineCamera != null)
-            _cinemachineCamera.gameObject.SetActive(false);
+        _cameraController.SetCameraActive(false);
 
         // 분대·전투·NPC·인벤
         _squadController.Initialize(_combatController);
-        _npcController?.Initialize();
+        _npcController.Initialize();
 
         var player = _squadController.PlayerCharacter;
         InitializeEnemySpawnersUnderRoot(_enemySpawnRoot, _combatController);
 
-        if (_inventoryPresenter != null)
-            _inventoryPresenter.SetPlayerCharacter(player);
+        _inventoryPresenter.SetPlayerCharacter(player);
+
+        // EnemyRewardController에 Inventory 주입
+        var enemyRewardController = FindFirstObjectByType<EnemyRewardController>();
+        enemyRewardController?.Initialize(_inventoryPresenter.Model);
 
         // 대화·퀘스트
-        _dialogueController?.Initialize(_questController, _flagSystem);
-        if (_questController != null && _questPresenter != null && _inventoryPresenter?.Model != null)
-            _questController.Initialize(_questPresenter.System, _inventoryPresenter.Model, _flagSystem, _squadController);
+        _dialogueController.Initialize(_questController, _flagSystem);
+        _questController.Initialize(_questPresenter.System, _inventoryPresenter.Model, _flagSystem, _squadController);
 
         // 맵·포탈
-        if (_mapController != null)
-            _mapController.Initialize(_portalController, player, _squadController);
-
-        if (_portalController != null)
-            _portalController.Initialize(_mapController.MapView, _flagSystem);
+        _mapController.Initialize(_portalController, player, _squadController);
+        _portalController.Initialize(_mapController.MapView, _flagSystem);
 
         // 세이브 적용 → 분대 슬롯 갱신
         if (_pendingSaveData != null && GameManager.Instance?.SaveManager != null)
@@ -293,8 +289,7 @@ public class PlayScene : MonoBehaviour
         RefreshSquadProfileView(_squadController.Characters);
         HandlePlayerChanged(_squadController.PlayerCharacter);
 
-        if (_cinemachineCamera != null)
-            _cinemachineCamera.gameObject.SetActive(true);
+        _cameraController.SetCameraActive(true);
 
         IsSceneReady = true;
         OnSceneReady?.Invoke();
@@ -369,21 +364,20 @@ public class PlayScene : MonoBehaviour
     private void HandleSettings()
     {
         if (!IsSceneReady) return;
-        _settingsView?.RequestToggle();
+        _settingsView.RequestToggle();
     }
 
     private void HandleEscapeRequested()
     {
         if (!IsSceneReady) return;
-        _squadController?.TeleportToDefaultPoint();
+        _squadController.TeleportToDefaultPoint();
     }
 
     /// <summary>플레이어 변경 시 chase/follow/인벤토리/체력바/카메라 등 갱신.</summary>
     private void HandlePlayerChanged(Character newPlayer)
     {
-        if (newPlayer != null && _cinemachineCamera != null)
-            _cinemachineCamera.Follow = newPlayer.transform;
-        _inventoryPresenter?.SetPlayerCharacter(newPlayer);
+        _cameraController.SetFollowTarget(newPlayer?.transform);
+        _inventoryPresenter.SetPlayerCharacter(newPlayer);
 
         if (_hpModelSubscribed != null)
             _hpModelSubscribed.OnHpChanged -= OnHpChanged;
@@ -392,32 +386,34 @@ public class PlayScene : MonoBehaviour
         if (_hpModelSubscribed != null)
         {
             _hpModelSubscribed.OnHpChanged += OnHpChanged;
-            _playSceneView?.RefreshHealth(_hpModelSubscribed.CurrentHp, _hpModelSubscribed.MaxHp);
+            _playSceneView.RefreshHealth(_hpModelSubscribed.CurrentHp, _hpModelSubscribed.MaxHp);
         }
 
         // 분대 프로필 선택 강조 (슬롯 인덱스 기준)
-        if (_squadController != null && _playSceneView != null)
-        {
-            int slot = newPlayer != null ? _squadController.Squad.GetSlotOf(newPlayer) : -1;
-            _playSceneView.SetSelectedProfileIndex(slot);
-        }
+        int slot = newPlayer != null ? _squadController.Squad.GetSlotOf(newPlayer) : -1;
+        _playSceneView.SetSelectedProfileIndex(slot);
     }
 
     private void OnHpChanged(int currentHp, int maxHp)
     {
         if (!IsSceneReady) return;
-        _playSceneView?.RefreshHealth(currentHp, maxHp);
+        _playSceneView.RefreshHealth(currentHp, maxHp);
     }
 
     /// <summary>분대원 추가/제거 시 프로필 슬롯 다시 바인딩.</summary>
     private void RefreshSquadProfileView(IReadOnlyList<Character> slots)
     {
-        if (_playSceneView == null) return;
         _playSceneView.RefreshSquadProfiles(slots);
         int slot = _squadController.PlayerCharacter != null
             ? _squadController.Squad.GetSlotOf(_squadController.PlayerCharacter)
             : -1;
         _playSceneView.SetSelectedProfileIndex(slot);
+    }
+
+    /// <summary>플레이어 순간이동 시 카메라 처리. SquadController에서 호출.</summary>
+    public void HandlePlayerTeleport(Vector3 destination)
+    {
+        _cameraController.HandleTeleport(destination);
     }
 
     #endregion

@@ -27,6 +27,7 @@ public class SquadController : MonoBehaviour
     private Squad _squad = new Squad();
     private SquadCharacterFactory _factory;
     private CombatController _combatController;
+    private PlayScene _playScene; // 카메라 순간이동 처리용
 
     #endregion
 
@@ -62,6 +63,9 @@ public class SquadController : MonoBehaviour
         {
             Debug.LogError($"[SquadController] {gameObject.name}: SquadCharacterFactory를 찾을 수 없습니다.");
         }
+        
+        // PlayScene 참조 설정
+        _playScene = FindFirstObjectByType<PlayScene>();
     }
 
     #endregion
@@ -193,6 +197,10 @@ public class SquadController : MonoBehaviour
     public void TeleportPlayer(Vector3 worldPosition)
     {
         if (PlayerCharacter == null) return;
+        
+        // 카메라 즉시 이동 처리
+        _playScene?.HandlePlayerTeleport(worldPosition);
+        
         PlayerCharacter.Teleport(worldPosition);
         RepositionCompanionsAround(PlayerCharacter.transform);
     }
