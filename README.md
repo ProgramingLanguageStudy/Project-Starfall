@@ -15,11 +15,11 @@
 ### 🔐 인트로 & 클라우드 로그인 시스템
 <table>
 <tr>
-<td><strong>🔑 Firebase 로그인 화면</strong><br><img src="Recordings/pictures/로그인화면.png" width="400" alt="로그인"></td>
-<td><strong>⚠️ 로그인 에러 처리</strong><br><img src="Recordings/pictures/로그인에러화면.png" width="400" alt="로그인 에러"></td>
+<td><strong>🔑 Firebase 로그인 화면</strong><br><img src="Recordings/pictures/intro-login.png" width="400" alt="로그인"></td>
+<td><strong>⚠️ 로그인 에러 처리</strong><br><img src="Recordings/pictures/intro-login-error.png" width="400" alt="로그인 에러"></td>
 </tr>
 <tr>
-<td colspan="2"><strong>✅ 로그인 성공 및 게임 시작</strong><br><img src="Recordings/pictures/로그인완료후 게임시작버튼 누르는화면.png" width="850" alt="게임 시작"></td>
+<td colspan="2"><strong>✅ 로그인 성공 및 게임 시작</strong><br><img src="Recordings/pictures/intro-login-complete.png" width="850" alt="게임 시작"></td>
 </tr>
 </table>
 
