@@ -421,9 +421,9 @@ private IEnumerator WaitForBootThenInitializeRoutine()
 <tr>
 <td><strong>🏗️ 캐릭터 구조</strong><br><img src="Docs/images/character-inspectorview.png" width="400" alt="캐릭터 Inspector"></td>
 <td><strong>🔧 시스템 특징</strong><br>
-- **Facade 패턴**: 캐릭터의 복잡한 하위 시스템을 중앙에서 통합 관리<br>
-- **이벤트 기반**: 상태 변경 시 필요한 컴포넌트만 이벤트로 통신하여 성능 최적화<br>
-- **인터페이스 주입**: 의존성 주입으로 컴포넌트 간 결합도 최소화</td>
+- <strong>Facade 패턴</strong>: 캐릭터의 복잡한 하위 시스템을 중앙에서 통합 관리<br>
+- <strong>이벤트 기반</strong>: 상태 변경 시 필요한 컴포넌트만 이벤트로 통신하여 성능 최적화<br>
+- <strong>인터페이스 주입</strong>: 의존성 주입으로 컴포넌트 간 결합도 최소화</td>
 </tr>
 </table>
 
@@ -455,9 +455,9 @@ private IEnumerator WaitForBootThenInitializeRoutine()
 <tr>
 <td><strong>💬 대화 시스템</strong><br><em>이미지 준비 중...</em></td>
 <td><strong>🎯 시스템 특징</strong><br>
-- **플래그 기반**: `FlagSystem`으로 대화와 퀘스트 유기적 연동<br>
-- **시나리오 분기**: `DialogueData(SO)`의 플래그 조건으로 실시간 대사 변화<br>
-- **확장성**: ScriptableObject 설정만으로 복잡한 조건부 시나리오 구성</td>
+- <strong>플래그 기반</strong>: `FlagSystem`으로 대화와 퀘스트 유기적 연동<br>
+- <strong>시나리오 분기</strong>: `DialogueData(SO)`의 플래그 조건으로 실시간 대사 변화<br>
+- <strong>확장성</strong>: ScriptableObject 설정만으로 복잡한 조건부 시나리오 구성</td>
 </tr>
 </table>
 
@@ -476,13 +476,13 @@ private IEnumerator WaitForBootThenInitializeRoutine()
 <tr>
 <td><strong>🎒 인벤토리 구조</strong><br><em>이미지 준비 중...</em></td>
 <td><strong>🎯 시스템 특징</strong><br>
-- **MVP 패턴**: 데이터\(Inventory\)와 UI\(View\)를 Presenter가 중개<br>
-- **관심사 분리**: UI 수정이 비즈니스 로직에 영향 주지 않음<br>
-- **동적 대상 적용**: 분대원 교체 시 아이템 사용 대상 실시간 갱신</td>
+- <strong>MVP 패턴</strong>: 데이터\(Inventory\)와 UI\(View\)를 Presenter가 중개<br>
+- <strong>관심사 분리</strong>: UI 수정이 비즈니스 로직에 영향 주지 않음<br>
+- <strong>동적 대상 적용</strong>: 분대원 교체 시 아이템 사용 대상 실시간 갱신</td>
 </tr>
 </table>
 
-**핵심 컴포넌트**
+**주요 컴포넌트**
 - `Inventory`: 아이템 데이터와 상태를 관리하는 Model
 - `InventoryView`: UI 표시와 사용자 입력을 처리하는 View
 - `InventoryPresenter`: Model과 View를 연결하고 비즈니스 로직 처리
