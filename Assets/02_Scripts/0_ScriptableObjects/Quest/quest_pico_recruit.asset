@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f07afdb1a9e1252459bcfd3dcf672960, type: 3}
-  m_Name: pico_recruit
+  m_Name: quest_pico_recruit
   m_EditorClassIdentifier: 
   _id: quest_pico_recruit
   Title: "Pico \uC601\uC785\uD558\uAE30"
