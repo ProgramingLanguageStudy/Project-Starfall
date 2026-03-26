@@ -19,7 +19,8 @@
 <td><strong>⚠️ 로그인 에러 처리</strong><br><img src="Docs/images/intro-login-error.png" width="400" alt="로그인 에러"></td>
 </tr>
 <tr>
-<td colspan="2"><strong>✅ 로그인 성공 및 게임 시작</strong><br><img src="Docs/images/intro-login-complete.png" width="850" alt="게임 시작"></td>
+<td><strong>🐛 디버그 로그 모드</strong><br><img src="Docs/images/intro-login-debug.png" width="400" alt="디버그 모드"></td>
+<td><strong>✅ 로그인 성공 및 게임 시작</strong><br><img src="Docs/images/intro-login-complete.png" width="400" alt="게임 시작"></td>
 </tr>
 </table>
 
