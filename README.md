@@ -420,7 +420,7 @@ private IEnumerator WaitForBootThenInitializeRoutine()
 <table>
 <tr>
 <td><strong>🏗️ 캐릭터 구조</strong><br><img src="Docs/images/character-inspectorview.png" width="400" alt="캐릭터 Inspector"></td>
-<td><strong>� 분대 시스템</strong><br><img src="Docs/images/play-squad-basic.png" width="400" alt="분대 시스템"></td>
+<td><strong>👥 분대 시스템</strong><br><img src="Docs/images/play-squad-recruit.png" width="400" alt="분대 시스템"></td>
 </tr>
 </table>
 
