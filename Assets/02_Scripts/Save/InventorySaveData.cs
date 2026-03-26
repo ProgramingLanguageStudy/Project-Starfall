@@ -7,6 +7,7 @@ using System.Collections.Generic;
 public class InventorySaveData
 {
     public List<InventorySlotEntry> slots = new List<InventorySlotEntry>();
+    public int gold;
 }
 
 [System.Serializable]

@@ -32,7 +32,6 @@ public class GameManager : MonoBehaviour
     private SaveManager _saveManager;
     private DataManager _dataManager;
     private ResourceManager _resourceManager;
-    private CurrencyManager _currencyManager;
     private SceneLoadManager _sceneLoadManager;
     private PoolManager _poolManager;
     private EffectManager _effectManager;
@@ -50,8 +49,6 @@ public class GameManager : MonoBehaviour
     public ResourceManager ResourceManager => _resourceManager;
     /// <summary>씬 전환 (Play/Intro). Data·Resource 로드는 부트 코루틴 전용.</summary>
     public SceneLoadManager SceneLoadManager => _sceneLoadManager;
-    /// <summary>계정 귀속 재화(골드) 관리.</summary>
-    public CurrencyManager CurrencyManager => _currencyManager;
     /// <summary>오브젝트 풀링. 프리팹별 Pool 보유.</summary>
     public PoolManager PoolManager => _poolManager;
     /// <summary>이펙트 재생. Play, ShowDamageNumber. RM+Pool 연동.</summary>
@@ -88,7 +85,6 @@ public class GameManager : MonoBehaviour
         _dataManager = this.GetOrAddComponentInChild<DataManager>("DataManager");
         _resourceManager = this.GetOrAddComponentInChild<ResourceManager>("ResourceManager");
         _sceneLoadManager = this.GetOrAddComponentInChild<SceneLoadManager>("SceneLoadManager");
-        _currencyManager = this.GetOrAddComponentInChild<CurrencyManager>("CurrencyManager");
         _poolManager = this.GetOrAddComponentInChild<PoolManager>("PoolManager");
         _effectManager = this.GetOrAddComponentInChild<EffectManager>("EffectManager");
         _buffManager = this.GetOrAddComponentInChild<BuffManager>("BuffManager");
@@ -100,7 +96,6 @@ public class GameManager : MonoBehaviour
     {
         if (_instance != this) return;
 
-        _currencyManager?.Initialize();
         StartCoroutine(AuthThenSaveBootRoutine());
         StartCoroutine(DataBootRoutine());
         StartCoroutine(ResourceBootRoutine());

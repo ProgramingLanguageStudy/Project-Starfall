@@ -12,6 +12,4 @@ public class SaveData
     public QuestSaveData quests = new QuestSaveData();
     public InventorySaveData inventory = new InventorySaveData();
     public List<string> openedChestSaveIds = new List<string>();
-    /// <summary>계정 귀속 재화. 골드.</summary>
-    public int gold;
 }

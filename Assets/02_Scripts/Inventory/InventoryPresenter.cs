@@ -51,7 +51,10 @@ public class InventoryPresenter : MonoBehaviour
     private void OnEnable()
     {
         if (_model != null)
+        {
             _model.OnSlotChanged += OnSlotChanged;
+            _model.OnGoldChanged += OnGoldChanged;
+        }
         if (_view != null)
         {
             _view.OnDropEnded += HandleDropEnded;
@@ -64,7 +67,10 @@ public class InventoryPresenter : MonoBehaviour
     private void OnDisable()
     {
         if (_model != null)
+        {
             _model.OnSlotChanged -= OnSlotChanged;
+            _model.OnGoldChanged -= OnGoldChanged;
+        }
         if (_view != null)
         {
             _view.OnDropEnded -= HandleDropEnded;
@@ -78,6 +84,11 @@ public class InventoryPresenter : MonoBehaviour
         if (_model != null)
             _model.TryUseItem(slotIndex);
     }
+    
+    private void OnGoldChanged(int gold)
+    {
+        _view?.RefreshGold(gold);
+    }
 
     private void OnSlotChanged(ItemSlotModel slot)
     {
@@ -88,9 +99,13 @@ public class InventoryPresenter : MonoBehaviour
     private void RefreshView()
     {
         if (_view == null || _model == null) return;
+
         var slots = _model.GetSlots();
         for (int i = 0; i < slots.Length; i++)
             _view.RefreshSlot(slots[i]);
+            
+        // 초기 골드 표시
+        _view.RefreshGold(_model.Gold);
     }
 
     private void HandleDropEnded(int fromIndex, Vector2 screenPosition)

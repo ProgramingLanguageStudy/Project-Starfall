@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
 /// 인벤토리 UI 표시만 담당 (MVP의 View). Model을 알지 않으며, Presenter가 전달한 슬롯 데이터로 그립니다.
@@ -23,6 +24,10 @@ public class InventoryView : MonoBehaviour
     [SerializeField] private UITweenFacade _inventoryFacade;
     [SerializeField] [Tooltip("인벤토리 닫기(X) 버튼. 누르면 패널 닫힘.")]
     private Button _closeButton;
+    
+    [Header("재화 UI")]
+    [SerializeField] private TextMeshProUGUI _goldText;
+    [SerializeField] private string _goldFormat = "{0:N0}";
 
     private List<ItemSlot> _slots = new List<ItemSlot>();
 
@@ -122,24 +127,6 @@ public class InventoryView : MonoBehaviour
 
     public void ToggleInventory()
     {
-        //GameObject target = _inventoryUIPanel != null ? _inventoryUIPanel : gameObject;
-        //bool isActive = !target.activeSelf;
-        //target.SetActive(isActive);
-        //if (isActive)
-        //{
-        //    _tooltipView?.Hide();
-        //    if (_scrollRect != null)
-        //        _scrollRect.verticalNormalizedPosition = 1f;
-        //    OnRefreshRequested?.Invoke();
-        //    GameEvents.OnCursorShowRequested?.Invoke();
-        //}
-        //else
-        //{
-        //    _tooltipView?.Hide();
-        //    for (int i = 0; i < _slots.Count; i++)
-        //        _slots[i].SetSelected(false);
-        //    GameEvents.OnCursorHideRequested?.Invoke();
-        //}
         var panel = _inventoryFacade != null ? _inventoryFacade.gameObject : _inventoryUIPanel;
         if (panel == null) return;
 
@@ -172,5 +159,12 @@ public class InventoryView : MonoBehaviour
             else
                 _inventoryUIPanel.SetActive(false);
         }
+    }
+    
+    /// <summary>골드 표시 갱신. Presenter에서 호출.</summary>
+    public void RefreshGold(int gold)
+    {
+        if (_goldText != null)
+            _goldText.text = string.Format(_goldFormat, gold);
     }
 }

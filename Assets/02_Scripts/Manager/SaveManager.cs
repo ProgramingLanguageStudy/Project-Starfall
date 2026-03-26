@@ -238,7 +238,7 @@ public class SaveManager : MonoBehaviour
         {
             var ordered = _contributors.Where(x => x != null).OrderBy(x => x.SaveOrder).ToList();
             var names = string.Join(", ", ordered.Select(x => x.GetType().Name));
-            Debug.Log($"[SaveDiag] GatherSaveData → count={ordered.Count} [{names}] → gold={data.gold}");
+            Debug.Log($"[SaveDiag] GatherSaveData → count={ordered.Count} [{names}] → gold={data.inventory.gold}");
         }
 
         var success = false;
@@ -298,14 +298,14 @@ public class SaveManager : MonoBehaviour
             _loadedSaveData = data;
             Debug.Log("[SaveManager] Loaded.");
             if (SaveDevSettings.LogSaveDiagnostics)
-                Debug.Log($"[SaveDiag] LoadedSaveData.gold={data.gold}");
+                Debug.Log($"[SaveDiag] LoadedSaveData.gold={data.inventory.gold}");
         }
         else
         {
             _loadedSaveData = CreateDefaultSaveData();
             Debug.Log("[SaveManager] No save found. Using default.");
             if (SaveDevSettings.LogSaveDiagnostics)
-                Debug.Log($"[SaveDiag] default LoadedSaveData.gold={_loadedSaveData.gold}");
+                Debug.Log($"[SaveDiag] default LoadedSaveData.gold={_loadedSaveData.inventory.gold}");
         }
 
         onProgress?.Invoke(1f, "Save 로드 완료");

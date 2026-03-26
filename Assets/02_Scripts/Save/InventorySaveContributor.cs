@@ -35,6 +35,9 @@ public class InventorySaveContributor : SaveContributor
                 count = slot.Count
             });
         }
+        
+        // 골드 저장
+        data.inventory.gold = _inventory.Gold;
     }
 
     public override void Apply(SaveData data)
@@ -43,5 +46,8 @@ public class InventorySaveContributor : SaveContributor
         if (_inventory == null) return;
 
         _inventory.LoadFromSave(data.inventory);
+        
+        // 골드 로드
+        _inventory.SetGold(data.inventory.gold);
     }
 }

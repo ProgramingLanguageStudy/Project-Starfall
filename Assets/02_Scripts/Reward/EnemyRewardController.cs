@@ -11,6 +11,14 @@ public class EnemyRewardController : MonoBehaviour
     private ItemObject _itemObjectPrefab;
     [SerializeField] [Tooltip("비면 Instantiate. 있으면 풀에서 Pop")]
     private PoolManager _poolManager;
+    
+    private Inventory _inventory;
+
+    /// <summary>PlayScene에서 의존성 주입용.</summary>
+    public void Initialize(Inventory inventory)
+    {
+        _inventory = inventory;
+    }
 
     private void OnEnable()
     {
@@ -32,7 +40,7 @@ public class EnemyRewardController : MonoBehaviour
         // 골드: 즉시 지급 + 팝업
         if (data.goldDrop > 0)
         {
-            GameManager.Instance?.CurrencyManager?.AddGold(data.goldDrop);
+            _inventory?.AddGold(data.goldDrop);
             GameEvents.OnGoldAcquired?.Invoke(data.goldDrop);
         }
 
