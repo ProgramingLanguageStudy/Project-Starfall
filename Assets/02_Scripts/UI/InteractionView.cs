@@ -13,7 +13,7 @@ public class InteractionView : MonoBehaviour
     /// <summary>PlaySceneView 등에서 호출. 패널 초기 비활성화.</summary>
     public void Initialize()
     {
-        var panel = _uiFacade != null ? _uiFacade.gameObject : _uiPanel;
+        GameObject panel = _uiFacade != null ? _uiFacade.gameObject : _uiPanel;
         if (panel != null)
             panel.SetActive(false);
     }

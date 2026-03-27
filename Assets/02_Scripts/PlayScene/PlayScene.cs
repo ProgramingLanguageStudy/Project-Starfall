@@ -120,7 +120,8 @@ public class PlayScene : MonoBehaviour
     {
         IsSceneReady = false;
 
-        GameManager.Instance?.PoolManager?.RemoveDestroyedFromAllPools();
+        if (GameManager.Instance != null && GameManager.Instance.PoolManager != null)
+            GameManager.Instance.PoolManager.RemoveDestroyedFromAllPools();
         PlaySceneEventHub.Clear();
         PlaySceneRegistry.Clear();
 
@@ -162,7 +163,8 @@ public class PlayScene : MonoBehaviour
         if (hasInput)
             player.RequestMove();
 
-        _mapController?.RequestScrollMap(_inputHandler.ScrollInput);
+        if (_mapController != null)
+            _mapController.RequestScrollMap(_inputHandler.ScrollInput);
     }
 
     #endregion

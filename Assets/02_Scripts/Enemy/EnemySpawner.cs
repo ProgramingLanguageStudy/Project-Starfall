@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -61,16 +62,16 @@ public class EnemySpawner : MonoBehaviour
         if (_teamData == null || _combatController == null)
             return null;
 
-        var gm = GameManager.Instance;
+        GameManager gm = GameManager.Instance;
         if (gm == null)
         {
             Debug.LogError("[EnemySpawner] GameManager.Instance is null.", this);
             return null;
         }
 
-        var rm = gm.ResourceManager;
-        var dm = gm.DataManager;
-        var pm = gm.PoolManager;
+        ResourceManager rm = gm.ResourceManager;
+        DataManager dm = gm.DataManager;
+        PoolManager pm = gm.PoolManager;
         if (rm == null || dm == null || pm == null)
         {
             Debug.LogError("[EnemySpawner] ResourceManager, DataManager 또는 PoolManager 가 null입니다.", this);
@@ -78,9 +79,9 @@ public class EnemySpawner : MonoBehaviour
         }
 
         // 풀에 들어가는 개별 Enemy와 분리: 팀은 빈 오브젝트로만 추적·해산
-        var teamObj = new GameObject($"EnemyTeam_{_teamData.name}");
+        GameObject teamObj = new GameObject($"EnemyTeam_{_teamData.name}");
         teamObj.transform.SetParent(transform);
-        var team = teamObj.AddComponent<EnemyTeam>();
+        EnemyTeam team = teamObj.AddComponent<EnemyTeam>();
         team.Initialize(_combatController);
 
         // 바닥 높이: Terrain이 있으면 SampleHeight, 없으면 원래 Y 유지
@@ -89,7 +90,7 @@ public class EnemySpawner : MonoBehaviour
         basePos.y = baseY;
 
         float radius = _teamData.spawnRadius;
-        var ids = _teamData.enemyIds;
+        List<string> ids = _teamData.enemyIds;
         if (ids == null || ids.Count == 0)
             return team;
 
@@ -97,18 +98,18 @@ public class EnemySpawner : MonoBehaviour
         // 멤버마다 동일 키로 DM(데이터)·RM(프리팹)·풀 인스턴스 연결
         for (int i = 0; i < count; i++)
         {
-            var id = ids[i];
+            string id = ids[i];
             if (string.IsNullOrEmpty(id))
                 continue;
 
-            var data = dm.Get<EnemyData>(id);
+            EnemyData data = dm.Get<EnemyData>(id);
             if (data == null)
             {
                 Debug.LogWarning($"[EnemySpawner] EnemyData 없음 (DM): {id}", this);
                 continue;
             }
 
-            var prefab = rm.GetPrefab(EnemyPrefabCategory, id);
+            GameObject prefab = rm.GetPrefab(EnemyPrefabCategory, id);
             if (prefab == null)
             {
                 Debug.LogWarning($"[EnemySpawner] 프리팹 없음 (RM): {EnemyPrefabCategory}/{id}", this);
@@ -116,7 +117,7 @@ public class EnemySpawner : MonoBehaviour
             }
 
             // 수평 원형 배치 (Y는 아래에서 지형에 맞춤)
-            var offset = count == 1
+            Vector3 offset = count == 1
                 ? Vector3.zero
                 : new Vector3(
                     Mathf.Cos(i * Mathf.PI * 2f / count) * radius,
@@ -126,14 +127,14 @@ public class EnemySpawner : MonoBehaviour
             Vector3 pos = basePos + offset;
             pos.y = TerrainSpawnUtil.GetTerrainHeight(pos.x, pos.z, pos.y);
 
-            var go = pm.Pop(prefab);
+            GameObject go = pm.Pop(prefab);
             if (go == null)
                 continue;
 
             go.transform.SetParent(teamObj.transform);
             go.transform.SetPositionAndRotation(pos, Quaternion.identity);
 
-            var enemy = go.GetComponent<Enemy>();
+            Enemy enemy = go.GetComponent<Enemy>();
             if (enemy != null)
             {
                 enemy.ConfigureFromSpawn(_combatController, data, pos);

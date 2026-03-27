@@ -17,8 +17,7 @@ public class QuestController : MonoBehaviour
     public void Initialize(QuestSystem questSystem, Inventory inventory, FlagSystem flagSystem, SquadController squadController = null)
     {
         _questSystem = questSystem;
-        if (_inventory == null && inventory != null)
-            _inventory = inventory;
+        _inventory = inventory;
         _flagSystem = flagSystem;
         _squadController = squadController;
 
@@ -27,10 +26,11 @@ public class QuestController : MonoBehaviour
 
     private void Subscribe()
     {
-        Unsubscribe();
         if (_inventory != null)
             _inventory.OnItemChangedWithId += HandleItemChangedWithId;
+        
         PlaySceneEventHub.OnEnemyKilled += HandleEnemyKilled;
+        
         if (_questSystem != null)
         {
             _questSystem.OnQuestUpdated += HandleQuestUpdated;
@@ -42,7 +42,9 @@ public class QuestController : MonoBehaviour
     {
         if (_inventory != null)
             _inventory.OnItemChangedWithId -= HandleItemChangedWithId;
+        
         PlaySceneEventHub.OnEnemyKilled -= HandleEnemyKilled;
+        
         if (_questSystem != null)
         {
             _questSystem.OnQuestUpdated -= HandleQuestUpdated;
@@ -52,8 +54,7 @@ public class QuestController : MonoBehaviour
 
     private void OnEnable()
     {
-        if (_inventory != null || _questSystem != null)
-            Subscribe();
+        Subscribe();
     }
 
     private void OnDisable()
@@ -63,11 +64,11 @@ public class QuestController : MonoBehaviour
 
     private void HandleItemChangedWithId(string itemId, int totalCount)
     {
-        if (string.IsNullOrEmpty(itemId) || _questSystem == null) return;
+        if (string.IsNullOrEmpty(itemId)) return;
 
         Debug.Log($"[QuestController] Item changed: {itemId}, count: {totalCount}");
 
-        foreach (var quest in _questSystem.GetActiveQuests())
+        foreach (QuestModel quest in _questSystem.GetActiveQuests())
         {
             Debug.Log($"[QuestController] Checking quest: {quest.Id}, type: {quest.QuestType}, target: {quest.TargetId}");
             if (quest.IsCompleted) continue;
@@ -95,19 +96,17 @@ public class QuestController : MonoBehaviour
 
     private void HandleEnemyKilled(Enemy enemy)
     {
-        if (enemy?.Model?.Data == null || _questSystem == null) return;
-        var enemyId = enemy.Model.Data.enemyId;
+        if (enemy?.Model?.Data == null) return;
+        string enemyId = enemy.Model.Data.enemyId;
         if (string.IsNullOrEmpty(enemyId)) return;
         _questSystem.NotifyProgress(enemyId);
     }
 
     private void HandleQuestUpdated(QuestModel quest)
     {
-        if (quest == null) return;
-
-        if (quest.QuestType == QuestType.Gather && quest.CurrentAmount == 0 && _inventory != null && !string.IsNullOrEmpty(quest.TargetId))
+        if (quest.QuestType == QuestType.Gather && quest.CurrentAmount == 0 && !string.IsNullOrEmpty(quest.TargetId))
         {
-            var count = _inventory.GetTotalCount(quest.TargetId);
+            int count = _inventory.GetTotalCount(quest.TargetId);
             if (count > 0)
             {
                 _questSystem.SetTaskProgress(quest.Id, quest.TargetId, count);
@@ -122,8 +121,6 @@ public class QuestController : MonoBehaviour
 
     private void HandleQuestCompleted(QuestData data)
     {
-        if (data == null) return;
-
         ApplyQuestCompletedFlag(data);
         ApplyQuestRewards(data);
 
@@ -151,11 +148,11 @@ public class QuestController : MonoBehaviour
         var dm = GameManager.Instance?.DataManager;
         if (dm == null || _inventory == null) return;
 
-        foreach (var reward in data.RewardItems)
+        foreach (QuestRewardItem reward in data.RewardItems)
         {
             if (string.IsNullOrEmpty(reward.id) || reward.amount <= 0) continue;
 
-            var itemData = dm.Get<ItemData>(reward.id);
+            ItemData itemData = dm.Get<ItemData>(reward.id);
             if (itemData == null) continue;
 
             _inventory.AddItem(itemData, reward.amount);
@@ -172,10 +169,10 @@ public class QuestController : MonoBehaviour
             return;
         }
 
-        var dm = GameManager.Instance?.DataManager;
+        DataManager dm = GameManager.Instance?.DataManager;
         if (dm == null) return;
 
-        var characterData = dm.Get<CharacterData>(characterId);
+        CharacterData characterData = dm.Get<CharacterData>(characterId);
         if (characterData == null)
         {
             Debug.LogWarning($"[QuestController] CharacterData 없음: {characterId}. Resources/Characters 확인.");
@@ -205,10 +202,10 @@ public class QuestController : MonoBehaviour
     /// <summary>퀘스트 수락 요청. DataManager에서 QuestData 로드 후 AcceptQuest·QuestAccepted 플래그.</summary>
     public void RequestAcceptQuest(string questId)
     {
-        if (string.IsNullOrEmpty(questId) || _questSystem == null) return;
+        if (string.IsNullOrEmpty(questId)) return;
 
-        var dm = GameManager.Instance?.DataManager;
-        var questData = dm?.Get<QuestData>(questId);
+        DataManager dm = GameManager.Instance?.DataManager;
+        QuestData questData = dm?.Get<QuestData>(questId);
         if (questData == null)
         {
             Debug.LogWarning($"[QuestController] QuestData not found: {questId}");
@@ -222,9 +219,9 @@ public class QuestController : MonoBehaviour
     /// <summary>퀘스트 완료 요청. 목표 달성된 퀘스트만 CompleteQuest 호출.</summary>
     public void RequestCompleteQuest(string questId)
     {
-        if (string.IsNullOrEmpty(questId) || _questSystem == null) return;
+        if (string.IsNullOrEmpty(questId)) return;
 
-        var quest = _questSystem.GetQuestById(questId);
+        QuestModel quest = _questSystem.GetQuestById(questId);
         if (quest == null || !quest.IsCompleted) return;
 
         _questSystem.CompleteQuest(questId);

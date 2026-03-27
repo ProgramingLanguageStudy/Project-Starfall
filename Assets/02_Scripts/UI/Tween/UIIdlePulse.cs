@@ -38,9 +38,9 @@ public class UIIdlePulse : MonoBehaviour
 
     private void OnEnable()
     {
-        var data = GetData();
-        var scaleMin = Vector3.one * data.ScaleMin;
-        var scaleMax = Vector3.one * data.ScaleMax;
+        IdlePulsePresetData data = GetData();
+        Vector3 scaleMin = Vector3.one * data.ScaleMin;
+        Vector3 scaleMax = Vector3.one * data.ScaleMax;
 
         _rect.localScale = scaleMin;
         _scaleTween = _rect.DOScale(scaleMax, data.Duration * 0.5f)
@@ -50,7 +50,7 @@ public class UIIdlePulse : MonoBehaviour
 
         if (_outline != null && data.OutlineAlphaMin < data.OutlineAlphaMax)
         {
-            var c = _outline.effectColor;
+            Color c = _outline.effectColor;
             _outline.effectColor = new Color(c.r, c.g, c.b, data.OutlineAlphaMin);
             _outlineTween = DOTween.To(
                     () => _outline.effectColor.a,

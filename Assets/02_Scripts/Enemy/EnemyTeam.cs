@@ -39,10 +39,10 @@ public class EnemyTeam : MonoBehaviour
     {
         if (triggerCharacter == null) return;
 
-        var target = Enemy.ResolveChaseTarget(triggerCharacter);
-        var squad = triggerCharacter.Squad;
+        Transform target = Enemy.ResolveChaseTarget(triggerCharacter);
+        Squad squad = triggerCharacter.Squad;
 
-        foreach (var m in _members)
+        foreach (Enemy m in _members)
         {
             if (m == null || m.Model == null || m.Model.IsDead) continue;
             m.SetChaseTargetAndSquad(target, squad);

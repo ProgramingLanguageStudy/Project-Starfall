@@ -30,7 +30,7 @@ public class EffectAutoReturn : MonoBehaviour
 
     private bool IsAnyParticleAlive()
     {
-        foreach (var ps in GetComponentsInChildren<ParticleSystem>(true))
+        foreach (ParticleSystem ps in GetComponentsInChildren<ParticleSystem>(true))
         {
             if (ps.gameObject.activeInHierarchy && ps.IsAlive())
                 return true;
@@ -40,7 +40,7 @@ public class EffectAutoReturn : MonoBehaviour
 
     private void OnExitComplete()
     {
-        var poolable = GetComponent<Poolable>();
+        Poolable poolable = GetComponent<Poolable>();
         if (poolable != null)
             poolable.ReturnToPool();
         else

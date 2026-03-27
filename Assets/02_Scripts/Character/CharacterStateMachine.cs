@@ -56,7 +56,7 @@ public class CharacterStateMachine : MonoBehaviour
     }
 
     private CharacterStateBase GetState(CharacterState key) =>
-        _states != null && _states.TryGetValue(key, out var s) ? s : null;
+        _states != null && _states.TryGetValue(key, out CharacterStateBase s) ? s : null;
 
     private void HandleDeath()
     {
@@ -104,7 +104,7 @@ public class CharacterStateMachine : MonoBehaviour
     {
         if (_currentState == newState) return;
 
-        var previous = _currentState;
+        CharacterState previous = _currentState;
         GetState(_currentState)?.Exit();
         _currentState = newState;
         GetState(_currentState)?.Enter();

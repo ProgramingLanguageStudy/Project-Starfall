@@ -50,7 +50,7 @@ public class SquadController : MonoBehaviour
             return null;
         }
     }
-    public Transform PlayerTransform => PlayerCharacter?.transform;
+    public Transform PlayerTransform => PlayerCharacter != null ? PlayerCharacter.transform : null;
 
     #endregion
 
@@ -85,14 +85,14 @@ public class SquadController : MonoBehaviour
     {
         _combatController = combatController;
 
-        _squad.OnPlayerChanged += c => OnPlayerChanged?.Invoke(c);
-        _squad.OnMembersChanged += slots => OnMembersChanged?.Invoke(slots);
+        _squad.OnPlayerChanged += c => { if (OnPlayerChanged != null) OnPlayerChanged.Invoke(c); };
+        _squad.OnMembersChanged += slots => { if (OnMembersChanged != null) OnMembersChanged.Invoke(slots); };
     }
 
     /// <summary>세이브 데이터 기반으로 분대 슬롯·플레이어·상태를 복원.</summary>
     public void ApplySaveData(SquadSaveData squadSaveData)
     {
-        var dm = GameManager.Instance?.DataManager;
+        DataManager dm = GameManager.Instance != null ? GameManager.Instance.DataManager : null;
         if (dm == null || squadSaveData == null) return;
 
         var root = _squadRoot != null ? _squadRoot : transform;
@@ -102,26 +102,26 @@ public class SquadController : MonoBehaviour
             ? squadSaveData.playerPosition
             : (_spawnPoint != null ? _spawnPoint.position : transform.position);
 
-        var slots = new Character[Squad.SlotCount];
+        Character[] slots = new Character[Squad.SlotCount];
         Character targetPlayer = null;
         foreach (var m in squadSaveData.members)
         {
             if (string.IsNullOrEmpty(m.id)) continue;
             if (m.slotIndex < 0 || m.slotIndex >= Squad.SlotCount) continue;
 
-            var data = dm.Get<CharacterData>(m.id);
+            CharacterData data = dm.Get<CharacterData>(m.id);
             if (data == null) continue;
 
-            var pos = basePos + GetSpawnOffset(m.slotIndex);
-            var c = CreateCharacter(m.id, pos, root);
+            Vector3 pos = basePos + GetSpawnOffset(m.slotIndex);
+            Character c = CreateCharacter(m.id, pos, root);
             if (c == null) continue;
 
-            c.Model?.SetLevelForLoad(m.level);
-            c.Model?.SetCurrentHpForLoad(m.currentHp);
+            if (c.Model != null) c.Model.SetLevelForLoad(m.level);
+            if (c.Model != null) c.Model.SetCurrentHpForLoad(m.currentHp);
             slots[m.slotIndex] = c;
 
             if (!string.IsNullOrEmpty(squadSaveData.currentPlayerId) &&
-                (m.id == squadSaveData.currentPlayerId || c.Model?.Data?.displayName == squadSaveData.currentPlayerId))
+                (m.id == squadSaveData.currentPlayerId || (c.Model != null && c.Model.Data != null && c.Model.Data.displayName == squadSaveData.currentPlayerId)))
                 targetPlayer = c;
         }
 
@@ -130,7 +130,7 @@ public class SquadController : MonoBehaviour
         _squad.SetPlayerCharacter(_squad.Player);
 
         // 플레이어 회전·동료 재배치
-        var playerChar = _squad.Player ?? DefaultPlayer;
+        Character playerChar = _squad.Player != null ? _squad.Player : DefaultPlayer;
         if (playerChar != null)
         {
             playerChar.transform.eulerAngles = new Vector3(0f, squadSaveData.playerRotationY, 0f);

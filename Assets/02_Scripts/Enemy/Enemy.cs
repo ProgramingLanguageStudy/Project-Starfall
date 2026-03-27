@@ -65,8 +65,8 @@ public class Enemy : MonoBehaviour
     {
         if (triggerCharacter == null) return;
 
-        var target = ResolveChaseTarget(triggerCharacter);
-        var squad = triggerCharacter.Squad;
+        Transform target = ResolveChaseTarget(triggerCharacter);
+        Squad squad = triggerCharacter.Squad;
         SetChaseTargetAndSquad(target, squad);
 
         if (OnEnteringCombat != null)
@@ -78,8 +78,8 @@ public class Enemy : MonoBehaviour
     /// <summary>Character→Squad.Player 해석. Squad 없으면 Character 그대로. EnemyTeam에서도 사용.</summary>
     public static Transform ResolveChaseTarget(Character triggerCharacter)
     {
-        var player = triggerCharacter.Squad?.Player;
-        var target = player != null ? player : triggerCharacter;
+        Character player = triggerCharacter.Squad?.Player;
+        Character target = player != null ? player : triggerCharacter;
         return target != null ? target.transform : null;
     }
 
@@ -155,7 +155,7 @@ public class Enemy : MonoBehaviour
 
         if (_agent != null)
             _agent.enabled = true;
-        var col = GetComponent<Collider>();
+        Collider col = GetComponent<Collider>();
         if (col != null)
             col.enabled = true;
 
@@ -225,7 +225,7 @@ public class Enemy : MonoBehaviour
 
         OnReturnedToPool?.Invoke(this);
 
-        var poolable = GetComponent<Poolable>();
+        Poolable poolable = GetComponent<Poolable>();
         if (poolable != null)
             poolable.ReturnToPool();
         else
@@ -238,7 +238,7 @@ public class Enemy : MonoBehaviour
         if (ch == null || ch.Model == null || ch.Model.IsDead) return;
         if (_stateMachine == null) return;
 
-        var key = _stateMachine.CurrentStateKey;
+        EnemyStateMachine.EnemyState key = _stateMachine.CurrentStateKey;
         if (key != EnemyStateMachine.EnemyState.Patrol && key != EnemyStateMachine.EnemyState.Idle) return;
 
         float detectRadius = _model != null ? _model.DetectionRadius : 10f;

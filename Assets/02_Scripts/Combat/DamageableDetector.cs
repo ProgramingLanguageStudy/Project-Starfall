@@ -13,7 +13,7 @@ public class DamageableDetector : MonoBehaviour
 
     private void NotifyIfDamageable(Collider other)
     {
-        var damageable = other.GetComponentInParent<IDamageable>();
+        IDamageable damageable = other.GetComponentInParent<IDamageable>();
         if (damageable != null)
         {
             Debug.Log($"[DamageableDetector] {gameObject.name} 감지: {other.gameObject.name} (IDamageable={damageable})");

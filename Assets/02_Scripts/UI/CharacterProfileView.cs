@@ -54,7 +54,7 @@ public class CharacterProfileView : MonoBehaviour
             return;
         }
 
-        var data = _model.Data;
+        CharacterData data = _model.Data;
         SetIcon(data != null ? data.portrait : null);
         SetHealth(_model.CurrentHp, _model.MaxHp);
         _model.OnHpChanged += OnHpChanged;
@@ -84,7 +84,7 @@ public class CharacterProfileView : MonoBehaviour
     {
         if (_root == null) return;
 
-        var targetScale = isSelected ? Vector3.one * _selectedScale : Vector3.one;
+        Vector3 targetScale = isSelected ? Vector3.one * _selectedScale : Vector3.one;
         _scaleTween?.Kill();
         _scaleTween = _root.DOScale(targetScale, _scaleTweenDuration)
             .SetEase(_scaleEase)

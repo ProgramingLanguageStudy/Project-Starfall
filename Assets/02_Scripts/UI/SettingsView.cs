@@ -31,7 +31,7 @@ public class SettingsView : PanelViewBase
 
     private void ToggleSettings()
     {
-        var panel = _settingsFacade != null ? _settingsFacade.gameObject : _settingsPanel;
+        GameObject panel = _settingsFacade != null ? _settingsFacade.gameObject : _settingsPanel;
         if (panel == null) return;
         bool isOpening = !panel.activeSelf;
 
@@ -63,7 +63,7 @@ public class SettingsView : PanelViewBase
 
     public void OnIntroButtonClicked()
     {
-        var slm = GameManager.Instance?.SceneLoadManager;
+        SceneLoadManager slm = GameManager.Instance?.SceneLoadManager;
         if (slm == null)
         {
             Debug.LogError("[SettingsView] SceneLoadManager is null.");

@@ -30,17 +30,17 @@ public class EnemyStateMachine : MonoBehaviour
     public Transform ChaseTarget => _chaseTarget;
 
     /// <summary>AI 설정은 Model(Data) 경유. 버프 등은 Model에서 반영.</summary>
-    public float PatrolSpeed => _enemy?.Model?.PatrolSpeed ?? 1.5f;
-    public float PatrolRadius => _enemy?.Model?.PatrolRadius ?? 5f;
-    public float ArriveThreshold => _enemy?.Model?.ArriveThreshold ?? 0.5f;
-    public float PatrolWalkDurationMin => _enemy?.Model?.PatrolWalkDurationMin ?? 2f;
-    public float PatrolWalkDurationMax => _enemy?.Model?.PatrolWalkDurationMax ?? 3f;
-    public float PatrolIdleDuration => _enemy?.Model?.PatrolIdleDuration ?? 1f;
-    public float ChaseSpeed => _enemy?.Model?.ChaseSpeed ?? 4f;
-    public float DetectionRadius => _enemy?.Model?.DetectionRadius ?? 10f;
-    public float AttackRadius => _enemy?.Model?.AttackRadius ?? 2f;
-    public float ChaseLoseRadius => _enemy?.Model?.ChaseLoseRadius ?? 15f;
-    public float AttackDuration => _enemy?.Model?.AttackDuration ?? 0.6f;
+    public float PatrolSpeed => _enemy != null && _enemy.Model != null ? _enemy.Model.PatrolSpeed : 1.5f;
+    public float PatrolRadius => _enemy != null && _enemy.Model != null ? _enemy.Model.PatrolRadius : 5f;
+    public float ArriveThreshold => _enemy != null && _enemy.Model != null ? _enemy.Model.ArriveThreshold : 0.5f;
+    public float PatrolWalkDurationMin => _enemy != null && _enemy.Model != null ? _enemy.Model.PatrolWalkDurationMin : 2f;
+    public float PatrolWalkDurationMax => _enemy != null && _enemy.Model != null ? _enemy.Model.PatrolWalkDurationMax : 3f;
+    public float PatrolIdleDuration => _enemy != null && _enemy.Model != null ? _enemy.Model.PatrolIdleDuration : 1f;
+    public float ChaseSpeed => _enemy != null && _enemy.Model != null ? _enemy.Model.ChaseSpeed : 4f;
+    public float DetectionRadius => _enemy != null && _enemy.Model != null ? _enemy.Model.DetectionRadius : 10f;
+    public float AttackRadius => _enemy != null && _enemy.Model != null ? _enemy.Model.AttackRadius : 2f;
+    public float ChaseLoseRadius => _enemy != null && _enemy.Model != null ? _enemy.Model.ChaseLoseRadius : 15f;
+    public float AttackDuration => _enemy != null && _enemy.Model != null ? _enemy.Model.AttackDuration : 0.6f;
 
     /// <summary>Spawner 등이 추적 목표 주입 시 호출. Initialize 전/후 모두 가능.</summary>
     public void SetChaseTarget(Transform target)
@@ -65,7 +65,7 @@ public class EnemyStateMachine : MonoBehaviour
 
         ChangeState(EnemyState.Patrol);
 
-        if (_enemy?.Model != null)
+        if (_enemy != null && _enemy.Model != null)
         {
             _enemy.Model.OnDeath += HandleDeath;
             _enemy.Model.OnDamaged += HandleDamaged;
@@ -74,7 +74,7 @@ public class EnemyStateMachine : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (_enemy?.Model != null)
+        if (_enemy != null && _enemy.Model != null)
         {
             _enemy.Model.OnDeath -= HandleDeath;
             _enemy.Model.OnDamaged -= HandleDamaged;
@@ -87,7 +87,7 @@ public class EnemyStateMachine : MonoBehaviour
         bool isChaseOrAttack = _currentStateKey == EnemyState.Chase || _currentStateKey == EnemyState.Attack;
         if (isChaseOrAttack) return;
 
-        var ch = attacker.GetComponentInParent<Character>();
+        Character ch = attacker.GetComponentInParent<Character>();
         if (ch != null)
             _enemy.NotifyEnteringCombat(ch);
         else
@@ -111,8 +111,10 @@ public class EnemyStateMachine : MonoBehaviour
         bool isChaseOrAttack = _currentStateKey == EnemyState.Chase || _currentStateKey == EnemyState.Attack;
         if (isChaseOrAttack)
         {
-            var resetTarget = _enemy?.CombatSquad?.Player?.transform ?? _chaseTarget;
-            if (_enemy?.Aggro?.TryResetIfTargetOutOfRange(_enemy.transform.position, resetTarget) == true)
+            Transform resetTarget = (_enemy != null && _enemy.CombatSquad != null && _enemy.CombatSquad.Player != null) 
+                ? _enemy.CombatSquad.Player.transform 
+                : _chaseTarget;
+            if (_enemy != null && _enemy.Aggro != null && _enemy.Aggro.TryResetIfTargetOutOfRange(_enemy.transform.position, resetTarget) == true)
             {
                 _enemy.ClearCombatSquad();
                 RequestPatrol();
@@ -150,11 +152,11 @@ public class EnemyStateMachine : MonoBehaviour
     }
 
     /// <summary>현재 상태 키로 상태 인스턴스 반환.</summary>
-    public EnemyStateBase GetState(EnemyState key) => _states != null && _states.TryGetValue(key, out var s) ? s : null;
+    public EnemyStateBase GetState(EnemyState key) => _states != null && _states.TryGetValue(key, out EnemyStateBase s) ? s : null;
 
     public void RequestPatrol()
     {
-        _enemy?.ClearCombatSquad();
+        if (_enemy != null) _enemy.ClearCombatSquad();
         ChangeState(EnemyState.Patrol);
     }
     public void RequestIdle() => ChangeState(EnemyState.Idle);

@@ -48,7 +48,7 @@ public class AIBrain : MonoBehaviour
     private void TickFollow()
     {
         _currentCombatTarget = null;
-        var player = _character?.Squad?.Player;
+        Character player = _character?.Squad?.Player;
         _currentTarget = player != null ? player.transform : null;
         _currentStopDistance = _character?.Model != null ? _character.Model.StopDistance : 1.5f;
         if (_currentTarget == null)
@@ -67,7 +67,7 @@ public class AIBrain : MonoBehaviour
 
     private void TickCombat()
     {
-        var combat = _combatController;
+        CombatController combat = _combatController;
         if (combat == null || !combat.IsInCombat) return;
 
         _targetUpdateTimer += Time.deltaTime;
@@ -109,7 +109,7 @@ public class AIBrain : MonoBehaviour
 
     private void FaceTargetImmediate()
     {
-        var enemy = _combatController?.GetNearestEnemy(transform.position);
+        Enemy enemy = _combatController?.GetNearestEnemy(transform.position);
         if (enemy == null) return;
 
         Vector3 dir = (enemy.transform.position - transform.position).normalized;

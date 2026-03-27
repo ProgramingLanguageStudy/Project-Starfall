@@ -26,7 +26,8 @@ public class SceneLoadManager : MonoBehaviour
 
     private void HandleIntroSceneReady()
     {
-        GameManager.Instance?.UIManager?.HideSceneTransition();
+        if (GameManager.Instance != null && GameManager.Instance.UIManager != null)
+            GameManager.Instance.UIManager.HideSceneTransition();
     }
 
     #endregion
@@ -34,7 +35,7 @@ public class SceneLoadManager : MonoBehaviour
     /// <summary>시작 시 전환 뷰를 켜서 화면 가림. GameManager.Awake에서 호출. Intro 준비 시 OnSceneReady로 Hide.</summary>
     public void ShowTransitionView()
     {
-        var ui = GameManager.Instance?.UIManager;
+        UIManager ui = GameManager.Instance != null ? GameManager.Instance.UIManager : null;
         if (ui == null)
         {
             Debug.LogError("[SceneLoadManager] UIManager is null. Cannot show transition view.");
@@ -53,14 +54,17 @@ public class SceneLoadManager : MonoBehaviour
 
     private IEnumerator LoadPlayRoutine()
     {
-        var ui = GameManager.Instance?.UIManager;
+        UIManager ui = GameManager.Instance != null ? GameManager.Instance.UIManager : null;
         if (ui == null)
             Debug.LogError("[SceneLoadManager] UIManager is null. Loading overlay unavailable.");
 
-        ui?.ShowSceneTransition();
-        ui?.UpdateSceneTransitionProgress(0f, "준비중...");
+        if (ui != null)
+        {
+            ui.ShowSceneTransition();
+            ui.UpdateSceneTransitionProgress(0f, "준비중...");
+        }
 
-        var gm = GameManager.Instance;
+        GameManager gm = GameManager.Instance;
         if (gm == null)
         {
             Debug.LogError("[SceneLoadManager] GameManager is null.");
@@ -68,13 +72,15 @@ public class SceneLoadManager : MonoBehaviour
         }
 
         // PlayScene 로드 전에 세이브 데이터 확인
-        var saveMgr = gm.SaveManager;
+        SaveManager saveMgr = gm.SaveManager;
         if (saveMgr != null)
         {
-            var loadedData = saveMgr.LoadedSaveData;
+            SaveData loadedData = saveMgr.LoadedSaveData;
             if (loadedData != null)
             {
-                Debug.Log($"[SceneLoadManager] Squad members: {loadedData.squad?.members?.Count ?? 0}, Player: {loadedData.squad?.currentPlayerId}");
+                int memberCount = (loadedData.squad != null && loadedData.squad.members != null) ? loadedData.squad.members.Count : 0;
+                string playerId = (loadedData.squad != null) ? loadedData.squad.currentPlayerId : null;
+                Debug.Log($"[SceneLoadManager] Squad members: {memberCount}, Player: {playerId}");
             }
             else
             {
@@ -87,7 +93,7 @@ public class SceneLoadManager : MonoBehaviour
         }
 
         const float bootWaitTimeoutSec = 120f;
-        var bootWaitStart = Time.realtimeSinceStartup;
+        float bootWaitStart = Time.realtimeSinceStartup;
         while (!gm.BootServicesReady)
         {
             if (Time.realtimeSinceStartup - bootWaitStart > bootWaitTimeoutSec)
@@ -98,16 +104,19 @@ public class SceneLoadManager : MonoBehaviour
             yield return null;
         }
 
-        ui?.UpdateSceneTransitionProgress(0.5f, "씬 로드중...");
+        if (ui != null)
+            ui.UpdateSceneTransitionProgress(0.5f, "씬 로드중...");
 
-        var loadOp = SceneManager.LoadSceneAsync(PlaySceneName);
+        AsyncOperation loadOp = SceneManager.LoadSceneAsync(PlaySceneName);
         loadOp.allowSceneActivation = false;
         while (loadOp.progress < 0.9f)
         {
-            GameManager.Instance?.UIManager?.UpdateSceneTransitionProgress(0.5f + loadOp.progress / 0.9f * 0.5f, "씬 준비중...");
+            if (GameManager.Instance != null && GameManager.Instance.UIManager != null)
+                GameManager.Instance.UIManager.UpdateSceneTransitionProgress(0.5f + loadOp.progress / 0.9f * 0.5f, "씬 준비중...");
             yield return null;
         }
-        ui?.UpdateSceneTransitionProgress(1f, "로드 완료");
+        if (ui != null)
+            ui.UpdateSceneTransitionProgress(1f, "로드 완료");
         yield return new WaitForSeconds(0.3f);
 
         PlayScene.OnSceneReady += HandlePlaySceneReady;
@@ -117,7 +126,8 @@ public class SceneLoadManager : MonoBehaviour
     private void HandlePlaySceneReady()
     {
         PlayScene.OnSceneReady -= HandlePlaySceneReady;
-        GameManager.Instance?.UIManager?.HideSceneTransition();
+        if (GameManager.Instance != null && GameManager.Instance.UIManager != null)
+            GameManager.Instance.UIManager.HideSceneTransition();
     }
 
     #endregion

@@ -51,7 +51,7 @@ public class CombatController : MonoBehaviour
         // 리스트를 돌며 거리의 제곱을 비교 (Distance보다 sqrMagnitude가 성능에 더 좋습니다)
         for (int i = 0; i < _enemiesInCombat.Count; i++)
         {
-            var enemy = _enemiesInCombat[i];
+            Enemy enemy = _enemiesInCombat[i];
 
             // 유효성 및 사망 체크 (안전장치)
             if (enemy == null || enemy.Model == null || enemy.Model.IsDead) continue;

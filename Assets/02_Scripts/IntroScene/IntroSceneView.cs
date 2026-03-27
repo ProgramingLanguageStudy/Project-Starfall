@@ -35,17 +35,23 @@ public class IntroSceneView : MonoBehaviour
 
     public void Initialize()
     {
-        _titleView?.Initialize();
-        _loginView?.Initialize();
-        _errorView?.Initialize();
-        _mainView?.Initialize();
-        _loadingView?.Initialize();
+        if (_titleView != null) _titleView.Initialize();
+        if (_loginView != null) _loginView.Initialize();
+        if (_errorView != null) _errorView.Initialize();
+        if (_mainView != null) _mainView.Initialize();
+        if (_loadingView != null) _loadingView.Initialize();
 
-        _mainView.OnGameStartRequested += () => OnGameStartRequested?.Invoke();
-        _mainView.OnLogoutRequested += () => OnLogoutRequested?.Invoke();
-        _loginView.OnLoginRequested += (e, p) => OnLoginRequested?.Invoke(e, p);
-        _loginView.OnSignUpRequested += (e, p) => OnSignUpRequested?.Invoke(e, p);
-        _loginView.OnGuestPlayRequested += () => OnGuestPlayRequested?.Invoke();
+        if (_mainView != null)
+        {
+            _mainView.OnGameStartRequested += () => OnGameStartRequested?.Invoke();
+            _mainView.OnLogoutRequested += () => OnLogoutRequested?.Invoke();
+        }
+        if (_loginView != null)
+        {
+            _loginView.OnLoginRequested += (e, p) => OnLoginRequested?.Invoke(e, p);
+            _loginView.OnSignUpRequested += (e, p) => OnSignUpRequested?.Invoke(e, p);
+            _loginView.OnGuestPlayRequested += () => OnGuestPlayRequested?.Invoke();
+        }
     }
 
     #endregion
@@ -54,7 +60,7 @@ public class IntroSceneView : MonoBehaviour
 
     public void ShowTitle(Action onComplete = null)
     {
-        _titleView?.Show(onComplete);
+        if (_titleView != null) _titleView.Show(onComplete);
     }
 
     #endregion
@@ -63,29 +69,29 @@ public class IntroSceneView : MonoBehaviour
 
     public void ShowLoginPanel()
     {
-        _loginView?.Show();
+        if (_loginView != null) _loginView.Show();
     }
 
     public void HideLoginPanel()
     {
-        _loginView?.Hide();
-        _errorView?.Hide();
+        if (_loginView != null) _loginView.Hide();
+        if (_errorView != null) _errorView.Hide();
     }
 
     public void ShowMainPanel()
     {
-        _mainView?.Show();
+        if (_mainView != null) _mainView.Show();
         HideLoginPanel();
     }
 
     public void HideMainPanel()
     {
-        _mainView?.Hide();
+        if (_mainView != null) _mainView.Hide();
     }
 
     public void SetLoginInteractable(bool interactable)
     {
-        _loginView?.SetInteractable(interactable);
+        if (_loginView != null) _loginView.SetInteractable(interactable);
     }
 
     #endregion
@@ -94,12 +100,12 @@ public class IntroSceneView : MonoBehaviour
 
     public void ShowErrorPanel(string message)
     {
-        _errorView?.Show(message);
+        if (_errorView != null) _errorView.Show(message);
     }
 
     public void HideErrorPanel()
     {
-        _errorView?.Hide();
+        if (_errorView != null) _errorView.Hide();
     }
 
     #endregion
@@ -109,7 +115,7 @@ public class IntroSceneView : MonoBehaviour
     public void ShowLoading(bool clearText = true)
     {
         HideMainPanel();
-        _loadingView?.Show(clearText);
+        if (_loadingView != null) _loadingView.Show(clearText);
     }
 
     public void HideLoading(Action onComplete = null)
@@ -122,7 +128,7 @@ public class IntroSceneView : MonoBehaviour
 
     public void UpdateProgress(float? progress, string status)
     {
-        _loadingView?.UpdateProgress(progress, status);
+        if (_loadingView != null) _loadingView.UpdateProgress(progress, status);
     }
 
     #endregion

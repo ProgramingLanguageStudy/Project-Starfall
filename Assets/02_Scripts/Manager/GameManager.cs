@@ -20,7 +20,7 @@ public class GameManager : MonoBehaviour
                 _instance = FindFirstObjectByType<GameManager>();
                 if (_instance == null && Application.isPlaying)
                 {
-                    var go = new GameObject(nameof(GameManager));
+                    GameObject go = new GameObject(nameof(GameManager));
                     _instance = Util.GetOrAddComponent<GameManager>(go);
                 }
             }
@@ -105,31 +105,18 @@ public class GameManager : MonoBehaviour
     /// <summary>Firebase Auth 완료 후 세이브 로드. DM·RM과 병렬로 독립 코루틴.</summary>
     private IEnumerator AuthThenSaveBootRoutine()
     {
-        if (_firebaseAuthManager != null)
-            yield return _firebaseAuthManager.InitializeAsync();
-        else
-            Debug.LogError("[GameManager] FirebaseAuthManager is null.");
-
-        if (_saveManager != null)
-            yield return _saveManager.LoadAsync(null);
-        else
-            Debug.LogError("[GameManager] SaveManager is null.");
+        yield return _firebaseAuthManager.InitializeAsync();
+        yield return _saveManager.LoadAsync(null);
     }
 
     private IEnumerator DataBootRoutine()
     {
-        if (_dataManager != null)
-            yield return _dataManager.LoadAsync(null);
-        else
-            Debug.LogError("[GameManager] DataManager is null.");
+        yield return _dataManager.LoadAsync(null);
     }
 
     private IEnumerator ResourceBootRoutine()
     {
-        if (_resourceManager != null)
-            yield return _resourceManager.LoadAsync(null);
-        else
-            Debug.LogError("[GameManager] ResourceManager is null.");
+        yield return _resourceManager.LoadAsync(null);
     }
 
     /// <summary>네 서비스 완료 플래그를 매 프레임 검사해 한 번만 BootServicesReady 통지.</summary>
@@ -137,10 +124,10 @@ public class GameManager : MonoBehaviour
     {
         while (!BootServicesReady)
         {
-            var authOk = _firebaseAuthManager == null || _firebaseAuthManager.IsInitializeComplete;
-            var saveOk = _saveManager == null || _saveManager.IsLoadComplete;
-            var dataOk = _dataManager == null || _dataManager.IsLoaded;
-            var resOk = _resourceManager == null || _resourceManager.IsLoaded();
+            bool authOk = _firebaseAuthManager == null || _firebaseAuthManager.IsInitializeComplete;
+            bool saveOk = _saveManager == null || _saveManager.IsLoadComplete;
+            bool dataOk = _dataManager == null || _dataManager.IsLoaded;
+            bool resOk = _resourceManager == null || _resourceManager.IsLoaded();
 
             if (authOk && saveOk && dataOk && resOk)
             {

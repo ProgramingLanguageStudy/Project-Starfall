@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -33,10 +34,10 @@ public class DialogueController : MonoBehaviour
 
     private void HandleNpcInteracted(string npcId)
     {
-        var main = _selector != null ? _selector.SelectMain(npcId) : null;
+        DialogueData main = _selector != null ? _selector.SelectMain(npcId) : null;
         if (main == null) return;
 
-        var questList = main.category == DialogueCategory.Casual && _selector != null
+        IReadOnlyList<DialogueData> questList = main.category == DialogueCategory.Casual && _selector != null
             ? _selector.GetAvailableQuests(npcId)
             : null;
 
@@ -64,8 +65,8 @@ public class DialogueController : MonoBehaviour
     {
         if (data.flagsToModify == null) return;
         if (_flagSystem == null) return;
-        var fm = _flagSystem;
-        foreach (var mod in data.flagsToModify)
+        FlagSystem fm = _flagSystem;
+        foreach (FlagModification mod in data.flagsToModify)
         {
             if (string.IsNullOrEmpty(mod.key)) continue;
             if (mod.op == FlagOp.Set) fm.SetFlag(mod.key, mod.value);

@@ -32,7 +32,7 @@ public class ChestSaveContributor : SaveContributor
         if (data == null) return;
         
         data.openedChestSaveIds.Clear();
-        foreach (var chest in PlaySceneRegistry.Chests.Items)
+        foreach (Chest chest in PlaySceneRegistry.Chests.Items)
         {
             if (chest == null) continue;
             if (!chest.IsOpened) continue;
@@ -50,7 +50,7 @@ public class ChestSaveContributor : SaveContributor
             ? new HashSet<string>(data.openedChestSaveIds)
             : null;
 
-        foreach (var chest in PlaySceneRegistry.Chests.Items)
+        foreach (Chest chest in PlaySceneRegistry.Chests.Items)
             ApplyToChestIfNeeded(chest);
     }
 

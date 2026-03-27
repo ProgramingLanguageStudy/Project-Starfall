@@ -20,12 +20,12 @@ public class InventorySaveContributor : SaveContributor
         if (_inventory == null) return;
 
         data.inventory.slots.Clear();
-        var slots = _inventory.GetSlots();
+        ItemSlotModel[] slots = _inventory.GetSlots();
         if (slots == null) return;
 
         for (int i = 0; i < slots.Length; i++)
         {
-            var slot = slots[i];
+            ItemSlotModel slot = slots[i];
             if (slot?.Item == null || slot.Count <= 0) continue;
 
             data.inventory.slots.Add(new InventorySlotEntry

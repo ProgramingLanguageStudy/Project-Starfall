@@ -127,11 +127,11 @@ public class UITweenFacade : MonoBehaviour
         if (controlActive)
             gameObject.SetActive(true);
 
-        var p = GetActivePreset();
+        UIPresetData p = GetActivePreset();
         _rect.localScale = p.ScaleFrom;
         _canvasGroup.alpha = p.AlphaFrom;
 
-        var seq = DOTween.Sequence();
+        Sequence seq = DOTween.Sequence();
         seq.Join(_rect.DOScale(p.ScaleTo, p.Duration).SetEase(p.Ease));
         seq.Join(_canvasGroup.DOFade(p.AlphaTo, p.Duration).SetEase(p.Ease));
 
@@ -173,11 +173,11 @@ public class UITweenFacade : MonoBehaviour
         // 연출 상태 설정
         _isInTransition = true;
         
-        var p = GetActivePreset();
+        UIPresetData p = GetActivePreset();
         _rect.localScale = p.ScaleTo;
         _canvasGroup.alpha = p.AlphaTo;
 
-        var seq = DOTween.Sequence();
+        Sequence seq = DOTween.Sequence();
         seq.Join(_rect.DOScale(p.ScaleFrom, p.Duration).SetEase(p.Ease));
         seq.Join(_canvasGroup.DOFade(p.AlphaFrom, p.Duration).SetEase(p.Ease));
         seq.OnComplete(() =>

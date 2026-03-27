@@ -46,7 +46,7 @@ public class EnemyModel : MonoBehaviour, IDamageable, IAttackPowerSource
         OnDamaged?.Invoke(attacker);
         if (reduced > 0)
         {
-            var hitPos = transform.position + Vector3.up * 1.5f;
+            Vector3 hitPos = transform.position + Vector3.up * 1.5f;
             PlaySceneEventHub.OnDamageDealt?.Invoke(reduced, this, hitPos, attacker);
         }
         if (wasAlive && _currentHp <= 0)

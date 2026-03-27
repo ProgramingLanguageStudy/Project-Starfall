@@ -42,9 +42,9 @@ public class EnemyDetector : MonoBehaviour
 
         for (int i = 0; i < count; i++)
         {
-            var c = _detectBuffer[i];
+            Collider c = _detectBuffer[i];
             if (c == null) continue;
-            var ch = c.GetComponentInParent<Character>();
+            Character ch = c.GetComponentInParent<Character>();
             if (ch == null || ch.Model == null || ch.Model.IsDead) continue;
 
             float dist = Vector3.Distance(transform.position, ch.transform.position);

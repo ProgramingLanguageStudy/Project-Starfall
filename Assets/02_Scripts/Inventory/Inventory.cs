@@ -42,17 +42,17 @@ public class Inventory : MonoBehaviour
     /// <summary>저장 데이터로 슬롯 복원. 슬롯 순서 유지. Initialize 후 호출.</summary>
     public void LoadFromSave(InventorySaveData saveData)
     {
-        if (_slots == null || saveData?.slots == null) return;
+        if (saveData?.slots == null) return;
 
-        foreach (var slot in _slots)
-            slot?.Clear();
+        foreach (ItemSlotModel slot in _slots)
+            slot.Clear();
 
-        foreach (var entry in saveData.slots)
+        foreach (InventorySlotEntry entry in saveData.slots)
         {
             if (entry.index < 0 || entry.index >= _inventorySize) continue;
             if (string.IsNullOrEmpty(entry.id) || entry.count <= 0) continue;
 
-            var itemData = GameManager.Instance?.DataManager?.Get<ItemData>(entry.id);
+            ItemData itemData = GameManager.Instance?.DataManager?.Get<ItemData>(entry.id);
             if (itemData == null)
             {
                 Debug.LogWarning($"[Inventory] LoadFromSave: ItemData not found for '{entry.id}'. Add to Resources/Items.");
@@ -64,8 +64,8 @@ public class Inventory : MonoBehaviour
             OnSlotChanged?.Invoke(_slots[entry.index]);
         }
 
-        var notifiedIds = new HashSet<string>();
-        foreach (var entry in saveData.slots)
+        HashSet<string> notifiedIds = new HashSet<string>();
+        foreach (InventorySlotEntry entry in saveData.slots)
         {
             if (!string.IsNullOrEmpty(entry.id) && notifiedIds.Add(entry.id))
                 NotifyItemChangedWithId(entry.id);
@@ -79,7 +79,7 @@ public class Inventory : MonoBehaviour
     public int GetTotalCount(string itemId)
     {
         int total = 0;
-        foreach (var slot in _slots)
+        foreach (ItemSlotModel slot in _slots)
         {
             if (slot.Item != null && slot.Item.Id == itemId)
                 total += slot.Count;
@@ -92,7 +92,7 @@ public class Inventory : MonoBehaviour
         if (itemData == null) return;
         if (itemData.IsStackable)
         {
-            foreach (var slot in _slots)
+            foreach (ItemSlotModel slot in _slots)
             {
                 if (slot.Item != null && slot.Item.Id == itemData.Id && slot.Count < itemData.MaxStack)
                 {
@@ -132,7 +132,7 @@ public class Inventory : MonoBehaviour
         if (GetTotalCount(itemId) < amount) return false;
 
         int remaining = amount;
-        foreach (var slot in _slots)
+        foreach (ItemSlotModel slot in _slots)
         {
             if (remaining <= 0) break;
             if (slot.Item == null || slot.Item.Id != itemId) continue;

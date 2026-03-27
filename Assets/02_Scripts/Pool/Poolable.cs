@@ -12,8 +12,13 @@ public class Poolable : MonoBehaviour
     public void ReturnToPool()
     {
         if (_pool != null)
+        {
             _pool.Push(gameObject);
+        }
         else
+        {
+            Debug.LogError($"[Poolable] Pool is null for object: {gameObject.name}");
             Destroy(gameObject);
+        }
     }
 }

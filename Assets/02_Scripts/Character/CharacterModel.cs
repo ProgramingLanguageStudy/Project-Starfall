@@ -36,6 +36,8 @@ public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, II
     public int AttackPower => Mathf.Max(0, _baseStats.attackPower + _modifier.attackPower);
     public float AttackSpeed => Mathf.Max(0f, _baseStats.attackSpeed + _modifier.attackSpeed);
     public int Defense => Mathf.Max(0, _baseStats.defense + _modifier.defense);
+    
+    public bool IsMaxLevel => _data != null && (_data.maxLevel <= 0 || _level >= _data.maxLevel);
 
     /// <summary>AI 따라가기: 목표 거리</summary>
     public float FollowDistance => _data != null ? _data.followDistance : 3f;
@@ -92,7 +94,7 @@ public class CharacterModel : MonoBehaviour, IDamageable, IAttackPowerSource, II
         OnHpChanged?.Invoke(_currentHp, MaxHp);
         if (reduced > 0)
         {
-            var hitPos = transform.position + Vector3.up * 1.5f;
+            Vector3 hitPos = transform.position + Vector3.up * 1.5f;
             PlaySceneEventHub.OnDamageDealt?.Invoke(reduced, this, hitPos, attacker);
         }
         if (wasAlive && _currentHp <= 0)

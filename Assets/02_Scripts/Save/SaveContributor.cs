@@ -13,7 +13,7 @@ public abstract class SaveContributor : MonoBehaviour, ISaveContributor
 
     protected virtual void OnEnable()
     {
-        var sm = GameManager.Instance?.SaveManager;
+        SaveManager sm = GameManager.Instance?.SaveManager;
         if (sm != null)
         {
             sm.Register(this);
@@ -26,7 +26,7 @@ public abstract class SaveContributor : MonoBehaviour, ISaveContributor
 
     protected virtual void OnDisable()
     {
-        var sm = GameManager.Instance?.SaveManager;
+        SaveManager sm = GameManager.Instance?.SaveManager;
         if (sm != null)
         {
             sm.Unregister(this);

@@ -48,7 +48,7 @@ public class CharacterInteractor : MonoBehaviour
         {
             Collider c = _overlapBuffer[i];
             if (c == null) continue;
-            if (!c.transform.TryGetComponent<IInteractable>(out var interactable))
+            if (!c.transform.TryGetComponent<IInteractable>(out IInteractable interactable))
                 interactable = c.transform.GetComponentInParent<IInteractable>();
             if (interactable == null) continue;
 
