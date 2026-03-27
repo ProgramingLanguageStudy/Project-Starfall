@@ -251,14 +251,32 @@ flowchart TB
 // PoolManager.cs - 객체 획득 및 반환 인터페이스
 public GameObject Pop(GameObject prefab)
 {
-    var pool = GetPool(prefab);
-    return pool?.Pop();
+    Pool pool = GetPool(prefab);
+    if (pool == null)
+    {
+        Debug.LogError($"[PoolManager] Pool not found for prefab: {prefab.name}");
+        return null;
+    }
+    
+    GameObject result = pool.Pop();
+    if (result == null)
+    {
+        Debug.LogError($"[PoolManager] Failed to pop object from pool: {prefab.name}");
+    }
+    return result;
 }
 
 public void Push(GameObject prefab, GameObject instance)
 {
-    var pool = GetPool(prefab);
-    pool?.Push(instance);
+    Pool pool = GetPool(prefab);
+    if (pool == null)
+    {
+        Debug.LogError($"[PoolManager] Pool not found for prefab: {prefab.name}");
+        Destroy(instance);
+        return;
+    }
+    
+    pool.Push(instance);
 }
 
 // Poolable.cs - 객체 스스로 풀에 반환되는 구조
@@ -269,8 +287,15 @@ public class Poolable : MonoBehaviour
 
     public void ReturnToPool()
     {
-        if (_pool != null) _pool.Push(gameObject);
-        else Destroy(gameObject);
+        if (_pool != null)
+        {
+            _pool.Push(gameObject);
+        }
+        else
+        {
+            Debug.LogError($"[Poolable] Pool is null for object: {gameObject.name}");
+            Destroy(gameObject);
+        }
     }
 }
 ```
@@ -318,11 +343,11 @@ flowchart LR
 // DataManager.cs - 제네릭 데이터 조회
 public T Get<T>(string id) where T : BaseData
 {
-    var category = typeof(T).Name;
+    string category = typeof(T).Name;
     if (typeof(ItemData).IsAssignableFrom(typeof(T))) category = "ItemData";
     
-    var key = $"{category}/{id}";
-    return _cache.TryGetValue(key, out var cached) ? cached as T : null;
+    string key = $"{category}/{id}";
+    return _cache.TryGetValue(key, out BaseData cached) ? cached as T : null;
 }
 ```
 
@@ -558,6 +583,19 @@ DOTween 기반의 모듈형 UI 연출 시스템으로 일관되고 몰입감 있
 **주요 컴포넌트**
 - `UITweenFacade`: UI 연출을 필요로 하는 컴포넌트에 달아서 사용할 수 있는 인터페이스
 - `TweenPreset`: 연출 설정에 따른 프리셋을 미리 저장
+
+**구현된 프리셋 종류**
+- **TitlePreset**: 타이틀 등장 연출
+- **PanelPreset**: 패널 등장/퇴장 연출 (페이드인/아웃 + 스케일 효과)
+- **ToastPreset**: 토스트 메시지 연출 (짧은 알림 메시지 표시)
+
+**핵심 코드**
+```csharp
+// UITweenFacade를 통한 간단한 연출 실행
+UITweenFacade facade = GetComponent<UITweenFacade>();
+facade.PlayEnter();  // 등장 연출
+facade.PlayExit();   // 퇴장 연출
+```
 
 #### 3.7 사운드 및 이펙트 관리 시스템
 
