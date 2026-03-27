@@ -16,10 +16,10 @@ MonoBehaviour:
   goldDrop: 50
   dropTable:
   - itemData: {fileID: 11400000, guid: 5c0294051d72eca4a914bfe1a3953e8e, type: 2}
-    amount: 0
+    amount: 1
     probability: 0.9
-  - itemData: {fileID: 11400000, guid: 73f38b7cc1611594781e97844ebc3770, type: 2}
-    amount: 0
+  - itemData: {fileID: 11400000, guid: 9d4f09e7e53e9c348804516037358832, type: 2}
+    amount: 1
     probability: 0.1
   maxHp: 100
   attackPower: 5

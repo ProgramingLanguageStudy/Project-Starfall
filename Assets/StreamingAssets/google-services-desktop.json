@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:766504929302:android:22ab01fa2e99f820ad8d37",
+        "android_client_info": {
+          "package_name": "com.KSSStudy.Project_Starfall"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADbgk1gwFmon9z-2TSwA0NlSo3n11OXvM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:766504929302:android:f35cea93057805b5ad8d37",
         "android_client_info": {
           "package_name": "com.KSSStudy.SquadSystemFramework"

@@ -107,6 +107,18 @@ public class GameManager : MonoBehaviour
     {
         yield return _firebaseAuthManager.InitializeAsync();
         yield return _saveManager.LoadAsync(null);
+        
+        // 로드된 세이브 데이터 적용
+        var loadedData = _saveManager.LoadedSaveData;
+        if (loadedData != null)
+        {
+            _saveManager.ApplySaveData(loadedData);
+            Debug.Log("[GameManager] Save data applied successfully.");
+        }
+        else
+        {
+            Debug.LogWarning("[GameManager] No save data to apply.");
+        }
     }
 
     private IEnumerator DataBootRoutine()

@@ -144,7 +144,8 @@ public class LevelUpAltarPresenter : MonoBehaviour
     /// </summary>
     private void HandleItemChangedWithId(string itemId, int _)
     {
-        if (_currentAltar.RequiredItem.Id != itemId) return;
+        if (!_view.gameObject.activeSelf) return;
+        if (_currentAltar?.RequiredItem?.Id != itemId) return;
 
         RefreshView();
     }

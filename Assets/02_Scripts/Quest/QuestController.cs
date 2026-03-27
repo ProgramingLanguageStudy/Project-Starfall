@@ -110,7 +110,7 @@ public class QuestController : MonoBehaviour
             if (count > 0)
             {
                 _questSystem.SetTaskProgress(quest.Id, quest.TargetId, count);
-                return;
+                return; // SetTaskProgress 후 바로 return하여 중복 처리 방지
             }
         }
 

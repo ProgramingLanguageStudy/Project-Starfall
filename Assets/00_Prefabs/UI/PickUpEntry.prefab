@@ -220,7 +220,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UITweenFacade
   controlActive: 1
   useDefaultPreset: 1
-  role: 1
+  role: 2
   customDuration: 0.25
   customEase: 6
   customScaleFrom: {x: 0.9, y: 0.9, z: 1}
