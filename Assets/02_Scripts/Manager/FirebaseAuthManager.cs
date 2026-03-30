@@ -88,16 +88,32 @@ public class FirebaseAuthManager : MonoBehaviour
     {
         if (!PreCheck(email, password, onError)) return;
 
-        _auth.SignInWithEmailAndPasswordAsync(email, password)
-            .ContinueWithOnMainThread(task => HandleAuthTask(task, "로그인", onSuccess, onError));
+        try
+        {
+            _auth.SignInWithEmailAndPasswordAsync(email, password)
+                .ContinueWithOnMainThread(task => HandleAuthTask(task, "로그인", onSuccess, onError));
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[FirebaseAuthManager] SignIn exception: {ex.Message}");
+            onError?.Invoke("로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        }
     }
 
     public void SignUp(string email, string password, Action onSuccess, Action<string> onError)
     {
         if (!PreCheck(email, password, onError)) return;
 
-        _auth.CreateUserWithEmailAndPasswordAsync(email, password)
-            .ContinueWithOnMainThread(task => HandleAuthTask(task, "회원가입", onSuccess, onError));
+        try
+        {
+            _auth.CreateUserWithEmailAndPasswordAsync(email, password)
+                .ContinueWithOnMainThread(task => HandleAuthTask(task, "회원가입", onSuccess, onError));
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[FirebaseAuthManager] SignUp exception: {ex.Message}");
+            onError?.Invoke("회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        }
     }
 
     public void SignOut() => _auth?.SignOut();

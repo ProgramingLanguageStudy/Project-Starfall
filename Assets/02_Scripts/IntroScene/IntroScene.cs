@@ -156,23 +156,40 @@ public class IntroScene : MonoBehaviour
         if (auth == null)
         {
             Debug.LogError("[IntroScene] FirebaseAuthManager is null.");
+            _introSceneView.ShowErrorPanel("인증 서비스를 찾을 수 없습니다.");
+            return;
+        }
+
+        if (!auth.IsInitializeComplete)
+        {
+            Debug.LogError("[IntroScene] FirebaseAuth not initialized.");
+            _introSceneView.ShowErrorPanel("인증 서비스가 준비되지 않았습니다. 잠시 후 다시 시도해주세요.");
             return;
         }
 
         _introSceneView.SetLoginInteractable(false);
 
-        auth.SignIn(email, password,
-            onSuccess: () =>
-            {
-                _introSceneView.SetLoginInteractable(true);
-                _introSceneView.HideLoginPanel();
-                _introSceneView.ShowMainPanel();
-            },
-            onError: msg =>
-            {
-                _introSceneView.SetLoginInteractable(true);
-                _introSceneView.ShowErrorPanel(msg);
-            });
+        try
+        {
+            auth.SignIn(email, password,
+                onSuccess: () =>
+                {
+                    _introSceneView.SetLoginInteractable(true);
+                    _introSceneView.HideLoginPanel();
+                    _introSceneView.ShowMainPanel();
+                },
+                onError: msg =>
+                {
+                    _introSceneView.SetLoginInteractable(true);
+                    _introSceneView.ShowErrorPanel(msg);
+                });
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[IntroScene] Login request exception: {ex.Message}");
+            _introSceneView.SetLoginInteractable(true);
+            _introSceneView.ShowErrorPanel("로그인 요청 중 오류가 발생했습니다.");
+        }
     }
 
     private void HandleSignUpRequested(string email, string password)

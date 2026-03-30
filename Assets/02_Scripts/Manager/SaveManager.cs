@@ -71,9 +71,15 @@ public class SaveManager : MonoBehaviour
         var r = ResolveBackend(SaveDevSettings.ForceLocalSave, auth);
         // 로그인 전환 등으로 백엔드가 실제로 바뀔 때만 갱신(같은 키면 스킵).
         if (r.Key == _appliedBackendKey) return;
+        var previousPhase = _accessPhase;
         _appliedBackendKey = r.Key;
         _accessPhase = r.Phase;
         SetBackend(r.Backend);
+
+        // 부트 시 LoadAsync는 게스트 기준으로 이미 끝난 뒤일 수 있음. 이후 로그인하면 백엔드만 Firestore로 바뀌고
+        // _loadedSaveData는 로컬/기본값에 머물러 Play 씬에 클라우드 데이터가 안 들어간다 → 전환 직후 재로드.
+        if (r.Phase == SaveAccessPhase.Cloud && previousPhase == SaveAccessPhase.LocalGuest && _backend != null)
+            StartCoroutine(ReloadSaveAfterCloudLoginRoutine());
     }
 
     /// <summary>
@@ -310,6 +316,18 @@ public class SaveManager : MonoBehaviour
 
         onProgress?.Invoke(1f, "Save 로드 완료");
         IsLoadComplete = true;
+    }
+
+    /// <summary>
+    /// 게스트로 부트 로드가 끝난 뒤 로그인해 Firestore로 전환된 경우, 클라우드에서 다시 읽어 메모리에 반영한다.
+    /// Contributor가 아직 없으면 Apply는 스킵되고, Play 씬에서 <see cref="LoadedSaveData"/>로 적용된다.
+    /// </summary>
+    private IEnumerator ReloadSaveAfterCloudLoginRoutine()
+    {
+        Debug.Log("[SaveManager] LocalGuest → Cloud 전환: Firestore에서 세이브 재로드.");
+        yield return LoadAsync(null);
+        if (_loadedSaveData != null)
+            ApplySaveData(_loadedSaveData);
     }
 
     /// <summary>세이브 삭제. 디버그/테스트용.</summary>
