@@ -5,7 +5,7 @@
 
 > 이 프로젝트는 코드 품질 향상과 문서화 작업을 위해 Cursor, Trae, WindSurf 등 AI 개발 도우미를 보조적으로 활용했습니다. 핵심 아키텍처 설계와 구현은 개발자의 주도하에 진행되었습니다.
 
-[🎮 게임 플레이 영상](https://youtu.be/68GyOBLbEL0?si=jMJzJQlJAZw_iTM8) | [📦 빌드 다운로드](https://drive.google.com/drive/folders/1Vm-nvzCF47ImGwqrmkW711cJRpMeOCUc?usp=drive_link) | [🔗 GitHub Repository](https://github.com/ProgramingLanguageStudy/Project-Starfall)
+[🎮 게임 플레이 영상](https://youtu.be/68GyOBLbEL0?si=jMJzJQlJAZw_iTM8) | [📦 빌드 다운로드](https://drive.google.com/drive/folders/1Vm-nvzCF47ImGwqrmkW711cJRpMeOCUc?usp=drive_link) | [🔗 GitHub Repository](https://github.com/ProgramingLanguageStudy/Project-Starfall) | [구글 드라이브 링크(포트폴리오 파일이 있습니다!)](https://drive.google.com/drive/folders/1lQsb53gf52q-ODTIIMRFxF1-r-S-OqQh?usp=drive_link)
 
 > **Last Updated**: 2026.03.26 | **Unity**: 6000.3.10f1 | **Status**: Phase 2 (Content Loop)
 
