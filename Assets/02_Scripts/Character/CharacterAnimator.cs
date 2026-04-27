@@ -22,11 +22,11 @@ public class CharacterAnimator : MonoBehaviour
             _animator.SetBool(AnimatorParams.IsMoving, value);
     }
 
-    /// <summary>이동 속도 적용. Move 상태 내 walk/run 블렌드용. Character.Update에서 호출.</summary>
+    /// <summary>이동 속도 적용. Move 상태 내 walk/run 블렌드용. CharacterMoveState.Update에서 ApplyMovement 직후 호출.</summary>
     public void Move(float moveSpeed)
     {
         if (_animator != null)
-            _animator.SetFloat(AnimatorParams.MoveSpeed, moveSpeed, DampTime, Time.deltaTime);
+            _animator.SetFloat(AnimatorParams.MoveSpeed, moveSpeed);
     }
 
     public void Attack()

@@ -15,12 +15,12 @@ MonoBehaviour:
   _id: item_sprintpotion
   ItemName: "\uC9C8\uC8FC \uBB3C\uC57D"
   Icon: {fileID: 21300000, guid: 79489f0878e426d46b8883a8dce7d879, type: 3}
-  Description: "10\uCD08 \uB3D9\uC548 \uC774\uB3D9\uC18D\uB3C4 2 \uC99D\uAC00"
+  Description: "10\uCD08 \uB3D9\uC548 \uC774\uB3D9\uC18D\uB3C4 10 \uC99D\uAC00"
   IsStackable: 1
   MaxStack: 50
   Modifier:
     maxHp: 0
-    moveSpeed: 2
+    moveSpeed: 10
     attackPower: 0
     attackSpeed: 0
     defense: 0

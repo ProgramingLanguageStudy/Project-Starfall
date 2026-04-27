@@ -13,7 +13,25 @@ public class CharacterMoveState : CharacterStateBase
 
     public override void Update()
     {
-        Character?.ApplyMovement();
+        if (Character == null) return;
+
+        Character.ApplyMovement();
+
+        var anim = Character.Animator;
+        var model = Character.Model;
+        if (anim == null)
+        {
+            Debug.LogError("[CharacterMoveState] Character.Animator is null.");
+            return;
+        }
+
+        if (model == null)
+        {
+            Debug.LogError("[CharacterMoveState] Character.Model is null.");
+            return;
+        }
+
+        anim.Move(model.CurrentMoveSpeed);
     }
 
     public override void Exit() { }

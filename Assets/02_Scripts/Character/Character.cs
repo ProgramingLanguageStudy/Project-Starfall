@@ -224,9 +224,10 @@ public class Character : MonoBehaviour, IInteractReceiver
         bool isMove = current == CharacterState.Move;
         _characterAnimator.SetMoving(isMove);
 
-        // 이동 상태로 진입 시 모델의 이동 속도 전달 (애니메이터 댐핑 사용)
-        float speed = isMove && _model != null ? _model.CurrentMoveSpeed : 0f;
-        _characterAnimator.Move(speed);
+        // MoveSpeed는 Move 상태에서 CharacterMoveState.Update가 ApplyMovement 직후 매 프레임 갱신.
+        // Idle/Attack/Dead 등으로 나갈 때만 0으로 리셋 (블렌드 트리 Idle 쪽으로).
+        if (!isMove)
+            _characterAnimator.Move(0f);
     }
 
     private void OnDisable()
