@@ -18197,6 +18197,7 @@ MonoBehaviour:
   _settingsView: {fileID: 1058236572}
   _overlayController: {fileID: 1465772070}
   _levelUpAltarPresenter: {fileID: 209788215}
+  _playSceneBgm: {fileID: 8300000, guid: 33405c364ca7bce488b94907c2399e56, type: 3}
 --- !u!4 &947011742 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 409632, guid: 471c1eb32c770a54ea8a1c3ffbda1de6, type: 3}
@@ -26998,8 +26999,7 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects:
-    - {fileID: 4303688456410474720, guid: 986a81ddf1b2ecb4f8c6ec7972684cb2, type: 3}
+    m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 986a81ddf1b2ecb4f8c6ec7972684cb2, type: 3}
@@ -35487,8 +35487,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be19171b26e76a34697ff9dda1542d39, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyRewardController
-  _itemObjectPrefab: {fileID: 2449788240820832412, guid: fcf67d2efae723143b00e005a436e2a6, type: 3}
-  _poolManager: {fileID: 0}
 --- !u!1001 &1755625904
 PrefabInstance:
   m_ObjectHideFlags: 0

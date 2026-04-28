@@ -1,20 +1,66 @@
 using UnityEngine;
 
 /// <summary>
-/// 사운드 재생. RM 또는 Resources에서 클립 로드.
-/// 호출처: 전투(히트, 공격), UI 등. API는 Play(SoundType, ...) 오버로드.
+/// 브금·효과음 재생. BGM은 단일 AudioSource·루프·2D. 같은 클립이 이미 재생 중이면 중복 호출 무시.
 /// </summary>
 public class SoundManager : MonoBehaviour
 {
-    /// <summary>사운드 재생. 2D 또는 3D(위치 기반).</summary>
-    public void Play(SoundType type)
+    #region Fields / Internal State
+
+    private AudioSource _bgmSource;
+
+    #endregion
+
+    #region Public API
+
+    /// <summary>브금 재생. 이미 같은 클립이 재생 중이면 아무 것도 하지 않음.</summary>
+    public void BgmPlay(AudioClip clip)
     {
-        // TODO: 클립 로드, 재생
+        if (clip == null)
+        {
+            Debug.LogError("[SoundManager] BgmPlay: clip is null.");
+            return;
+        }
+
+        if (_bgmSource == null)
+        {
+            Debug.LogError("[SoundManager] BgmPlay: _bgmSource is null.");
+            return;
+        }
+
+        if (_bgmSource.isPlaying && _bgmSource.clip == clip)
+            return;
+
+        _bgmSource.clip = clip;
+        _bgmSource.loop = true;
+        _bgmSource.spatialBlend = 0f;
+        _bgmSource.Play();
     }
 
-    /// <summary>3D 사운드. 위치에 따라 볼륨/패닝.</summary>
-    public void Play(SoundType type, Vector3 position)
+    /// <summary>브금 정지. 씬 전환 등에서 호출.</summary>
+    public void BgmStop()
     {
-        // TODO: 3D AudioSource, 위치 설정
+        if (_bgmSource == null)
+        {
+            Debug.LogError("[SoundManager] BgmStop: _bgmSource is null.");
+            return;
+        }
+
+        _bgmSource.Stop();
+        _bgmSource.clip = null;
     }
+
+    #endregion
+
+    #region Unity Lifecycle
+
+    private void Awake()
+    {
+        _bgmSource = Util.GetOrAddComponent<AudioSource>(gameObject);
+        _bgmSource.playOnAwake = false;
+        _bgmSource.loop = true;
+        _bgmSource.spatialBlend = 0f;
+    }
+
+    #endregion
 }

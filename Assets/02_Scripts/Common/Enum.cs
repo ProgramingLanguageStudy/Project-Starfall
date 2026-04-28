@@ -26,10 +26,3 @@ public enum EffectType
     Hit,         // 타격 이펙트
     AttackSlash, // 공격 스윙
 }
-
-/// <summary>SoundManager.Play용.</summary>
-public enum SoundType
-{
-    Hit,
-    Attack,
-}

@@ -58,6 +58,8 @@ public class PlayScene : MonoBehaviour
     private PlaySceneOverlayController _overlayController;
     [SerializeField] [Tooltip("레벨업 제단 Presenter")]
     private LevelUpAltarPresenter _levelUpAltarPresenter;
+    [SerializeField] [Tooltip("플레이 씬 브금. 비어 있으면 재생 안 함. 씬 이탈 시 SoundManager에서 정지.")]
+    private AudioClip _playSceneBgm;
 
     #endregion
 
@@ -119,6 +121,20 @@ public class PlayScene : MonoBehaviour
     private void OnDisable()
     {
         IsSceneReady = false;
+
+        var gmForBgm = GameManager.Instance;
+        if (gmForBgm == null)
+        {
+            Debug.LogError("[PlayScene] OnDisable: GameManager.Instance is null.");
+        }
+        else
+        {
+            var soundManager = gmForBgm.SoundManager;
+            if (soundManager == null)
+                Debug.LogError("[PlayScene] OnDisable: SoundManager is null.");
+            else
+                soundManager.BgmStop();
+        }
 
         if (GameManager.Instance != null && GameManager.Instance.PoolManager != null)
             GameManager.Instance.PoolManager.RemoveDestroyedFromAllPools();
@@ -292,6 +308,12 @@ public class PlayScene : MonoBehaviour
         HandlePlayerChanged(_squadController.PlayerCharacter);
 
         _cameraController.SetCameraActive(true);
+
+        var soundManager = gm.SoundManager;
+        if (soundManager == null)
+            Debug.LogError("[PlayScene] Initialize: SoundManager is null.");
+        else if (_playSceneBgm != null)
+            soundManager.BgmPlay(_playSceneBgm);
 
         IsSceneReady = true;
         OnSceneReady?.Invoke();
