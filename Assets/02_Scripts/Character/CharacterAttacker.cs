@@ -56,12 +56,11 @@ public class CharacterAttacker : MonoBehaviour
             return;
         }
 
-        if (_hitThisAttack.Contains(target))
+        if (!_hitThisAttack.Add(target))
         {
             return;
         }
 
-        _hitThisAttack.Add(target);
         int damage = _ownerPowerSource.AttackPower;
         
         Debug.Log($"[CharacterAttacker] {gameObject.name} → {target} 데미지 {damage} 적용");

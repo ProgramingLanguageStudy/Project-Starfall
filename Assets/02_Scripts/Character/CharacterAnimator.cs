@@ -8,8 +8,6 @@ public class CharacterAnimator : MonoBehaviour
 {
     private Animator _animator;
 
-    private const float DampTime = 0.1f;
-
     public void Initialize(Animator animator)
     {
         _animator = animator;
